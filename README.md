@@ -17,7 +17,7 @@ Head to the [**Releases**](../../releases/latest) page and grab the latest `.exe
 ## What is DanOverlay?
 
 A real-time Dan estimation overlay for **osu!mania 4K**.  
-Reads your current map through tosu and shows which **Reform pack** Dan tier it falls under — from **α Alpha** to **κ Kappa** — the moment you switch songs.
+Reads your current map through tosu and shows which **Reform pack** Dan tier it falls under — from **1st** to **κ Kappa** — the moment you switch songs.
 
 - Live tier estimation (Alpha → Kappa)
 - Skillset breakdown: CJ · JS · Stamina · HS · Tech
