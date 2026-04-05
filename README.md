@@ -19,7 +19,7 @@ Head to the [**Releases**](../../releases/latest) page and grab the latest `.exe
 A real-time Dan estimation overlay for **osu!mania 4K**.  
 Reads your current map through tosu and shows which **Reform pack** Dan tier it falls under — from **1st** to **κ Kappa** — the moment you switch songs.
 
-- Live tier estimation (Alpha → Kappa)
+- Live tier estimation (1st → Kappa)
 - Skillset breakdown: CJ · JS · Stamina · HS · Tech
 - Personal mode: stays on top of osu! while you play
 - Stream mode: larger window (840×384) with 1.2× scaling for OBS
