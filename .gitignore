@@ -39,7 +39,5 @@ config/settings.json
 # Binaries built by the project
 *.exe
 !tools/bin/msd.exe
-
-# ffmpeg/ffprobe are large third-party binaries, not hosted in the repo.
-# The overlay looks for them next to the executable, then falls back to PATH.
-src/01_overlay_ui/ffmpeg/
+!src/01_overlay_ui/ffmpeg/ffmpeg.exe
+!src/01_overlay_ui/ffmpeg/ffprobe.exe
