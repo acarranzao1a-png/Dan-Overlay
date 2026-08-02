@@ -168,7 +168,7 @@ graph LR
   - `audio_visualizer.py` — FFT bands from decoded audio file
   - `chart_export.py` — NPS/density chart generator
   - `web/` — HTML/JS/CSS: 6 skins + chart renderer
-  - `ffmpeg/` — Optional ffmpeg/ffprobe binaries (not hosted; see Dependencies)
+  - `ffmpeg/` — ffmpeg/ffprobe binaries (Git LFS, for audio decoding)
 - **`config/`**
   - `sr_means.json` — SR means per Dan (20 general + 4 skillsets)
   - `sr_means_7k.json` — SR means per Tier for 7K
@@ -991,8 +991,9 @@ flowchart TD
 - See `src/04_packaging_and_launch/requirements.txt` for pip packages
 - WebView2 Runtime (Windows) — auto-detected, download from Microsoft if missing
 - `tools/bin/msd.exe` — MinaCalc CLI binary (included in the repository)
-- ffmpeg/ffprobe — for the audio visualizer; the overlay looks for them next to
-  the executable, then falls back to PATH. Download from https://ffmpeg.org
+- ffmpeg/ffprobe — for the audio visualizer, stored via Git LFS
+  (`src/01_overlay_ui/ffmpeg/`); the overlay looks for them next to the
+  executable, then falls back to PATH
 
 ### Development
 
