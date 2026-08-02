@@ -1049,12 +1049,4 @@ ffmpeg, web assets) before compiling.
 
 ---
 
-## License
-
-This project is provided as open source. The Sunny SR algorithm (`algorithm.py`) is
-copyright its respective authors and used under the terms of the
-[Star-Rating-Rebirth](https://github.com/kolhox/Star-Rating-Rebirth) license.
-
----
-
 *Author: 8DOUL (Discord: agent_ale)*
