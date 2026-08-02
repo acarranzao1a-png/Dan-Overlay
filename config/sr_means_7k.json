@@ -1,28 +1,4 @@
 {
-  "_metadata": {
-    "description": "7K DDMythical original Dan course SR means (practice packs)",
-    "keys": 7,
-    "tiers": [
-      "0th",
-      "1st",
-      "2nd",
-      "3rd",
-      "4th",
-      "5th",
-      "6th",
-      "7th",
-      "8th",
-      "9th",
-      "10th",
-      "Gamma",
-      "Azimuth",
-      "Zenith",
-      "Stellium"
-    ],
-    "n_maps_total": 45,
-    "calibrated": "2026-06",
-    "source": "data/original 7K/ - DDMythical 7K regular dan packs"
-  },
   "general": {
     "0th": {
       "n": 3,

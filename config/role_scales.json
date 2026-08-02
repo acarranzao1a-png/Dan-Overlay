@@ -1,34 +1,4 @@
 {
-  "_generated": "auto",
-  "_description": "MinaCalc MSD role scales — median of v1+v2 maps per (role,dan)",
-  "_roles": [
-    "jack",
-    "speed",
-    "tech",
-    "stamina"
-  ],
-  "_dan_order": [
-    "1st",
-    "2nd",
-    "3rd",
-    "4th",
-    "5th",
-    "6th",
-    "7th",
-    "8th",
-    "9th",
-    "10th",
-    "Alpha",
-    "Beta",
-    "Gamma",
-    "Delta",
-    "Epsilon",
-    "Zeta",
-    "Eta",
-    "Theta",
-    "Iota",
-    "Kappa"
-  ],
   "scales": {
     "jack": {
       "1st": {
