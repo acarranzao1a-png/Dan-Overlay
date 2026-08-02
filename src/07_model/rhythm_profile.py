@@ -1,8 +1,12 @@
 """rhythm_profile.py — Pattern-based chart family classifier.
 
-Port of ManiaMapAnalyser's pattern engine.  Detects rhythmic textures
-(streams, jacks, chords, coordination patterns) directly from note data
-and maps them to the standard DanOverlay family taxonomy.
+This classifier is based on the chart classification engine from
+ManiaMapAnalyser (by Leo_Black).  The original bar-ratio classifier
+(classifier.py) was unstable and misclassified charts at mid-tier SR
+levels, so this pattern engine was adopted to improve calculation
+accuracy.  It detects rhythmic textures (streams, jacks, chords,
+coordination patterns) directly from note data and maps them to the
+standard DanOverlay family taxonomy.
 
 Unlike the bar-ratio classifier (classifier.py), this engine does NOT
 depend on Sunny SR components (Jbar/Pbar/Xbar/Abar).  It works purely
