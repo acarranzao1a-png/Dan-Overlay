@@ -1,0 +1,362 @@
+/* ============================================================
+   DanOverlay — Classic Skin (ui-2)
+   Layout: single-row 3-column horizontal bar
+   This file loads AFTER ../style.css and only overrides
+   the visible content layout. All shared components
+   (hints, cfg panel, toast, loading, splash, etc.)
+   inherit their styles from ../style.css unchanged.
+   ============================================================ */
+
+/* ── Show/hide c2-content with loading / transition states ── */
+
+.dan-panel.is-loading .c2-content,
+.dan-panel.is-loading .c2-greek-bg {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dan-panel.is-map-transition .c2-content,
+.dan-panel.is-map-transition .c2-greek-bg {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+/* Fade the content back in when loading is done */
+.c2-content,
+.c2-greek-bg {
+  transition: opacity 0.5s ease, width 200ms ease, height 200ms ease;
+}
+
+/* ── Greek letter watermark: centered, large, faded ──────── */
+.c2-greek-bg {
+  position:       absolute;
+  top:            50%;
+  left:           50%;
+  transform:      translate(-50%, -50%);
+  width:          var(--logo-size,     300px);
+  height:         var(--logo-size,     300px);
+  max-width:      none;
+  object-fit:     contain;
+  opacity:        var(--logo-opacity,  0.14);
+  pointer-events: none;
+  user-select:    none;
+  filter:         blur(1px) brightness(1.2) grayscale(0.4);
+  z-index:        2;
+}
+
+.c2-greek-bg[src=""] {
+  opacity: 0;
+}
+
+/* For Celestial icons (smaller/different aspect) */
+.c2-greek-bg[src*="celestial_images"] {
+  width:   var(--logo-size-cel, 220px);
+  height:  var(--logo-size-cel, 220px);
+  opacity: var(--logo-opacity,  0.14);
+}
+
+/* ── Main 3-column grid ───────────────────────────────────── */
+.c2-content {
+  position:              absolute;
+  inset:                 0;
+  /* Same z-index as overlay-content so all popups (mode-announce,
+     progress-wrap, loading-wrap, splash, hints) render on top. */
+  z-index:               4;
+  display:               grid;
+  /* Fixed 220px center keeps the dan name visually centered;
+     equal 1fr flanks keep it symmetrical at any window width. */
+  grid-template-columns: minmax(0, 1fr) 220px minmax(0, 1fr);
+  align-items:           center;
+  padding:               0 32px;
+  gap:                   14px;
+}
+
+/* ── LEFT: Map info ──────────────────────────────────────── */
+.c2-map {
+  display:        flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow:       hidden;
+  min-width:      0;
+}
+
+.c2-title-wrap {
+  overflow: hidden;
+  width:    100%;
+}
+
+/* Marquee track — mirrors .map-title-track from style.css but
+   under .c2-title-track class so overlay.js is-marquee works */
+.c2-title-track {
+  --title-gap:      40px;
+  --title-shift:    0px;
+  --title-duration: 12s;
+  display:    inline-flex;
+  align-items: center;
+  gap:         var(--title-gap);
+  width:       100%;
+  min-width:   100%;
+  transform:   translateX(0);
+  will-change: transform;
+}
+
+.c2-title-track.is-marquee {
+  width:     max-content;
+  min-width: 100%;
+  animation: mapTitleMarquee var(--title-duration) linear infinite;
+}
+
+/* Hide ghost by default; show during marquee */
+.c2-title-ghost {
+  display: none;
+}
+.c2-title-track.is-marquee .c2-title-ghost {
+  display: block;
+}
+
+/* Clip non-scrolling title */
+.c2-title-track:not(.is-marquee) .c2-title {
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  max-width:     100%;
+}
+
+.c2-title {
+  display:        block;
+  flex-shrink:    0;
+  font-size:      18px;
+  font-weight:    600;
+  color:          var(--text-main);
+  white-space:    nowrap;
+  text-shadow:    var(--txt-shadow);
+  letter-spacing: -0.01em;
+  line-height:    1.2;
+}
+
+.c2-artist {
+  display:        block;
+  font-size:      12px;
+  font-weight:    400;
+  color:          var(--text-soft);
+  margin-top:     5px;
+  white-space:    nowrap;
+  overflow:       hidden;
+  text-overflow:  ellipsis;
+  text-shadow:    var(--txt-shadow);
+  line-height:    1.2;
+}
+
+/* ── CENTER: Dan rank ─────────────────────────────────────── */
+.c2-dan {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  flex-shrink:    0;
+}
+
+.c2-chart-family {
+  font-size:      9px;
+  font-weight:    800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color:          var(--dan-secondary);
+  opacity:        0.7;
+  margin-bottom:  2px;
+  min-height:     13px;
+}
+
+.c2-dan-name {
+  font-size:               40px;
+  font-weight:             800;
+  line-height:             1;
+  letter-spacing:          0.5px;
+  /* Animated gradient text — mirrors .dan-name in style.css */
+  background:              var(--dan-gradient-anim);
+  background-size:         200% auto;
+  -webkit-background-clip: text;
+  background-clip:         text;
+  -webkit-text-fill-color: transparent;
+  color:                   transparent;
+  text-shadow:             none;
+  animation:               danNameGradient 4s linear infinite;
+  position:                relative;
+  isolation:               isolate;
+}
+
+/* Celestial tier names are long (e.g. "Transcendence") — shrink to avoid
+   overflowing into the map title column. */
+.c2-dan-name.is-celestial {
+  font-size: 28px;
+  letter-spacing: 0.2px;
+}
+
+/* Glow layers — same technique as .dan-name::before/::after in style.css */
+.c2-dan-name::before,
+.c2-dan-name::after {
+  content:                 attr(data-lastText);
+  position:                absolute;
+  top:                     0;
+  left:                    0;
+  width:                   100%;
+  pointer-events:          none;
+  user-select:             none;
+  font-size:               inherit;
+  font-weight:             inherit;
+  letter-spacing:          inherit;
+  line-height:             inherit;
+  white-space:             nowrap;
+  background:              none;
+  -webkit-background-clip: unset;
+  background-clip:         unset;
+  -webkit-text-fill-color: unset;
+  z-index:                 -1;
+}
+
+.c2-dan-name::before {
+  color:     var(--dan-primary);
+  filter:    blur(10px);
+  animation: danNameGlowPulse 2.5s ease-in-out infinite;
+}
+
+.c2-dan-name::after {
+  color:     var(--dan-secondary);
+  filter:    blur(18px);
+  animation: danNameGlowPulse 2.5s ease-in-out infinite reverse;
+}
+
+.c2-dan-sub {
+  display:         inline-block;
+  color:           var(--text-main);
+  font-size:       10px;
+  font-weight:     700;
+  text-transform:  uppercase;
+  letter-spacing:  3px;
+  margin-top:      6px;
+  padding:         3px 12px;
+  border-radius:   20px;
+  background:      rgba(0, 0, 0, 0.35);
+  border:          1px solid var(--dan-border);
+  box-shadow:      0 2px 6px rgba(0, 0, 0, 0.5);
+  text-shadow:     var(--txt-shadow);
+}
+
+/* ── RIGHT: Stats ─────────────────────────────────────────── */
+.c2-stats {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-end;
+  justify-content: center;
+  gap:            3px;
+  min-width:      0;
+}
+
+.c2-msd-row {
+  display:     flex;
+  align-items: baseline;
+  gap:         3px;
+}
+
+/* DP row inside the right stats column of classic skin */
+.c2-stats .dan-dp-row {
+  margin-top:      1px;
+  margin-bottom:   0;
+  justify-content: flex-end;
+}
+
+.c2-msd-value {
+  color:       var(--text-main);
+  font-size:   24px;
+  font-weight: 800;
+  text-shadow: var(--txt-shadow);
+  font-variant-numeric: tabular-nums;
+}
+
+.c2-msd-unit {
+  color:       var(--dan-primary);
+  font-size:   12px;
+  font-weight: 800;
+}
+
+.c2-badges-row {
+  display:         flex;
+  gap:             5px;
+  flex-wrap:       wrap;
+  justify-content: flex-end;
+  align-items:     center;
+  margin-top:      1px;
+}
+
+/* Reposition scoring-mode-badge for classic skin */
+.c2-badges-row .scoring-mode-badge {
+  font-size: 10px;
+  padding:   3px 8px;
+}
+
+/* Reposition mod-badge for classic skin */
+.c2-badges-row .mod-badge {
+  font-size: 10px;
+  padding:   3px 8px;
+}
+
+.c2-time-row {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  margin-top:  2px;
+}
+
+.c2-duration {
+  color:        var(--text-soft);
+  font-size:    13px;
+  font-family:  monospace;
+  font-weight:  600;
+  text-shadow:  var(--txt-shadow);
+  font-variant-numeric: tabular-nums;
+}
+
+.c2-map-meta {
+  display:     flex;
+  gap:         4px;
+  color:       var(--text-dim);
+  font-size:   11px;
+  margin-top:  1px;
+}
+
+.c2-sep {
+  color:   var(--text-dim);
+  opacity: 0.5;
+}
+
+/* ── Intensity bar in classic skin (center column) ───── */
+.c2-intensity-bar {
+  display:        flex;
+  align-items:    center;
+  gap:            7px;
+  margin-top:     8px;
+  width:          180px;
+  /* Centered under the dan name */
+  align-self:     center;
+}
+
+/* ── Layout mode: no-op overrides for classic skin ──────── */
+/* JS _applyLayoutMode is skipped for classic skin, but as
+   a CSS safety belt we keep the content always visible. */
+.dan-panel.layout-simplified .c2-content,
+.dan-panel.layout-compact    .c2-content {
+  opacity:        1;
+  pointer-events: auto;
+  padding:        0 32px;
+}
+
+/* ── Entrance animation ───────────────────────────────────── */
+@keyframes c2FadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.c2-content {
+  animation: c2FadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.1s;
+}

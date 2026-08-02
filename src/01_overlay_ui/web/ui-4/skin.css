@@ -1,0 +1,410 @@
+/* ================================================================
+   DanOverlay — ui-4 "Vertical Monolith" skin
+   Extracted faithfully from ai_studio_code (89).html prototype.
+   All hardcoded colors replaced by --dan-* CSS variables.
+   RULE: body / #overlay / .dan-panel must remain fully transparent.
+   ================================================================ */
+
+/* ── Reset & base ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: transparent !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* ── Overlay root: transparent, stretches to viewport ───────────── */
+#overlay {
+  background: transparent !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ── danPanel: transparent host for the card ─────────────────── */
+.dan-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: unset !important;
+  padding: 0 !important;           /* Remove padding so card borders touch window edges */
+  margin: 0 !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  position: relative;
+  overflow: visible !important;
+}
+
+/* ── Off-screen holder for JS IDs not shown in this skin ──────── */
+.js-offscreen {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ================================================================
+   THE CARD  (.p1-card)
+   ================================================================ */
+.p1-card {
+  position: relative;
+  overflow: hidden;
+
+  /* Glassmorphism */
+  background: transparent !important; /* Transparent so #danBg + scrim can show through */
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+
+  /* Shape */
+  border-radius: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Dual shadow: deep black + dynamic dan glow */
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.8),
+    0 0 100px rgba(var(--dan-primary-raw, 120, 160, 255), 0.15);
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 50px 40px 40px;
+
+  /* Smooth border-radius change when drawer opens */
+  transition:
+    border-radius 0.5s ease,
+    box-shadow 1s ease;
+}
+
+/* Map background element inside Card */
+#danBg {
+  display: block !important;
+  position: absolute;
+  inset: -20px; /* bleed for blur */
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--cfg-blur)) brightness(var(--cfg-brightness));
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Card dark scrim overlay for text readability */
+.p1-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 12, 15, calc(1.0 - var(--cfg-brightness) * 0.5));
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Card content elements on top of the background and scrim */
+.ring-wrapper,
+.rank-name,
+.signicial-icon,
+.sublevel-row,
+.expanded-drawer {
+  position: relative;
+  z-index: 2;
+}
+
+/* When drawer is open, tighten bottom corners */
+.dan-panel.is-expanded .p1-card {
+  border-radius: 40px 40px 28px 28px;
+  /* Also boost the glow when expanded for premium feel */
+  box-shadow:
+    0 40px 80px rgba(0, 0, 0, 0.85),
+    0 0 120px rgba(var(--dan-primary-raw, 120, 160, 255), 0.22);
+}
+
+/* ================================================================
+   SVG PROGRESS RING
+   ================================================================ */
+.ring-wrapper {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+.ring-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Rotated so arc starts at 12 o'clock */
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+/* Dim base track — tinted with primary color */
+.ring-track {
+  fill: none;
+  stroke: rgba(var(--dan-primary-raw, 120, 160, 255), 0.12);
+  stroke-width: 12;
+  transition: stroke 1s ease;
+}
+
+/* Active fill arc */
+#intensityFill {
+  fill: none;
+  stroke: url(#p1-grad);
+  stroke-width: 12;
+  stroke-linecap: round;
+  /* JS sets stroke-dashoffset and filter dynamically */
+  transition:
+    stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 1s ease;
+}
+
+/* ── DP Numbers inside the ring ──────────────────────────────── */
+.dp-core {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  /* Prevent transform from the SVG rotation affecting text */
+  position: relative;
+  z-index: 1;
+}
+
+.dp-lbl {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.dp-stage {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+/* Large integer part */
+.dp-int {
+  font-size: clamp(4rem, 10vw, 6rem);
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  /* Subtle tinted text-shadow from primary color */
+  text-shadow: 0 4px 30px rgba(var(--dan-primary-raw, 120, 160, 255), 0.3);
+}
+
+/* Smaller decimal part — inherits primary color */
+.dp-dec {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: var(--dan-primary, rgb(120, 160, 255));
+  transition: color 1s ease;
+}
+
+/* ================================================================
+   DAN NAME — gradient animated text
+   ================================================================ */
+.rank-name {
+  font-size: clamp(2.8rem, 7vw, 4rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -2px;
+  text-align: center;
+  line-height: 1.05;
+
+  /* Gradient text from animated palette */
+  background: var(--dan-gradient-anim, linear-gradient(135deg, #fff, #aaa));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Dynamic glow behind the name */
+  filter: drop-shadow(0 4px 20px rgba(var(--dan-primary-raw, 120, 160, 255), 0.4));
+
+  /* Animated gradient pan */
+  animation: gradientPan 4s linear infinite;
+}
+
+@keyframes gradientPan {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Signicial mode replaces text with icon */
+.signicial-icon {
+  width: 120px;
+  height: auto;
+  margin: 4px 0;
+}
+
+/* ================================================================
+   SUBLEVEL ROW  — 5 bars + label
+   ================================================================ */
+.sublevel-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  width: 100%;
+}
+
+/* Each bar — JS sets background-color and box-shadow via .p1-bar */
+.sbar {
+  width: 12px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.06);
+  transform: skewX(-20deg);
+  border-radius: 2px;
+  transition:
+    background-color 0.5s ease,
+    box-shadow 0.5s ease;
+  flex-shrink: 0;
+}
+
+.sub-text {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+}
+
+/* ================================================================
+   EXPANDED DRAWER  — map stats panel
+   Toggled by overlay.js: danPanel.classList.toggle('is-expanded')
+   ================================================================ */
+.expanded-drawer {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  width: 100%;
+
+  transition:
+    max-height 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity    0.5s  cubic-bezier(0.16, 1, 0.3, 1),
+    margin-top 0.45s ease;
+}
+
+.dan-panel.is-expanded .expanded-drawer {
+  max-height: 320px;
+  opacity: 1;
+  margin-top: 28px;
+  /* Separator line, tinted by primary color */
+  border-top: 1px solid rgba(var(--dan-primary-raw, 120, 160, 255), 0.18);
+  padding-top: 28px;
+}
+
+/* Map title inside drawer */
+.drawer-map-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 2×2 stats grid */
+.drawer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  text-align: center;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-lbl {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.stat-val {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.stat-unit {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ================================================================
+   HIDE ELEMENTS THE SHARED style.css SHOWS BY DEFAULT
+   ================================================================ */
+
+/* Hide the drainBar, danLine — not part of this design */
+#drainBar,
+.top-drain-bar,
+.dan-line,
+#danLine,
+.premium-border,
+.c2-content,
+.dan-bg,
+.dan-scrim {
+  display: none !important;
+}
+
+/* ================================================================
+   LOADING STATE  (before first map data arrives)
+   ================================================================ */
+.dan-panel.is-loading .p1-card {
+  opacity: 0.55;
+}
+
+/* ================================================================
+   ANIMATE CARD ENTRANCE when new data arrives
+   ================================================================ */
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.93) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.dan-panel.revealing .p1-card {
+  animation: cardReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

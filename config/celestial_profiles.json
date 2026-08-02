@@ -1,0 +1,891 @@
+{
+  "Beginner": {
+    "I": {
+      "skillsets": {
+        "stream": 3.4405,
+        "jumpstream": 3.135,
+        "handstream": 2.18,
+        "stamina": 2.7078,
+        "jackspeed": 0.74,
+        "chordjack": 2.66,
+        "technical": 3.06
+      },
+      "overall_msd": 3.4405,
+      "lower": 3.4405,
+      "upper": 3.4405,
+      "map_count": 1,
+      "sr_mean": 0.3521,
+      "sr_lower": 0.3521,
+      "sr_upper": 0.3521,
+      "sr_count": 1,
+      "sr_by_type": {
+        "jack": null,
+        "speed": null,
+        "stamina": null,
+        "tech": 0.3521
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 4.3865,
+        "jumpstream": 4.3595,
+        "handstream": 2.9,
+        "stamina": 3.3689,
+        "jackspeed": 0.9,
+        "chordjack": 3.38,
+        "technical": 3.86
+      },
+      "overall_msd": 4.3865,
+      "lower": 4.3865,
+      "upper": 4.3865,
+      "map_count": 1,
+      "sr_mean": 0.4778,
+      "sr_lower": 0.4778,
+      "sr_upper": 0.4778,
+      "sr_count": 1,
+      "sr_by_type": {
+        "jack": null,
+        "speed": null,
+        "stamina": null,
+        "tech": 0.4778
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 6.34,
+        "jumpstream": 6.42,
+        "handstream": 4.34,
+        "stamina": 7.5219,
+        "jackspeed": 4.74,
+        "chordjack": 4.66,
+        "technical": 8.1255
+      },
+      "overall_msd": 8.1255,
+      "lower": 8.1255,
+      "upper": 8.1255,
+      "map_count": 1,
+      "sr_mean": 1.1373,
+      "sr_lower": 1.1373,
+      "sr_upper": 1.1373,
+      "sr_count": 1,
+      "sr_by_type": {
+        "jack": null,
+        "speed": null,
+        "stamina": null,
+        "tech": 1.1373
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 9.06,
+        "jumpstream": 10.3595,
+        "handstream": 4.9,
+        "stamina": 9.6979,
+        "jackspeed": 5.46,
+        "chordjack": 7.14,
+        "technical": 9.694
+      },
+      "overall_msd": 10.3595,
+      "lower": 10.3595,
+      "upper": 10.3595,
+      "map_count": 1,
+      "sr_mean": 1.864,
+      "sr_lower": 1.864,
+      "sr_upper": 1.864,
+      "sr_count": 1,
+      "sr_by_type": {
+        "jack": null,
+        "speed": null,
+        "stamina": null,
+        "tech": 1.864
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 10.1,
+        "jumpstream": 10.18,
+        "handstream": 5.7,
+        "stamina": 11.2078,
+        "jackspeed": 5.62,
+        "chordjack": 7.3,
+        "technical": 11.749
+      },
+      "overall_msd": 11.749,
+      "lower": 11.749,
+      "upper": 11.749,
+      "map_count": 1,
+      "sr_mean": 2.1939,
+      "sr_lower": 2.1939,
+      "sr_upper": 2.1939,
+      "sr_count": 1,
+      "sr_by_type": {
+        "jack": null,
+        "speed": null,
+        "stamina": null,
+        "tech": 2.1939
+      }
+    }
+  },
+  "Intermediate": {
+    "I": {
+      "skillsets": {
+        "stream": 10.98,
+        "jumpstream": 11.491,
+        "handstream": 9.06,
+        "stamina": 12.0957,
+        "jackspeed": 6.9,
+        "chordjack": 7.7,
+        "technical": 12.2445
+      },
+      "overall_msd": 12.2445,
+      "lower": 12.0645,
+      "upper": 13.76,
+      "map_count": 3,
+      "sr_mean": 2.3688,
+      "sr_lower": 2.3367,
+      "sr_upper": 2.3816,
+      "sr_count": 3,
+      "sr_by_type": {
+        "jack": null,
+        "speed": null,
+        "stamina": null,
+        "tech": 2.3688
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 11.407,
+        "jumpstream": 10.74,
+        "handstream": 8.1,
+        "stamina": 11.9896,
+        "jackspeed": 6.18,
+        "chordjack": 7.94,
+        "technical": 12.745
+      },
+      "overall_msd": 12.745,
+      "lower": 12.576,
+      "upper": 13.7865,
+      "map_count": 3,
+      "sr_mean": 2.7081,
+      "sr_lower": 2.1528,
+      "sr_upper": 2.7967,
+      "sr_count": 3,
+      "sr_by_type": {
+        "jack": 2.7967,
+        "speed": null,
+        "stamina": null,
+        "tech": 2.1528
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 13.06,
+        "jumpstream": 13.611,
+        "handstream": 12.26,
+        "stamina": 14.7535,
+        "jackspeed": 7.86,
+        "chordjack": 9.06,
+        "technical": 14.9
+      },
+      "overall_msd": 15.211,
+      "lower": 14.337,
+      "upper": 17.485,
+      "map_count": 3,
+      "sr_mean": 2.9057,
+      "sr_lower": 2.8724,
+      "sr_upper": 3.631,
+      "sr_count": 3,
+      "sr_by_type": {
+        "jack": null,
+        "speed": 2.9057,
+        "stamina": 2.8724,
+        "tech": 3.631
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 13.46,
+        "jumpstream": 14.6455,
+        "handstream": 9.14,
+        "stamina": 15.0134,
+        "jackspeed": 9.62,
+        "chordjack": 11.7,
+        "technical": 15.5035
+      },
+      "overall_msd": 15.5035,
+      "lower": 15.409,
+      "upper": 15.9355,
+      "map_count": 3,
+      "sr_mean": 3.2388,
+      "sr_lower": 2.8585,
+      "sr_upper": 3.7676,
+      "sr_count": 3,
+      "sr_by_type": {
+        "jack": 3.0486,
+        "speed": null,
+        "stamina": null,
+        "tech": 3.7676
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 15.989,
+        "jumpstream": 16.3395,
+        "handstream": 12.66,
+        "stamina": 17.6513,
+        "jackspeed": 10.74,
+        "chordjack": 12.58,
+        "technical": 17.574
+      },
+      "overall_msd": 17.6513,
+      "lower": 15.561,
+      "upper": 18.7685,
+      "map_count": 3,
+      "sr_mean": 3.6187,
+      "sr_lower": 3.469,
+      "sr_upper": 4.2963,
+      "sr_count": 3,
+      "sr_by_type": {
+        "jack": 3.469,
+        "speed": null,
+        "stamina": 3.6187,
+        "tech": 4.2963
+      }
+    }
+  },
+  "Expert": {
+    "I": {
+      "skillsets": {
+        "stream": 16.06,
+        "jumpstream": 15.18,
+        "handstream": 10.58,
+        "stamina": 18.005,
+        "jackspeed": 9.1,
+        "chordjack": 11.98,
+        "technical": 18.0325
+      },
+      "overall_msd": 18.3035,
+      "lower": 17.8675,
+      "upper": 19.4645,
+      "map_count": 4,
+      "sr_mean": 3.768,
+      "sr_lower": 3.445,
+      "sr_upper": 4.4733,
+      "sr_count": 4,
+      "sr_by_type": {
+        "jack": null,
+        "speed": 3.8478,
+        "stamina": 3.6882,
+        "tech": null
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 15.82,
+        "jumpstream": 17.593,
+        "handstream": 12.74,
+        "stamina": 18.7455,
+        "jackspeed": 10.74,
+        "chordjack": 13.34,
+        "technical": 17.8518
+      },
+      "overall_msd": 19.27,
+      "lower": 17.8417,
+      "upper": 20.733,
+      "map_count": 4,
+      "sr_mean": 4.3309,
+      "sr_lower": 3.6289,
+      "sr_upper": 4.7814,
+      "sr_count": 4,
+      "sr_by_type": {
+        "jack": 4.1304,
+        "speed": null,
+        "stamina": 3.6289,
+        "tech": null
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 18.8735,
+        "jumpstream": 17.5803,
+        "handstream": 10.14,
+        "stamina": 19.7154,
+        "jackspeed": 10.66,
+        "chordjack": 13.14,
+        "technical": 19.9377
+      },
+      "overall_msd": 20.4762,
+      "lower": 17.1275,
+      "upper": 21.091,
+      "map_count": 4,
+      "sr_mean": 4.5624,
+      "sr_lower": 3.0951,
+      "sr_upper": 5.0076,
+      "sr_count": 4,
+      "sr_by_type": {
+        "jack": 3.0951,
+        "speed": 4.6468,
+        "stamina": null,
+        "tech": null
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 17.86,
+        "jumpstream": 17.846,
+        "handstream": 12.94,
+        "stamina": 19.2399,
+        "jackspeed": 12.3,
+        "chordjack": 13.38,
+        "technical": 20.6867
+      },
+      "overall_msd": 20.8022,
+      "lower": 18.0515,
+      "upper": 22.135,
+      "map_count": 4,
+      "sr_mean": 4.5416,
+      "sr_lower": 3.8645,
+      "sr_upper": 4.835,
+      "sr_count": 4,
+      "sr_by_type": {
+        "jack": 3.8645,
+        "speed": 4.7518,
+        "stamina": null,
+        "tech": 4.3314
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 18.6532,
+        "jumpstream": 18.4582,
+        "handstream": 15.74,
+        "stamina": 20.2791,
+        "jackspeed": 12.3,
+        "chordjack": 14.7,
+        "technical": 20.3842
+      },
+      "overall_msd": 21.0552,
+      "lower": 18.621,
+      "upper": 23.124,
+      "map_count": 4,
+      "sr_mean": 4.6808,
+      "sr_lower": 4.6503,
+      "sr_upper": 5.3457,
+      "sr_count": 4,
+      "sr_by_type": {
+        "jack": 4.6597,
+        "speed": 4.702,
+        "stamina": 5.4944,
+        "tech": null
+      }
+    }
+  },
+  "Mastery": {
+    "I": {
+      "skillsets": {
+        "stream": 16.42,
+        "jumpstream": 20.1595,
+        "handstream": 17.06,
+        "stamina": 20.6922,
+        "jackspeed": 12.82,
+        "chordjack": 15.06,
+        "technical": 21.642
+      },
+      "overall_msd": 21.8545,
+      "lower": 19.39,
+      "upper": 22.944,
+      "map_count": 5,
+      "sr_mean": 5.1045,
+      "sr_lower": 4.7911,
+      "sr_upper": 5.5663,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 4.9478,
+        "speed": 5.2316,
+        "stamina": 5.5663,
+        "tech": null
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 20.02,
+        "jumpstream": 18.58,
+        "handstream": 16.5,
+        "stamina": 21.2451,
+        "jackspeed": 13.06,
+        "chordjack": 15.14,
+        "technical": 21.4965
+      },
+      "overall_msd": 22.3715,
+      "lower": 18.961,
+      "upper": 23.7972,
+      "map_count": 5,
+      "sr_mean": 5.3629,
+      "sr_lower": 4.9421,
+      "sr_upper": 5.4402,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 5.3149,
+        "speed": 5.3629,
+        "stamina": 5.4269,
+        "tech": 4.9421
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 21.204,
+        "jumpstream": 19.14,
+        "handstream": 17.54,
+        "stamina": 22.7702,
+        "jackspeed": 14.02,
+        "chordjack": 17.14,
+        "technical": 22.8445
+      },
+      "overall_msd": 23.0254,
+      "lower": 21.545,
+      "upper": 24.855,
+      "map_count": 5,
+      "sr_mean": 5.7535,
+      "sr_lower": 5.1821,
+      "sr_upper": 5.7947,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 5.7741,
+        "speed": 5.6907,
+        "stamina": 5.1821,
+        "tech": null
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 19.22,
+        "jumpstream": 19.46,
+        "handstream": 16.18,
+        "stamina": 22.8155,
+        "jackspeed": 14.82,
+        "chordjack": 18.18,
+        "technical": 23.021
+      },
+      "overall_msd": 23.6391,
+      "lower": 23.039,
+      "upper": 25.2805,
+      "map_count": 5,
+      "sr_mean": 5.7191,
+      "sr_lower": 5.3931,
+      "sr_upper": 6.1456,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 5.6524,
+        "speed": 5.7724,
+        "stamina": 5.3931,
+        "tech": 6.1456
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 20.58,
+        "jumpstream": 22.7885,
+        "handstream": 16.42,
+        "stamina": 24.5069,
+        "jackspeed": 13.94,
+        "chordjack": 17.46,
+        "technical": 22.9765
+      },
+      "overall_msd": 24.9385,
+      "lower": 23.4685,
+      "upper": 26.0435,
+      "map_count": 5,
+      "sr_mean": 5.9995,
+      "sr_lower": 5.7659,
+      "sr_upper": 6.282,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 5.9995,
+        "speed": 6.1113,
+        "stamina": 6.024,
+        "tech": 5.8842
+      }
+    }
+  },
+  "Ascension": {
+    "I": {
+      "skillsets": {
+        "stream": 22.7045,
+        "jumpstream": 22.5265,
+        "handstream": 14.66,
+        "stamina": 24.2502,
+        "jackspeed": 14.5,
+        "chordjack": 18.5,
+        "technical": 25.0965
+      },
+      "overall_msd": 25.0965,
+      "lower": 22.96,
+      "upper": 26.469,
+      "map_count": 5,
+      "sr_mean": 6.0801,
+      "sr_lower": 5.7598,
+      "sr_upper": 6.4068,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 5.9512,
+        "speed": 5.9928,
+        "stamina": null,
+        "tech": 6.2434
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 21.3,
+        "jumpstream": 22.34,
+        "handstream": 22.34,
+        "stamina": 26.0938,
+        "jackspeed": 14.5,
+        "chordjack": 19.22,
+        "technical": 24.747
+      },
+      "overall_msd": 27.2795,
+      "lower": 24.747,
+      "upper": 28.3105,
+      "map_count": 5,
+      "sr_mean": 6.5801,
+      "sr_lower": 6.3602,
+      "sr_upper": 6.7468,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 6.5801,
+        "speed": 6.4538,
+        "stamina": 6.669,
+        "tech": null
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 26.421,
+        "jumpstream": 24.132,
+        "handstream": 15.7,
+        "stamina": 25.9973,
+        "jackspeed": 18.1,
+        "chordjack": 20.1,
+        "technical": 26.8065
+      },
+      "overall_msd": 27.3685,
+      "lower": 24.4393,
+      "upper": 28.992,
+      "map_count": 5,
+      "sr_mean": 6.8393,
+      "sr_lower": 6.1248,
+      "sr_upper": 7.0912,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 6.331,
+        "speed": 7.0912,
+        "stamina": null,
+        "tech": 6.8812
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 25.3,
+        "jumpstream": 22.18,
+        "handstream": 18.5,
+        "stamina": 26.6076,
+        "jackspeed": 16.26,
+        "chordjack": 20.82,
+        "technical": 24.74
+      },
+      "overall_msd": 28.8375,
+      "lower": 26.7325,
+      "upper": 30.075,
+      "map_count": 5,
+      "sr_mean": 6.9687,
+      "sr_lower": 6.9031,
+      "sr_upper": 7.2065,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 6.9359,
+        "speed": 7.1789,
+        "stamina": 6.9562,
+        "tech": null
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 21.94,
+        "jumpstream": 25.7,
+        "handstream": 21.54,
+        "stamina": 30.2998,
+        "jackspeed": 17.06,
+        "chordjack": 20.82,
+        "technical": 25.22
+      },
+      "overall_msd": 30.9154,
+      "lower": 29.235,
+      "upper": 31.467,
+      "map_count": 5,
+      "sr_mean": 7.3377,
+      "sr_lower": 7.1728,
+      "sr_upper": 7.5575,
+      "sr_count": 5,
+      "sr_by_type": {
+        "jack": 7.2674,
+        "speed": 7.1728,
+        "stamina": 7.3377,
+        "tech": 7.5575
+      }
+    }
+  },
+  "Transcendence": {
+    "I": {
+      "skillsets": {
+        "stream": 28.6247,
+        "jumpstream": 25.7497,
+        "handstream": 20.54,
+        "stamina": 28.9645,
+        "jackspeed": 16.98,
+        "chordjack": 22.22,
+        "technical": 29.3235
+      },
+      "overall_msd": 30.27,
+      "lower": 27.531,
+      "upper": 32.225,
+      "map_count": 6,
+      "sr_mean": 7.4964,
+      "sr_lower": 7.2348,
+      "sr_upper": 7.7097,
+      "sr_count": 6,
+      "sr_by_type": {
+        "jack": 7.4623,
+        "speed": 7.2348,
+        "stamina": 7.4442,
+        "tech": 7.5486
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 26.38,
+        "jumpstream": 24.78,
+        "handstream": 24.34,
+        "stamina": 28.2964,
+        "jackspeed": 18.26,
+        "chordjack": 24.82,
+        "technical": 28.5297
+      },
+      "overall_msd": 30.4465,
+      "lower": 29.2605,
+      "upper": 32.7285,
+      "map_count": 6,
+      "sr_mean": 7.8092,
+      "sr_lower": 7.71,
+      "sr_upper": 8.1732,
+      "sr_count": 6,
+      "sr_by_type": {
+        "jack": 7.7266,
+        "speed": null,
+        "stamina": 8.1408,
+        "tech": 7.8092
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 26.7822,
+        "jumpstream": 27.06,
+        "handstream": 23.46,
+        "stamina": 30.9564,
+        "jackspeed": 19.42,
+        "chordjack": 23.42,
+        "technical": 28.2407
+      },
+      "overall_msd": 31.5228,
+      "lower": 30.6735,
+      "upper": 33.5399,
+      "map_count": 6,
+      "sr_mean": 8.03,
+      "sr_lower": 7.829,
+      "sr_upper": 8.2089,
+      "sr_count": 6,
+      "sr_by_type": {
+        "jack": 8.1206,
+        "speed": 7.829,
+        "stamina": 8.0896,
+        "tech": 8.0278
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 30.7497,
+        "jumpstream": 27.9537,
+        "handstream": 24.26,
+        "stamina": 31.1445,
+        "jackspeed": 19.7,
+        "chordjack": 25.78,
+        "technical": 31.3647
+      },
+      "overall_msd": 32.5467,
+      "lower": 31.558,
+      "upper": 33.4259,
+      "map_count": 6,
+      "sr_mean": 8.3215,
+      "sr_lower": 8.0956,
+      "sr_upper": 8.6222,
+      "sr_count": 6,
+      "sr_by_type": {
+        "jack": 8.223,
+        "speed": null,
+        "stamina": 8.2926,
+        "tech": 8.3929
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 26.78,
+        "jumpstream": 26.98,
+        "handstream": 26.3,
+        "stamina": 32.2791,
+        "jackspeed": 19.74,
+        "chordjack": 26.3,
+        "technical": 30.3772
+      },
+      "overall_msd": 33.4631,
+      "lower": 32.2545,
+      "upper": 35.191,
+      "map_count": 6,
+      "sr_mean": 8.5645,
+      "sr_lower": 8.1859,
+      "sr_upper": 8.8701,
+      "sr_count": 6,
+      "sr_by_type": {
+        "jack": 8.3699,
+        "speed": null,
+        "stamina": 8.7317,
+        "tech": 8.4411
+      }
+    }
+  },
+  "Singularity": {
+    "I": {
+      "skillsets": {
+        "stream": 29.059,
+        "jumpstream": 26.62,
+        "handstream": 27.42,
+        "stamina": 32.6612,
+        "jackspeed": 21.62,
+        "chordjack": 28.8005,
+        "technical": 30.8832
+      },
+      "overall_msd": 33.7437,
+      "lower": 32.5975,
+      "upper": 36.117,
+      "map_count": 8,
+      "sr_mean": 8.8056,
+      "sr_lower": 8.5823,
+      "sr_upper": 9.0313,
+      "sr_count": 8,
+      "sr_by_type": {
+        "jack": 8.8264,
+        "speed": 8.9994,
+        "stamina": 8.9081,
+        "tech": 8.6619
+      }
+    },
+    "II": {
+      "skillsets": {
+        "stream": 26.38,
+        "jumpstream": 30.62,
+        "handstream": 30.3,
+        "stamina": 35.0795,
+        "jackspeed": 21.26,
+        "chordjack": 28.34,
+        "technical": 30.8455
+      },
+      "overall_msd": 35.5902,
+      "lower": 32.3945,
+      "upper": 37.243,
+      "map_count": 8,
+      "sr_mean": 8.9126,
+      "sr_lower": 8.5214,
+      "sr_upper": 9.1579,
+      "sr_count": 8,
+      "sr_by_type": {
+        "jack": 8.9126,
+        "speed": 9.1579,
+        "stamina": 8.8426,
+        "tech": 8.6205
+      }
+    },
+    "III": {
+      "skillsets": {
+        "stream": 26.06,
+        "jumpstream": 29.5,
+        "handstream": 28.9,
+        "stamina": 35.5136,
+        "jackspeed": 23.42,
+        "chordjack": 32.8407,
+        "technical": 30.3
+      },
+      "overall_msd": 36.9727,
+      "lower": 35.1095,
+      "upper": 39.1145,
+      "map_count": 8,
+      "sr_mean": 9.4519,
+      "sr_lower": 9.0913,
+      "sr_upper": 9.644,
+      "sr_count": 8,
+      "sr_by_type": {
+        "jack": 9.466,
+        "speed": null,
+        "stamina": 9.5368,
+        "tech": 9.3209
+      }
+    },
+    "IV": {
+      "skillsets": {
+        "stream": 31.7115,
+        "jumpstream": 28.86,
+        "handstream": 27.14,
+        "stamina": 37.0069,
+        "jackspeed": 24.1,
+        "chordjack": 30.42,
+        "technical": 34.865
+      },
+      "overall_msd": 39.0045,
+      "lower": 35.5855,
+      "upper": 40.7555,
+      "map_count": 8,
+      "sr_mean": 9.8404,
+      "sr_lower": 9.5755,
+      "sr_upper": 10.1052,
+      "sr_count": 8,
+      "sr_by_type": {
+        "jack": 9.8187,
+        "speed": null,
+        "stamina": 9.8355,
+        "tech": 9.8412
+      }
+    },
+    "V": {
+      "skillsets": {
+        "stream": 29.06,
+        "jumpstream": 29.86,
+        "handstream": 31.62,
+        "stamina": 39.4488,
+        "jackspeed": 26.74,
+        "chordjack": 36.628,
+        "technical": 31.46
+      },
+      "overall_msd": 39.5663,
+      "lower": 38.634,
+      "upper": 43.397,
+      "map_count": 7,
+      "sr_mean": 10.0878,
+      "sr_lower": 9.9654,
+      "sr_upper": 10.3,
+      "sr_count": 7,
+      "sr_by_type": {
+        "jack": 10.2698,
+        "speed": null,
+        "stamina": 10.1021,
+        "tech": 10.0276
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+# Local data & large assets
+/archive/
+/data/
+
+# Local test workspace
+/tests/
+/scripts/
+
+# Python environment
+/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts
+/build/
+/dist/
+
+# Backups & residue
+*.backup*
+backup_pre_cleanup.bat
+b64.txt
+
+# PyInstaller specs (only the canonical one is kept)
+DanOverlay 2.0 Beta.spec
+DanOverlay 2.0.spec
+DanOverlay 2.1.spec
+DanOverlay 2.1.1.spec
+DanOverlay 2.2.0-beta.spec
+
+# In-development skins
+prototype/
+
+# Local tooling & user settings
+/.vscode/
+.codetogether.ignore
+config/settings.json
+
+# Binaries built by the project
+*.exe
+!tools/bin/msd.exe
+
+# ffmpeg/ffprobe are large third-party binaries, not hosted in the repo.
+# The overlay looks for them next to the executable, then falls back to PATH.
+src/01_overlay_ui/ffmpeg/

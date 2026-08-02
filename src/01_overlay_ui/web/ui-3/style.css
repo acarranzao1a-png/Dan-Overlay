@@ -1,0 +1,326 @@
+/* ============================================================
+   DanOverlay — Graph Skin (ui-3) — v3
+   Replicates Prototype.html layout exactly:
+   top animated line → 2-col text area → full-width graph
+   ============================================================ */
+
+/* ── Show/hide with loading / transition states ─────────────── */
+.dan-panel.is-loading .g3-layout,
+.dan-panel.is-loading .g3-greek-bg {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dan-panel.is-map-transition .g3-layout,
+.dan-panel.is-map-transition .g3-greek-bg {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.g3-layout, .g3-greek-bg {
+  transition: opacity 0.5s ease;
+}
+
+/* ── Greek letter watermark ──────────────────────────────────── */
+.g3-greek-bg {
+  position:       absolute;
+  left:           50%;
+  top:            60%;
+  transform:      translate(-50%, -50%);
+  width:          var(--logo-size, 240px);
+  height:         var(--logo-size, 240px);
+  max-width:      none;
+  object-fit:     contain;
+  opacity:        var(--logo-opacity, 0.05);
+  pointer-events: none;
+  user-select:    none;
+  filter:         blur(2px) brightness(1.1) grayscale(0.4);
+  z-index:        2;
+}
+.g3-greek-bg[src=""] { opacity: 0; }
+.g3-greek-bg[src*="celestial_images"] {
+  width:   var(--logo-size-cel, 180px);
+  height:  var(--logo-size-cel, 180px);
+}
+
+/* ── Main layout: fills the entire dan-panel ──────────────────── */
+.g3-layout {
+  display:        flex;
+  flex-direction: column;
+  padding:        0 !important;
+  gap:            0;
+  /* Fill the full panel so the graph can flex into remaining space */
+  position:       absolute;
+  inset:          0;
+  z-index:        3;
+  overflow:       hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOP ANIMATED LINE — overrides .top-drain-bar to be a
+   full-width animated dan gradient (not a progress bar)
+   ═══════════════════════════════════════════════════════════ */
+#danPanel .top-drain-bar {
+  width:           100% !important;
+  height:          5px;
+  background:      var(--dan-gradient-anim, var(--dan-primary));
+  background-size: 200% auto;
+  animation:       g3GradPan 4s linear infinite;
+  box-shadow:      0 0 20px var(--dan-glow);
+  transition:      box-shadow 500ms ease;
+}
+
+@keyframes g3GradPan {
+  0%   { background-position: 0% center; }
+  100% { background-position: 100% center; }
+}
+
+/* ── Bottom accent line: hidden (graph replaces it) ─────────── */
+#danPanel .dan-line {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TEXT AREA — 2-column row (prototype .text-area / .layout-content)
+   ═══════════════════════════════════════════════════════════ */
+.g3-text-area {
+  flex:            0 0 auto;
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         12px 20px;
+  box-sizing:      border-box;
+  z-index:         5;
+}
+
+/* ── LEFT PANEL: title + stats badges (prototype .info-panel) ── */
+.g3-info-panel {
+  flex:            1;
+  padding-right:   20px;
+  display:         flex;
+  flex-direction:  column;
+  justify-content: center;
+  overflow:        hidden;
+  gap:             10px;
+}
+
+/* Title marquee (prototype .marquee-wrapper) */
+.g3-info-panel .map-title-wrap {
+  width:      100%;
+  overflow:   hidden;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+.g3-info-panel .map-title {
+  font-size:   20px;
+  font-weight: 800;
+  color:       #ffffff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+  margin:      0;
+}
+
+/* Stats row: time badge + badges wrap */
+.g3-stats-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  width:       100%;
+}
+
+/* Time badge (prototype .time-badge) */
+.g3-time-badge {
+  background:          rgba(255,255,255,0.10);
+  border:              1px solid rgba(255,255,255,0.20);
+  border-radius:       6px;
+  padding:             5px 12px;
+  font-size:           15px;
+  font-weight:         800;
+  color:               #ffffff;
+  display:             flex;
+  align-items:         center;
+  justify-content:     center;
+  flex-shrink:         0;
+  font-variant-numeric: tabular-nums;
+  min-width:           90px;
+}
+
+/* Scrolling badges wrapper */
+.g3-badges-wrap {
+  flex:       1;
+  overflow:   hidden;
+  white-space: nowrap;
+  position:   relative;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+          mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+}
+
+/* Badge track: scrolls in a continuous loop */
+.g3-badges-track {
+  display:    flex;
+  width:      max-content;
+  animation:  g3BadgesScroll 14s linear infinite;
+}
+
+@keyframes g3BadgesScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.g3-badges-group {
+  display: flex;
+  gap:     8px;
+  padding-right: 16px; /* visual gap between real and ghost groups */
+}
+
+/* Individual stat badge (prototype .stat-badge) */
+.g3-stat-badge {
+  background:   rgba(255,255,255,0.08);
+  border:       1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  padding:      4px 11px;
+  display:      flex;
+  align-items:  baseline;
+  gap:          5px;
+  font-size:    14px;
+  font-weight:  800;
+  color:        #fff;
+}
+
+.g3-stat-badge small {
+  font-size:      11px;
+  font-weight:    800;
+  color:          var(--dan-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RIGHT PANEL — Dan Plaque (prototype .badge-plaque)
+   ═══════════════════════════════════════════════════════════ */
+.g3-badge-plaque {
+  background:   linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+  border:       1px solid var(--dan-primary);
+  border-radius: 12px;
+  padding:      10px 16px;
+  box-shadow:   inset 0 0 20px rgba(255,255,255,0.02), 0 5px 15px rgba(0,0,0,0.5),
+                0 0 12px var(--dan-glow);
+  min-width:    160px;
+  display:      flex;
+  flex-direction: column;
+  align-items:  center;
+  justify-content: center;
+  flex-shrink:  0;
+  position:     relative;
+  overflow:     hidden;
+  transition:   border-color 500ms ease, box-shadow 500ms ease;
+}
+
+/* Tiny chart family label — hidden in this skin (too noisy in the plaque) */
+.g3-family-label {
+  display: none;
+}
+
+/* Dan row: name + sublevel badge side by side */
+.g3-dan-row {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  margin-bottom: 5px;
+  z-index:       1;
+}
+
+/* Dan name: animated gradient text (prototype .dan-text) */
+.g3-badge-plaque .dan-name {
+  font-size:    26px;
+  font-weight:  900;
+  line-height:  1;
+
+  /* Animated gradient on the text itself */
+  background:         var(--dan-gradient-anim, var(--dan-primary));
+  background-size:    200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip:    text;
+  animation:          g3GradPan 4s linear infinite;
+
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8))
+          drop-shadow(0 0 8px var(--dan-glow));
+  margin: 0;
+}
+
+/* Sublevel badge: solid gradient fill (prototype .sub-tag) */
+.g3-badge-plaque .dan-sub {
+  background:   var(--dan-gradient, var(--dan-primary));
+  color:        #ffffff;
+  text-shadow:  0 1px 3px rgba(0,0,0,0.9);
+  font-size:    14px;
+  font-weight:  900;
+  padding:      2px 7px;
+  border-radius: 4px;
+  box-shadow:   0 2px 8px rgba(0,0,0,0.5);
+  border:       1px solid rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* DP line below dan name (prototype .dp-text) */
+.g3-dp-line {
+  display:     flex;
+  align-items: baseline;
+  gap:         5px;
+  z-index:     1;
+}
+
+.g3-dp-label {
+  font-size:      11px;
+  font-weight:    900;
+  color:          var(--dan-secondary, var(--dan-primary));
+  letter-spacing: 0.5px;
+}
+
+.g3-dp-line .dan-dp-value {
+  font-size:   15px;
+  font-weight: 800;
+  color:       #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DENSITY GRAPH — fills all remaining space
+   (prototype .graph-container + canvas)
+   ═══════════════════════════════════════════════════════════ */
+.g3-graph-panel {
+  flex:       1 1 auto;
+  width:      100%;
+  position:   relative;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  overflow:   hidden;
+  z-index:    3;
+}
+
+/* Graph overlay: very subtle top-fade, doesn't cover the graph */
+.g3-graph-overlay {
+  position:       absolute;
+  left:           0;
+  right:          0;
+  top:            0;
+  height:         30%;
+  background:     linear-gradient(to bottom, rgba(10,10,13,0.5) 0%, transparent 100%);
+  pointer-events: none;
+  z-index:        2;
+}
+
+#densityGraph {
+  display:  block;
+  width:    100%;
+  height:   100%;
+  position: absolute;
+  inset:    0;
+  z-index:  1;
+}
+
+/* ── Misc overrides ──────────────────────────────────────────── */
+.dp-tooltip { display: none; }
+.premium-border { display: none; }

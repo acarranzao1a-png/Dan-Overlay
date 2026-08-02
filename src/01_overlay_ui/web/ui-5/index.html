@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DanOverlay - Broadcast Bar</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="skin.css" />
+</head>
+<body>
+
+  <div class="js-offscreen" aria-hidden="true">
+    <div id="mapTicker"><div class="marquee-track"><span></span><span></span></div></div>
+    <div id="statsTicker"><div class="marquee-track"><span></span><span></span></div></div>
+    <canvas id="vizCanvas"></canvas>
+    <span id="badgeLeft"></span>
+    <span id="badgeCenter"></span>
+    <span id="badgeRight"></span>
+    <p id="danDetails"></p>
+    <p id="danBands"></p>
+    <div id="danDensity"></div>
+    <div id="progressTrack"><div id="progressBar"></div></div>
+    <span id="progressTime"></span>
+    <span id="chartBtn"></span>
+    <span id="mapArtist"></span>
+    <div id="mapTitleWrap"><div id="mapTitleTrack">
+      <span id="mapTitle"></span>
+      <span id="mapTitleGhost" aria-hidden="true"></span>
+    </div></div>
+    <!-- Intensity bar: JS looks for these — kept off-screen for skins that use sub-bars -->
+    <div id="intensityBar" style="display:none;">
+      <div id="intensityFill"></div>
+      <div id="intensityThumb"></div>
+    </div>
+  </div>
+
+  <main id="overlay">
+
+    <!-- ── Main skin panel ───────────────────────────────────────── -->
+    <section class="dan-panel is-loading" id="danPanel">
+
+      <!-- Loading / connecting state overlay -->
+      <div class="loading-wrap" id="loadingWrap">
+        <span class="loading-text" id="loadingText">Waiting for tosu</span>
+        <span class="loading-bar" aria-hidden="true"></span>
+      </div>
+
+      <!-- ── Tutorial / hint screens (shared infrastructure) ────── -->
+      <div class="hint-screen hidden" id="tutorialPromptScreen">
+        <div class="hint-inner">
+          <div class="hint-title">DANOVERLAY — QUICK SETUP</div>
+          <p class="tut-prompt-question">Would you like to see a quick tutorial<br>on resize modes and scoring modes?</p>
+          <div class="tut-prompt-btns">
+            <button class="hint-btn tut-btn-yes"   id="tutYesBtn"   type="button">Yes</button>
+            <button class="hint-btn tut-btn-no"    id="tutNoBtn"    type="button">Skip</button>
+            <button class="hint-btn tut-btn-never" id="tutNeverBtn" type="button">Don't show again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint-screen hidden" id="whatsNewScreen">
+        <div class="hint-inner">
+          <div class="hint-title">WHAT'S NEW — v1.6</div>
+          <div class="whats-new-list">
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">▦</span>
+              <span><strong>Broadcast Bar</strong> — Horizontal split-panel skin.</span>
+            </div>
+          </div>
+          <button class="hint-btn hidden" id="whatsNewBtn" type="button">Got it</button>
+        </div>
+      </div>
+
+      <div class="hint-screen hidden" id="hintScreen">
+        <div class="hint-inner">
+          <div class="hint-title">RESIZE MODE</div>
+          <div class="hint-r-indicator" id="hintRIndicator">
+            <kbd class="hint-key hint-key-lg">R</kbd>
+            <span class="hint-r-label" id="hintRLabel">press to try</span>
+          </div>
+          <div class="hint-modes">
+            <span class="hint-mode-item hint-mode-active" id="hintModeFree">
+              <span class="hint-mode-icon hint-free">◱</span> Free — drag each edge independently
+            </span>
+            <span class="hint-mode-item" id="hintModeLocked">
+              <span class="hint-mode-icon hint-locked">◈</span> Locked — scales everything up proportionally
+            </span>
+          </div>
+          <div class="hint-click-note">Click the overlay window first if the key doesn't respond.</div>
+          <button class="hint-btn hidden" id="hintBtn" type="button">Next</button>
+          <div class="hint-current">Current: <strong id="hintCurrentMode">Free</strong></div>
+        </div>
+      </div>
+
+      <div class="hint-screen hidden" id="hintScreen2">
+        <div class="hint-inner">
+          <div class="hint-title">SCORING MODES</div>
+          <div class="hint-modes hint-modes-scoring">
+            <span class="hint-mode-item" id="smItem1"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1</kbd><span class="hint-mode-icon" style="color:#c5d5f4">◇</span><span>Reform <span class="hint-mode-tag">default</span></span></span>
+            <span class="hint-mode-item" id="smItem2"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">2</kbd><span class="hint-mode-icon" style="color:#b48cff">✦</span><span>Celestial</span></span>
+            <span class="hint-mode-item" id="smItem3"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">3</kbd><span class="hint-mode-icon" style="color:#ff9e6b">◆</span><span>Signicial</span></span>
+            <span class="hint-mode-item" id="smItem4"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">4</kbd><span class="hint-mode-icon" style="color:#5ddfb0">♫</span><span>Shoegazer</span></span>
+          </div>
+          <button class="hint-btn hidden" id="hintBtn2" type="button">Next</button>
+        </div>
+      </div>
+
+      <div class="hint-screen hidden" id="hintScreen3">
+        <div class="hint-inner">
+          <div class="hint-title">LAYOUT MODES</div>
+          <div class="hint-click-note" style="margin-bottom:6px;opacity:0.55">press <kbd class="hint-key hint-key-sm">L</kbd> to toggle map info</div>
+          <div class="hint-modes hint-modes-layout">
+            <span class="hint-mode-item hint-mode-active" id="lmItem1">
+              <span class="hint-mode-icon" style="color:#c5d5f4">◱</span>
+              <span><strong>Collapsed</strong> — dan rank only, compact bar</span>
+            </span>
+            <span class="hint-mode-item" id="lmItem2">
+              <span class="hint-mode-icon" style="color:#c5d5f4">◇</span>
+              <span><strong>Expanded</strong> — shows map info drawer below</span>
+            </span>
+          </div>
+          <button class="hint-btn hidden" id="hintBtn3" type="button">Next</button>
+        </div>
+      </div>
+
+      <div class="hint-screen hidden" id="hintScreen4">
+        <div class="hint-inner">
+          <div class="hint-title">QUICK REFERENCE</div>
+          <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
+            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">L</kbd><span>Toggle map info drawer</span></span>
+            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">R</kbd><span>Toggle resize mode</span></span>
+            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd><span>Open settings panel</span></span>
+            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1–4</kbd><span>Switch scoring mode</span></span>
+          </div>
+          <button class="hint-btn hidden" id="hintBtn4" type="button">Let's go!</button>
+        </div>
+      </div>
+
+      <div class="hint-screen hidden" id="hintScreenSettings">
+        <div class="hint-inner hint-inner-sm">
+          <div class="hint-title" style="font-size:13px;letter-spacing:.18em;opacity:.55;margin-bottom:10px">TIP</div>
+          <div class="hint-modes hint-modes-scoring" style="gap:10px;margin-top:0">
+            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd><span>Open settings panel anywhere</span></span>
+            <span class="hint-mode-item hint-mode-active" style="margin-top:2px"><kbd class="hint-key hint-key-sm">Right-click</kbd><span>Also opens settings</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Splash screen -->
+      <div class="splash-screen hidden" id="splashScreen">
+        <div class="splash-inner">
+          <span class="splash-title">DAN OVERLAY</span>
+          <span class="splash-sub">by 8doul &nbsp;·&nbsp; discord: agent_ale</span>
+        </div>
+      </div>
+
+      <!-- Connection screen -->
+      <div class="connect-screen hidden" id="connectScreen">
+        <div class="connect-inner">
+          <div class="connect-row">
+            <div class="connect-icon" id="connectIcon"></div>
+            <div class="connect-text">
+              <span class="connect-label" id="connectLabel">WAITING FOR TOSU</span>
+              <span class="connect-sub" id="connectSub">Starting up...</span>
+            </div>
+          </div>
+          <a class="connect-download hidden" id="connectDownload" href="https://github.com/tosuapp/tosu" target="_blank" rel="noopener noreferrer">
+            <span class="connect-download-icon">⬇</span> Download tosu
+          </a>
+          <div class="connect-osu hidden" id="connectOsu">
+            <span class="connect-osu-icon" id="connectOsuIcon"></span>
+            <span class="connect-osu-text" id="connectOsuText">osu!</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-transition-screen" id="mapTransitionScreen" aria-hidden="true"></div>
+      <div class="paused-overlay" id="pausedOverlay"><span class="paused-overlay-text">PAUSED</span></div>
+      <div class="map-progress-wrap" id="progressWrap"><div class="map-progress-result" id="progressResult"></div></div>
+      <div class="mode-announce" id="modeAnnounce">
+        <span class="mode-announce-label">Mode</span>
+        <span class="mode-announce-name" id="modeAnnounceName">Reform</span>
+        <div class="mode-announce-divider"></div>
+      </div>
+
+      <!-- Hidden elements JS still references -->
+      <span class="chart-family" id="chartFamily" style="display:none;"></span>
+      <span class="scoring-mode-badge" id="scoringModeBadge" data-mode="reform" style="display:none;"></span>
+      <span class="mod-badge" id="modBadge" style="display:none;"></span>
+      <span class="dp-tooltip" id="dpTooltip" style="display:none;"></span>
+      <img class="c2-greek-bg" id="danGreekBg" src="" alt="" aria-hidden="true" style="display:none;">
+      <img id="danImage" class="signicial-icon" style="display:none;" src="" alt="" />
+      <span id="mapOd" style="display:none;position:absolute;left:-9999px;"></span>
+
+      <!-- ══════════════════════════════════════════════════════════
+           BROADCAST BAR — Main visual wrapper
+           overlay.js toggles .is-expanded on #danPanel (L key)
+           ══════════════════════════════════════════════════════════ -->
+      <div class="p2-wrapper">
+
+        <!-- ── The main horizontal bar ────────────────────────── -->
+        <div class="p2-bar">
+
+          <!-- LEFT PANEL: gradient solid block with DP Rating
+               overlay.js finds .left-panel and sets its background gradient -->
+          <div class="p2-left left-panel">
+            <div class="p2-dp-label">DP RATING</div>
+            <div class="p2-dp-stage">
+              <span class="p2-dp-int" id="danDpValue">--</span>
+              <span class="p2-dp-dec" id="danDpDec"></span>
+            </div>
+          </div>
+
+          <!-- RIGHT PANEL: tinted dark background + dan name + sublevel -->
+          <div class="p2-right">
+            <!-- Dan name — large gradient text -->
+            <div class="p2-rank-name" id="danName">—</div>
+
+            <!-- Sublevel: 5 oval pills + text label
+                 overlay.js colors .p2-sbar elements based on DP fraction -->
+            <div class="p2-sublevel-row">
+              <div class="p2-pill p2-sbar"></div>
+              <div class="p2-pill p2-sbar"></div>
+              <div class="p2-pill p2-sbar"></div>
+              <div class="p2-pill p2-sbar"></div>
+              <div class="p2-pill p2-sbar"></div>
+              <span class="p2-sub-text" id="danSub">—</span>
+            </div>
+          </div>
+
+        </div>
+        <!-- end .p2-bar -->
+
+        <!-- ── Expandable Stats Drawer ─────────────────────────
+             Slides down when danPanel gets .is-expanded class
+             ─────────────────────────────────────────────────── -->
+        <div class="p2-expanded-drawer">
+          <div id="danBg"></div>
+          <div class="p2-drawer-scrim"></div>
+          <div class="map-title-wrap" id="skinMapTitleWrap" style="margin-bottom: 16px;">
+            <div class="map-title-track" id="skinMapTitleTrack">
+              <span class="map-title p2-drawer-map-title" id="skinMapTitle" style="margin-bottom: 0 !important; font-size: 1.15rem; font-weight: 600; color: rgba(255, 255, 255, 0.88);">Loading...</span>
+              <span class="map-title p2-drawer-map-title map-title-ghost" id="skinMapTitleGhost" aria-hidden="true" style="margin-bottom: 0 !important; font-size: 1.15rem; font-weight: 600; color: rgba(255, 255, 255, 0.88);">Loading...</span>
+            </div>
+          </div>
+
+          <!-- Horizontal stats row -->
+          <div class="p2-stats-row">
+            <div class="p2-stat-box">
+              <div class="p2-stat-lbl">Etterna MSD</div>
+              <div class="p2-stat-val" id="danMetrics">--.-</div>
+            </div>
+            <div class="p2-stat-box">
+              <div class="p2-stat-lbl">Star Rate</div>
+              <div class="p2-stat-val" id="mapSr">--<span class="p2-stat-unit">★</span></div>
+            </div>
+            <div class="p2-stat-box">
+              <div class="p2-stat-lbl">BPM</div>
+              <div class="p2-stat-val" id="mapBpm">-- BPM</div>
+            </div>
+            <div class="p2-stat-box">
+              <div class="p2-stat-lbl">Length</div>
+              <div class="p2-stat-val" id="mapDuration">--:--</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- end .p2-wrapper -->
+
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- ── Settings / Config panel ─────────────────────────────── -->
+    <div class="cfg-overlay" id="cfgOverlay" aria-hidden="true">
+      <div class="cfg-panel" role="dialog" aria-labelledby="cfgTitleLabel">
+        <header class="cfg-header">
+          <span class="cfg-title" id="cfgTitleLabel">Overlay Settings</span>
+          <button class="cfg-close" id="cfgClose" aria-label="Close settings">✕</button>
+        </header>
+
+        <div class="cfg-body">
+
+          <section>
+            <p class="cfg-section-title">Visual</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBlurSlider">Blur Strength</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBlurSlider" min="0" max="100" step="0.01">
+                <input type="number" class="cfg-num" id="cfgBlurNum" min="0" max="100" step="0.01">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBrightSlider">Background Brightness</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBrightSlider" min="0" max="100" step="0.01">
+                <input type="number" class="cfg-num" id="cfgBrightNum" min="0" max="100" step="0.01">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgLogoSizeSlider">Logo Size</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgLogoSizeSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgLogoSizeNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBorderBrightSlider">Border Brightness</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBorderBrightSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgBorderBrightNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBorderThickSlider">Border Thickness (px)</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBorderThickSlider" min="0" max="20" step="1">
+                <input type="number" class="cfg-num" id="cfgBorderThickNum" min="0" max="20" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgLogoOpacitySlider">Logo Opacity</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgLogoOpacitySlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgLogoOpacityNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgDanScaleSlider">Dan Display Scale</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgDanScaleSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgDanScaleNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgGreenScreenChk">Green Screen Mode</label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgGreenScreenChk">
+                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgFramelessChk">Frameless Window
+                <span class="cfg-label-hint">(restart to apply)</span>
+              </label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgFramelessChk">
+                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+              </label>
+            </div>
+          </section>
+
+          <section>
+            <p class="cfg-section-title">Window Size</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgWinWidth">Width (px)</label>
+              <input type="number" class="cfg-num cfg-win-size" id="cfgWinWidth" min="300" max="8000" step="1" placeholder="Width">
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgWinHeight">Height (px)</label>
+              <input type="number" class="cfg-num cfg-win-size" id="cfgWinHeight" min="80" max="8000" step="1" placeholder="Height">
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label"></label>
+              <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (589×170)</button>
+            </div>
+          </section>
+
+          <section>
+            <p class="cfg-section-title">Skin</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgSkinSelect">Design</label>
+              <select class="cfg-select" id="cfgSkinSelect">
+                <option value="1">Modern</option>
+                <option value="2">Classic</option>
+                <option value="3">Graph</option>
+                <option value="4">Vertical Monolith</option>
+                <option value="5" selected>Broadcast Bar</option>
+                <option value="6">Dark Vignette</option>
+              </select>
+            </div>
+          </section>
+
+          <section>
+            <p class="cfg-section-title">Keyboard Shortcuts</p>
+            <div id="cfgKeybinds"></div>
+          </section>
+
+          <section>
+            <p class="cfg-section-title">Help</p>
+            <div class="cfg-row">
+              <label class="cfg-label">Quick tutorial</label>
+              <button class="cfg-btn cfg-cancel" id="cfgTutorialBtn" type="button">Start</button>
+            </div>
+          </section>
+
+        </div>
+
+        <footer class="cfg-footer">
+          <button class="cfg-btn cfg-cancel" id="cfgCancel" type="button">Cancel</button>
+          <button class="cfg-btn cfg-save"   id="cfgSave"   type="button">Save</button>
+        </footer>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- overlay.js handles all logic: data binding, key events, palette injection -->
+  <script src="../overlay.js"></script>
+
+  <!-- Export Chart Hidden Canvas (JS compatibility) -->
+  <div id="exportChartContainer" style="display:none;position:absolute;left:-9999px;top:-9999px;">
+    <canvas id="exportCanvas" width="1800" height="980"></canvas>
+  </div>
+
+</body>
+</html>

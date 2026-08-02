@@ -1,0 +1,2457 @@
+{
+  "_generated": "auto",
+  "_description": "MinaCalc MSD role scales — median of v1+v2 maps per (role,dan)",
+  "_roles": [
+    "jack",
+    "speed",
+    "tech",
+    "stamina"
+  ],
+  "_dan_order": [
+    "1st",
+    "2nd",
+    "3rd",
+    "4th",
+    "5th",
+    "6th",
+    "7th",
+    "8th",
+    "9th",
+    "10th",
+    "Alpha",
+    "Beta",
+    "Gamma",
+    "Delta",
+    "Epsilon",
+    "Zeta",
+    "Eta",
+    "Theta",
+    "Iota",
+    "Kappa"
+  ],
+  "scales": {
+    "jack": {
+      "1st": {
+        "role_score": 8.02,
+        "overall_msd": 12.7,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          8.02,
+          8.02
+        ],
+        "skillsets": {
+          "stream": 10.42,
+          "jumpstream": 11.85,
+          "handstream": 7.22,
+          "stamina": 12.23,
+          "jackspeed": 8.02,
+          "chordjack": 7.22,
+          "technical": 12.7
+        },
+        "duration_s": 105.5,
+        "note_count": 485
+      },
+      "2nd": {
+        "role_score": 11.22,
+        "overall_msd": 16.55,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          11.22,
+          11.22
+        ],
+        "skillsets": {
+          "stream": 16.01,
+          "jumpstream": 13.94,
+          "handstream": 10.5,
+          "stamina": 15.54,
+          "jackspeed": 8.34,
+          "chordjack": 11.22,
+          "technical": 16.5
+        },
+        "duration_s": 101.30000305175781,
+        "note_count": 852
+      },
+      "3rd": {
+        "role_score": 10.9,
+        "overall_msd": 15.59,
+        "sample_count": 3,
+        "dispersion": 0.32,
+        "risk_flag": "ok",
+        "sample_scores": [
+          10.58,
+          10.9,
+          11.22
+        ],
+        "skillsets": {
+          "stream": 13.7,
+          "jumpstream": 14.15,
+          "handstream": 8.1,
+          "stamina": 14.64,
+          "jackspeed": 8.5,
+          "chordjack": 10.9,
+          "technical": 15.59
+        },
+        "duration_s": 118.9000015258789,
+        "note_count": 784
+      },
+      "4th": {
+        "role_score": 12.98,
+        "overall_msd": 16.96,
+        "sample_count": 3,
+        "dispersion": 0.96,
+        "risk_flag": "ok",
+        "sample_scores": [
+          11.22,
+          12.98,
+          13.14
+        ],
+        "skillsets": {
+          "stream": 13.86,
+          "jumpstream": 16.17,
+          "handstream": 13.46,
+          "stamina": 17.59,
+          "jackspeed": 12.98,
+          "chordjack": 12.66,
+          "technical": 17.99
+        },
+        "duration_s": 94.0,
+        "note_count": 664
+      },
+      "5th": {
+        "role_score": 12.42,
+        "overall_msd": 19.3,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          12.42,
+          12.42
+        ],
+        "skillsets": {
+          "stream": 15.94,
+          "jumpstream": 16.5,
+          "handstream": 9.06,
+          "stamina": 18.64,
+          "jackspeed": 10.98,
+          "chordjack": 12.42,
+          "technical": 19.3
+        },
+        "duration_s": 117.30000305175781,
+        "note_count": 900
+      },
+      "6th": {
+        "role_score": 15.78,
+        "overall_msd": 20.62,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          15.78,
+          15.78
+        ],
+        "skillsets": {
+          "stream": 15.94,
+          "jumpstream": 18.64,
+          "handstream": 16.98,
+          "stamina": 19.9,
+          "jackspeed": 11.06,
+          "chordjack": 15.78,
+          "technical": 20.62
+        },
+        "duration_s": 106.9000015258789,
+        "note_count": 860
+      },
+      "7th": {
+        "role_score": 17.06,
+        "overall_msd": 21.57,
+        "sample_count": 3,
+        "dispersion": 0.92,
+        "risk_flag": "ok",
+        "sample_scores": [
+          15.54,
+          17.06,
+          17.38
+        ],
+        "skillsets": {
+          "stream": 17.54,
+          "jumpstream": 19.94,
+          "handstream": 18.18,
+          "stamina": 24.21,
+          "jackspeed": 11.22,
+          "chordjack": 17.06,
+          "technical": 25.01
+        },
+        "duration_s": 109.69999694824219,
+        "note_count": 1036
+      },
+      "8th": {
+        "role_score": 21.57,
+        "overall_msd": 22.23,
+        "sample_count": 3,
+        "dispersion": 1.45,
+        "risk_flag": "ok",
+        "sample_scores": [
+          18.82,
+          21.57,
+          21.72
+        ],
+        "skillsets": {
+          "stream": 16.82,
+          "jumpstream": 20.15,
+          "handstream": 17.94,
+          "stamina": 20.94,
+          "jackspeed": 16.82,
+          "chordjack": 21.57,
+          "technical": 21.4
+        },
+        "duration_s": 125.69999694824219,
+        "note_count": 1123
+      },
+      "9th": {
+        "role_score": 19.66,
+        "overall_msd": 23.6,
+        "sample_count": 2,
+        "dispersion": 0.28,
+        "risk_flag": "weak",
+        "sample_scores": [
+          19.38,
+          19.94
+        ],
+        "skillsets": {
+          "stream": 17.46,
+          "jumpstream": 22.24,
+          "handstream": 21.73,
+          "stamina": 23.6,
+          "jackspeed": 12.74,
+          "chordjack": 19.94,
+          "technical": 23.89
+        },
+        "duration_s": 128.0,
+        "note_count": 1182
+      },
+      "10th": {
+        "role_score": 24.9,
+        "overall_msd": 24.9,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          24.9
+        ],
+        "skillsets": {
+          "stream": 17.14,
+          "jumpstream": 20.58,
+          "handstream": 17.86,
+          "stamina": 23.61,
+          "jackspeed": 18.98,
+          "chordjack": 24.9,
+          "technical": 18.9
+        },
+        "duration_s": 114.5999984741211,
+        "note_count": 836
+      },
+      "Alpha": {
+        "role_score": 24.12,
+        "overall_msd": 25.42,
+        "sample_count": 3,
+        "dispersion": 0.735,
+        "risk_flag": "ok",
+        "sample_scores": [
+          23.99,
+          24.12,
+          25.46
+        ],
+        "skillsets": {
+          "stream": 17.06,
+          "jumpstream": 25.26,
+          "handstream": 20.9,
+          "stamina": 24.05,
+          "jackspeed": 16.26,
+          "chordjack": 24.12,
+          "technical": 21.38
+        },
+        "duration_s": 123.9000015258789,
+        "note_count": 1138
+      },
+      "Beta": {
+        "role_score": 27.205,
+        "overall_msd": 27.205,
+        "sample_count": 2,
+        "dispersion": 0.775,
+        "risk_flag": "weak",
+        "sample_scores": [
+          26.43,
+          27.98
+        ],
+        "skillsets": {
+          "stream": 17.94,
+          "jumpstream": 22.9,
+          "handstream": 20.98,
+          "stamina": 26.86,
+          "jackspeed": 19.38,
+          "chordjack": 27.98,
+          "technical": 21.46
+        },
+        "duration_s": 110.30000305175781,
+        "note_count": 1053
+      },
+      "Gamma": {
+        "role_score": 26.99,
+        "overall_msd": 27.93,
+        "sample_count": 3,
+        "dispersion": 0.76,
+        "risk_flag": "ok",
+        "sample_scores": [
+          26.53,
+          26.99,
+          28.05
+        ],
+        "skillsets": {
+          "stream": 18.58,
+          "jumpstream": 27.58,
+          "handstream": 22.82,
+          "stamina": 26.13,
+          "jackspeed": 18.26,
+          "chordjack": 26.99,
+          "technical": 22.74
+        },
+        "duration_s": 112.5999984741211,
+        "note_count": 1138
+      },
+      "Delta": {
+        "role_score": 32.2,
+        "overall_msd": 32.385,
+        "sample_count": 2,
+        "dispersion": 0.03,
+        "risk_flag": "weak",
+        "sample_scores": [
+          32.17,
+          32.23
+        ],
+        "skillsets": {
+          "stream": 20.26,
+          "jumpstream": 26.74,
+          "handstream": 25.78,
+          "stamina": 30.89,
+          "jackspeed": 18.66,
+          "chordjack": 32.17,
+          "technical": 24.66
+        },
+        "duration_s": 91.80000305175781,
+        "note_count": 1060
+      },
+      "Epsilon": {
+        "role_score": 34.91,
+        "overall_msd": 34.91,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          34.91,
+          34.91
+        ],
+        "skillsets": {
+          "stream": 22.26,
+          "jumpstream": 28.5,
+          "handstream": 26.42,
+          "stamina": 33.0,
+          "jackspeed": 24.42,
+          "chordjack": 34.91,
+          "technical": 25.14
+        },
+        "duration_s": 88.80000305175781,
+        "note_count": 946
+      },
+      "Zeta": {
+        "role_score": 34.19,
+        "overall_msd": 34.345,
+        "sample_count": 2,
+        "dispersion": 0.22,
+        "risk_flag": "weak",
+        "sample_scores": [
+          33.97,
+          34.41
+        ],
+        "skillsets": {
+          "stream": 22.82,
+          "jumpstream": 24.66,
+          "handstream": 20.9,
+          "stamina": 33.28,
+          "jackspeed": 26.5,
+          "chordjack": 34.41,
+          "technical": 25.38
+        },
+        "duration_s": 136.89999389648438,
+        "note_count": 1253
+      },
+      "Eta": {
+        "role_score": 41.16,
+        "overall_msd": 41.72,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          41.16
+        ],
+        "skillsets": {
+          "stream": 28.26,
+          "jumpstream": 33.3,
+          "handstream": 27.38,
+          "stamina": 40.81,
+          "jackspeed": 28.34,
+          "chordjack": 41.16,
+          "technical": 29.3
+        },
+        "duration_s": 128.3000030517578,
+        "note_count": 1533
+      },
+      "Theta": {
+        "role_score": 41.07,
+        "overall_msd": 41.27,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          41.07
+        ],
+        "skillsets": {
+          "stream": 30.26,
+          "jumpstream": 30.58,
+          "handstream": 24.58,
+          "stamina": 39.67,
+          "jackspeed": 31.86,
+          "chordjack": 41.07,
+          "technical": 29.7
+        },
+        "duration_s": 107.19999694824219,
+        "note_count": 1218
+      },
+      "Iota": {
+        "role_score": 45.85,
+        "overall_msd": 46.44,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          45.85
+        ],
+        "skillsets": {
+          "stream": 29.22,
+          "jumpstream": 34.98,
+          "handstream": 28.42,
+          "stamina": 45.34,
+          "jackspeed": 36.42,
+          "chordjack": 45.85,
+          "technical": 30.34
+        },
+        "duration_s": 151.0,
+        "note_count": 2234
+      },
+      "Kappa": {
+        "role_score": 47.89,
+        "overall_msd": 48.26,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          47.89
+        ],
+        "skillsets": {
+          "stream": 30.1,
+          "jumpstream": 32.98,
+          "handstream": 26.34,
+          "stamina": 46.61,
+          "jackspeed": 38.9,
+          "chordjack": 47.89,
+          "technical": 31.3
+        },
+        "duration_s": 140.5,
+        "note_count": 2222
+      }
+    },
+    "speed": {
+      "1st": {
+        "role_score": 13.01,
+        "overall_msd": 13.63,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          13.01,
+          13.01
+        ],
+        "skillsets": {
+          "stream": 12.68,
+          "jumpstream": 13.01,
+          "handstream": 11.3,
+          "stamina": 12.79,
+          "jackspeed": 6.74,
+          "chordjack": 10.34,
+          "technical": 13.63
+        },
+        "duration_s": 115.19999694824219,
+        "note_count": 692
+      },
+      "2nd": {
+        "role_score": 13.5,
+        "overall_msd": 14.38,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          13.5,
+          13.5
+        ],
+        "skillsets": {
+          "stream": 13.5,
+          "jumpstream": 13.31,
+          "handstream": 8.26,
+          "stamina": 13.54,
+          "jackspeed": 7.06,
+          "chordjack": 11.06,
+          "technical": 14.38
+        },
+        "duration_s": 114.5999984741211,
+        "note_count": 755
+      },
+      "3rd": {
+        "role_score": 16.35,
+        "overall_msd": 16.56,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          16.35,
+          16.35
+        ],
+        "skillsets": {
+          "stream": 16.35,
+          "jumpstream": 14.18,
+          "handstream": 8.5,
+          "stamina": 15.03,
+          "jackspeed": 8.58,
+          "chordjack": 11.78,
+          "technical": 16.51
+        },
+        "duration_s": 100.5,
+        "note_count": 861
+      },
+      "4th": {
+        "role_score": 17.44,
+        "overall_msd": 18.87,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          17.44,
+          17.44
+        ],
+        "skillsets": {
+          "stream": 17.44,
+          "jumpstream": 13.3,
+          "handstream": 8.9,
+          "stamina": 18.28,
+          "jackspeed": 10.1,
+          "chordjack": 13.78,
+          "technical": 18.84
+        },
+        "duration_s": 112.5,
+        "note_count": 1236
+      },
+      "5th": {
+        "role_score": 20.655,
+        "overall_msd": 21.54,
+        "sample_count": 2,
+        "dispersion": 0.305,
+        "risk_flag": "weak",
+        "sample_scores": [
+          20.35,
+          20.96
+        ],
+        "skillsets": {
+          "stream": 20.96,
+          "jumpstream": 17.22,
+          "handstream": 12.02,
+          "stamina": 18.91,
+          "jackspeed": 10.34,
+          "chordjack": 14.02,
+          "technical": 21.09
+        },
+        "duration_s": 147.8000030517578,
+        "note_count": 1385
+      },
+      "6th": {
+        "role_score": 22.195,
+        "overall_msd": 22.925,
+        "sample_count": 2,
+        "dispersion": 0.355,
+        "risk_flag": "weak",
+        "sample_scores": [
+          21.84,
+          22.55
+        ],
+        "skillsets": {
+          "stream": 22.55,
+          "jumpstream": 22.54,
+          "handstream": 14.82,
+          "stamina": 21.98,
+          "jackspeed": 12.74,
+          "chordjack": 16.82,
+          "technical": 22.88
+        },
+        "duration_s": 85.0,
+        "note_count": 1084
+      },
+      "7th": {
+        "role_score": 22.755,
+        "overall_msd": 23.355,
+        "sample_count": 2,
+        "dispersion": 0.475,
+        "risk_flag": "weak",
+        "sample_scores": [
+          22.28,
+          23.23
+        ],
+        "skillsets": {
+          "stream": 22.28,
+          "jumpstream": 17.94,
+          "handstream": 12.02,
+          "stamina": 21.16,
+          "jackspeed": 12.66,
+          "chordjack": 17.46,
+          "technical": 22.99
+        },
+        "duration_s": 85.9000015258789,
+        "note_count": 932
+      },
+      "8th": {
+        "role_score": 24.37,
+        "overall_msd": 24.775,
+        "sample_count": 2,
+        "dispersion": 0.13,
+        "risk_flag": "weak",
+        "sample_scores": [
+          24.24,
+          24.5
+        ],
+        "skillsets": {
+          "stream": 24.5,
+          "jumpstream": 17.54,
+          "handstream": 15.06,
+          "stamina": 21.58,
+          "jackspeed": 12.1,
+          "chordjack": 19.14,
+          "technical": 24.56
+        },
+        "duration_s": 124.30000305175781,
+        "note_count": 1325
+      },
+      "9th": {
+        "role_score": 24.825,
+        "overall_msd": 25.305,
+        "sample_count": 2,
+        "dispersion": 0.275,
+        "risk_flag": "weak",
+        "sample_scores": [
+          24.55,
+          25.1
+        ],
+        "skillsets": {
+          "stream": 24.55,
+          "jumpstream": 15.3,
+          "handstream": 12.74,
+          "stamina": 23.22,
+          "jackspeed": 12.5,
+          "chordjack": 18.42,
+          "technical": 24.25
+        },
+        "duration_s": 103.80000305175781,
+        "note_count": 1585
+      },
+      "10th": {
+        "role_score": 24.67,
+        "overall_msd": 24.875,
+        "sample_count": 2,
+        "dispersion": 0.29,
+        "risk_flag": "weak",
+        "sample_scores": [
+          24.38,
+          24.96
+        ],
+        "skillsets": {
+          "stream": 24.96,
+          "jumpstream": 16.18,
+          "handstream": 13.62,
+          "stamina": 21.94,
+          "jackspeed": 13.06,
+          "chordjack": 18.82,
+          "technical": 23.94
+        },
+        "duration_s": 139.3000030517578,
+        "note_count": 1427
+      },
+      "Alpha": {
+        "role_score": 27.98,
+        "overall_msd": 28.18,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          27.98,
+          27.98
+        ],
+        "skillsets": {
+          "stream": 27.98,
+          "jumpstream": 20.82,
+          "handstream": 14.5,
+          "stamina": 26.87,
+          "jackspeed": 14.98,
+          "chordjack": 21.14,
+          "technical": 26.49
+        },
+        "duration_s": 125.0,
+        "note_count": 2064
+      },
+      "Beta": {
+        "role_score": 28.29,
+        "overall_msd": 28.86,
+        "sample_count": 4,
+        "dispersion": 0.575,
+        "risk_flag": "ok",
+        "sample_scores": [
+          27.36,
+          27.89,
+          28.69,
+          28.86
+        ],
+        "skillsets": {
+          "stream": 27.89,
+          "jumpstream": 22.02,
+          "handstream": 20.58,
+          "stamina": 27.99,
+          "jackspeed": 15.14,
+          "chordjack": 20.42,
+          "technical": 28.72
+        },
+        "duration_s": 142.5,
+        "note_count": 2033
+      },
+      "Gamma": {
+        "role_score": 31.16,
+        "overall_msd": 31.16,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          31.16,
+          31.16
+        ],
+        "skillsets": {
+          "stream": 31.16,
+          "jumpstream": 19.78,
+          "handstream": 17.3,
+          "stamina": 27.57,
+          "jackspeed": 16.26,
+          "chordjack": 24.66,
+          "technical": 29.08
+        },
+        "duration_s": 82.0999984741211,
+        "note_count": 1109
+      },
+      "Delta": {
+        "role_score": 32.07,
+        "overall_msd": 32.08,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          32.07,
+          32.07
+        ],
+        "skillsets": {
+          "stream": 32.07,
+          "jumpstream": 24.74,
+          "handstream": 17.78,
+          "stamina": 29.77,
+          "jackspeed": 17.78,
+          "chordjack": 24.42,
+          "technical": 30.21
+        },
+        "duration_s": 133.10000610351562,
+        "note_count": 2368
+      },
+      "Epsilon": {
+        "role_score": 36.81,
+        "overall_msd": 36.83,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          36.81,
+          36.81
+        ],
+        "skillsets": {
+          "stream": 36.81,
+          "jumpstream": 22.1,
+          "handstream": 19.54,
+          "stamina": 34.25,
+          "jackspeed": 19.46,
+          "chordjack": 25.14,
+          "technical": 34.44
+        },
+        "duration_s": 86.69999694824219,
+        "note_count": 2063
+      },
+      "Zeta": {
+        "role_score": 40.25,
+        "overall_msd": 40.25,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          40.25
+        ],
+        "skillsets": {
+          "stream": 40.25,
+          "jumpstream": 29.54,
+          "handstream": 22.9,
+          "stamina": 37.53,
+          "jackspeed": 21.3,
+          "chordjack": 27.38,
+          "technical": 34.66
+        },
+        "duration_s": 130.10000610351562,
+        "note_count": 2861
+      },
+      "Eta": {
+        "role_score": 42.69,
+        "overall_msd": 42.85,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          42.69
+        ],
+        "skillsets": {
+          "stream": 42.69,
+          "jumpstream": 24.74,
+          "handstream": 22.74,
+          "stamina": 40.98,
+          "jackspeed": 22.02,
+          "chordjack": 28.26,
+          "technical": 36.82
+        },
+        "duration_s": 124.80000305175781,
+        "note_count": 3511
+      },
+      "Theta": {
+        "role_score": 42.57,
+        "overall_msd": 42.61,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          42.57
+        ],
+        "skillsets": {
+          "stream": 42.57,
+          "jumpstream": 24.02,
+          "handstream": 23.86,
+          "stamina": 39.2,
+          "jackspeed": 25.14,
+          "chordjack": 29.3,
+          "technical": 39.88
+        },
+        "duration_s": 106.69999694824219,
+        "note_count": 3152
+      },
+      "Iota": {
+        "role_score": 42.29,
+        "overall_msd": 42.5,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          42.29
+        ],
+        "skillsets": {
+          "stream": 42.29,
+          "jumpstream": 31.06,
+          "handstream": 27.22,
+          "stamina": 40.8,
+          "jackspeed": 28.26,
+          "chordjack": 30.58,
+          "technical": 38.56
+        },
+        "duration_s": 138.0,
+        "note_count": 4412
+      },
+      "Kappa": {
+        "role_score": 47.21,
+        "overall_msd": 47.55,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          47.21
+        ],
+        "skillsets": {
+          "stream": 47.21,
+          "jumpstream": 36.1,
+          "handstream": 33.14,
+          "stamina": 44.5,
+          "jackspeed": 29.78,
+          "chordjack": 31.94,
+          "technical": 45.41
+        },
+        "duration_s": 146.3000030517578,
+        "note_count": 4491
+      }
+    },
+    "tech": {
+      "1st": {
+        "role_score": 13.8,
+        "overall_msd": 14.2,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          13.8,
+          13.8
+        ],
+        "skillsets": {
+          "stream": 13.36,
+          "jumpstream": 14.03,
+          "handstream": 10.1,
+          "stamina": 13.16,
+          "jackspeed": 6.42,
+          "chordjack": 8.9,
+          "technical": 13.8
+        },
+        "duration_s": 81.0999984741211,
+        "note_count": 436
+      },
+      "2nd": {
+        "role_score": 15.3,
+        "overall_msd": 15.3,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          15.3,
+          15.3
+        ],
+        "skillsets": {
+          "stream": 14.31,
+          "jumpstream": 14.1,
+          "handstream": 9.54,
+          "stamina": 14.67,
+          "jackspeed": 7.78,
+          "chordjack": 10.9,
+          "technical": 15.3
+        },
+        "duration_s": 92.19999694824219,
+        "note_count": 670
+      },
+      "3rd": {
+        "role_score": 15.43,
+        "overall_msd": 15.43,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          15.43,
+          15.43
+        ],
+        "skillsets": {
+          "stream": 12.5,
+          "jumpstream": 13.06,
+          "handstream": 7.38,
+          "stamina": 14.29,
+          "jackspeed": 8.02,
+          "chordjack": 9.7,
+          "technical": 15.43
+        },
+        "duration_s": 109.69999694824219,
+        "note_count": 573
+      },
+      "4th": {
+        "role_score": 17.785,
+        "overall_msd": 17.79,
+        "sample_count": 2,
+        "dispersion": 0.615,
+        "risk_flag": "weak",
+        "sample_scores": [
+          17.17,
+          18.4
+        ],
+        "skillsets": {
+          "stream": 16.65,
+          "jumpstream": 17.04,
+          "handstream": 16.96,
+          "stamina": 17.57,
+          "jackspeed": 9.86,
+          "chordjack": 13.46,
+          "technical": 18.4
+        },
+        "duration_s": 165.3000030517578,
+        "note_count": 1070
+      },
+      "5th": {
+        "role_score": 19.115,
+        "overall_msd": 19.27,
+        "sample_count": 2,
+        "dispersion": 0.165,
+        "risk_flag": "weak",
+        "sample_scores": [
+          18.95,
+          19.28
+        ],
+        "skillsets": {
+          "stream": 17.11,
+          "jumpstream": 18.91,
+          "handstream": 15.14,
+          "stamina": 17.92,
+          "jackspeed": 11.22,
+          "chordjack": 14.34,
+          "technical": 18.95
+        },
+        "duration_s": 137.89999389648438,
+        "note_count": 1144
+      },
+      "6th": {
+        "role_score": 20.21,
+        "overall_msd": 20.21,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          20.21,
+          20.21
+        ],
+        "skillsets": {
+          "stream": 18.26,
+          "jumpstream": 16.1,
+          "handstream": 10.1,
+          "stamina": 19.32,
+          "jackspeed": 12.82,
+          "chordjack": 14.58,
+          "technical": 20.21
+        },
+        "duration_s": 124.5999984741211,
+        "note_count": 1054
+      },
+      "7th": {
+        "role_score": 23.3,
+        "overall_msd": 23.42,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          23.3,
+          23.3
+        ],
+        "skillsets": {
+          "stream": 20.82,
+          "jumpstream": 21.21,
+          "handstream": 19.7,
+          "stamina": 22.79,
+          "jackspeed": 11.7,
+          "chordjack": 15.94,
+          "technical": 23.3
+        },
+        "duration_s": 110.80000305175781,
+        "note_count": 1174
+      },
+      "8th": {
+        "role_score": 24.025,
+        "overall_msd": 24.175,
+        "sample_count": 2,
+        "dispersion": 0.005,
+        "risk_flag": "weak",
+        "sample_scores": [
+          24.02,
+          24.03
+        ],
+        "skillsets": {
+          "stream": 23.31,
+          "jumpstream": 20.74,
+          "handstream": 12.5,
+          "stamina": 22.83,
+          "jackspeed": 14.02,
+          "chordjack": 17.22,
+          "technical": 24.02
+        },
+        "duration_s": 83.9000015258789,
+        "note_count": 1095
+      },
+      "9th": {
+        "role_score": 25.85,
+        "overall_msd": 26.17,
+        "sample_count": 2,
+        "dispersion": 0.48,
+        "risk_flag": "weak",
+        "sample_scores": [
+          25.37,
+          26.33
+        ],
+        "skillsets": {
+          "stream": 24.08,
+          "jumpstream": 21.06,
+          "handstream": 17.38,
+          "stamina": 24.81,
+          "jackspeed": 15.06,
+          "chordjack": 18.1,
+          "technical": 25.37
+        },
+        "duration_s": 131.89999389648438,
+        "note_count": 1649
+      },
+      "10th": {
+        "role_score": 27.67,
+        "overall_msd": 27.67,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          27.67
+        ],
+        "skillsets": {
+          "stream": 25.63,
+          "jumpstream": 22.9,
+          "handstream": 15.14,
+          "stamina": 26.01,
+          "jackspeed": 15.86,
+          "chordjack": 19.7,
+          "technical": 27.67
+        },
+        "duration_s": 91.0,
+        "note_count": 1120
+      },
+      "Alpha": {
+        "role_score": 27.685,
+        "overall_msd": 28.065,
+        "sample_count": 2,
+        "dispersion": 0.485,
+        "risk_flag": "weak",
+        "sample_scores": [
+          27.2,
+          28.17
+        ],
+        "skillsets": {
+          "stream": 22.66,
+          "jumpstream": 22.98,
+          "handstream": 25.3,
+          "stamina": 26.03,
+          "jackspeed": 16.1,
+          "chordjack": 20.58,
+          "technical": 27.2
+        },
+        "duration_s": 75.9000015258789,
+        "note_count": 989
+      },
+      "Beta": {
+        "role_score": 26.13,
+        "overall_msd": 27.305,
+        "sample_count": 2,
+        "dispersion": 0.71,
+        "risk_flag": "weak",
+        "sample_scores": [
+          25.42,
+          26.84
+        ],
+        "skillsets": {
+          "stream": 19.54,
+          "jumpstream": 27.33,
+          "handstream": 23.62,
+          "stamina": 25.66,
+          "jackspeed": 16.9,
+          "chordjack": 19.86,
+          "technical": 25.42
+        },
+        "duration_s": 122.0,
+        "note_count": 1502
+      },
+      "Gamma": {
+        "role_score": 29.51,
+        "overall_msd": 29.97,
+        "sample_count": 3,
+        "dispersion": 0.215,
+        "risk_flag": "ok",
+        "sample_scores": [
+          29.24,
+          29.51,
+          29.67
+        ],
+        "skillsets": {
+          "stream": 29.31,
+          "jumpstream": 27.45,
+          "handstream": 24.02,
+          "stamina": 27.02,
+          "jackspeed": 16.98,
+          "chordjack": 21.94,
+          "technical": 29.51
+        },
+        "duration_s": 98.30000305175781,
+        "note_count": 1322
+      },
+      "Delta": {
+        "role_score": 32.34,
+        "overall_msd": 32.97,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          32.34,
+          32.34
+        ],
+        "skillsets": {
+          "stream": 31.36,
+          "jumpstream": 29.66,
+          "handstream": 28.02,
+          "stamina": 31.86,
+          "jackspeed": 17.86,
+          "chordjack": 23.78,
+          "technical": 32.34
+        },
+        "duration_s": 110.0999984741211,
+        "note_count": 2020
+      },
+      "Epsilon": {
+        "role_score": 34.04,
+        "overall_msd": 34.37,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          34.04
+        ],
+        "skillsets": {
+          "stream": 27.94,
+          "jumpstream": 29.46,
+          "handstream": 28.66,
+          "stamina": 33.05,
+          "jackspeed": 24.1,
+          "chordjack": 32.13,
+          "technical": 34.04
+        },
+        "duration_s": 100.5,
+        "note_count": 1751
+      },
+      "Zeta": {
+        "role_score": 35.89,
+        "overall_msd": 37.71,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          35.89
+        ],
+        "skillsets": {
+          "stream": 31.14,
+          "jumpstream": 32.26,
+          "handstream": 37.24,
+          "stamina": 36.08,
+          "jackspeed": 21.7,
+          "chordjack": 26.5,
+          "technical": 35.89
+        },
+        "duration_s": 116.69999694824219,
+        "note_count": 2198
+      },
+      "Eta": {
+        "role_score": 38.46,
+        "overall_msd": 39.48,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          38.46
+        ],
+        "skillsets": {
+          "stream": 31.54,
+          "jumpstream": 35.85,
+          "handstream": 38.53,
+          "stamina": 37.62,
+          "jackspeed": 26.82,
+          "chordjack": 31.3,
+          "technical": 38.46
+        },
+        "duration_s": 136.60000610351562,
+        "note_count": 2431
+      },
+      "Theta": {
+        "role_score": 43.14,
+        "overall_msd": 44.84,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          43.14
+        ],
+        "skillsets": {
+          "stream": 37.78,
+          "jumpstream": 34.9,
+          "handstream": 44.34,
+          "stamina": 42.37,
+          "jackspeed": 24.9,
+          "chordjack": 29.14,
+          "technical": 43.14
+        },
+        "duration_s": 111.19999694824219,
+        "note_count": 2673
+      },
+      "Iota": {
+        "role_score": 44.63,
+        "overall_msd": 45.78,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          44.63
+        ],
+        "skillsets": {
+          "stream": 41.48,
+          "jumpstream": 42.16,
+          "handstream": 43.17,
+          "stamina": 44.83,
+          "jackspeed": 25.14,
+          "chordjack": 30.66,
+          "technical": 44.63
+        },
+        "duration_s": 160.8000030517578,
+        "note_count": 4129
+      },
+      "Kappa": {
+        "role_score": 48.07,
+        "overall_msd": 49.07,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          48.07
+        ],
+        "skillsets": {
+          "stream": 46.78,
+          "jumpstream": 37.14,
+          "handstream": 39.46,
+          "stamina": 47.86,
+          "jackspeed": 29.54,
+          "chordjack": 31.14,
+          "technical": 48.07
+        },
+        "duration_s": 142.10000610351562,
+        "note_count": 4449
+      }
+    },
+    "stamina": {
+      "1st": {
+        "role_score": 13.83,
+        "overall_msd": 16.22,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          13.83,
+          13.83
+        ],
+        "skillsets": {
+          "stream": 15.19,
+          "jumpstream": 15.19,
+          "handstream": 9.7,
+          "stamina": 15.6,
+          "jackspeed": 7.38,
+          "chordjack": 11.22,
+          "technical": 15.99
+        },
+        "duration_s": 114.9000015258789,
+        "note_count": 871
+      },
+      "2nd": {
+        "role_score": 15.227,
+        "overall_msd": 18.17,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          15.227,
+          15.227
+        ],
+        "skillsets": {
+          "stream": 15.7,
+          "jumpstream": 18.13,
+          "handstream": 9.06,
+          "stamina": 17.87,
+          "jackspeed": 8.5,
+          "chordjack": 11.06,
+          "technical": 15.7
+        },
+        "duration_s": 113.5999984741211,
+        "note_count": 1075
+      },
+      "3rd": {
+        "role_score": 14.38,
+        "overall_msd": 17.455,
+        "sample_count": 2,
+        "dispersion": 0.087,
+        "risk_flag": "weak",
+        "sample_scores": [
+          14.294,
+          14.467
+        ],
+        "skillsets": {
+          "stream": 16.54,
+          "jumpstream": 16.7,
+          "handstream": 11.38,
+          "stamina": 15.79,
+          "jackspeed": 8.42,
+          "chordjack": 11.94,
+          "technical": 16.89
+        },
+        "duration_s": 115.5999984741211,
+        "note_count": 981
+      },
+      "4th": {
+        "role_score": 17.747,
+        "overall_msd": 20.71,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          17.747,
+          17.747
+        ],
+        "skillsets": {
+          "stream": 19.33,
+          "jumpstream": 20.7,
+          "handstream": 12.98,
+          "stamina": 19.79,
+          "jackspeed": 11.62,
+          "chordjack": 13.78,
+          "technical": 18.1
+        },
+        "duration_s": 165.89999389648438,
+        "note_count": 1504
+      },
+      "5th": {
+        "role_score": 20.466,
+        "overall_msd": 22.09,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          20.466,
+          20.466
+        ],
+        "skillsets": {
+          "stream": 18.42,
+          "jumpstream": 22.03,
+          "handstream": 18.1,
+          "stamina": 21.48,
+          "jackspeed": 11.78,
+          "chordjack": 15.38,
+          "technical": 19.97
+        },
+        "duration_s": 118.5999984741211,
+        "note_count": 1303
+      },
+      "6th": {
+        "role_score": 21.824,
+        "overall_msd": 24.03,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          21.824,
+          21.824
+        ],
+        "skillsets": {
+          "stream": 21.65,
+          "jumpstream": 23.9,
+          "handstream": 18.1,
+          "stamina": 23.42,
+          "jackspeed": 12.34,
+          "chordjack": 16.98,
+          "technical": 19.94
+        },
+        "duration_s": 120.0,
+        "note_count": 1559
+      },
+      "7th": {
+        "role_score": 22.31,
+        "overall_msd": 25.22,
+        "sample_count": 2,
+        "dispersion": 0.374,
+        "risk_flag": "weak",
+        "sample_scores": [
+          21.936,
+          22.684
+        ],
+        "skillsets": {
+          "stream": 23.31,
+          "jumpstream": 24.47,
+          "handstream": 18.1,
+          "stamina": 23.58,
+          "jackspeed": 14.02,
+          "chordjack": 16.9,
+          "technical": 22.73
+        },
+        "duration_s": 171.6999969482422,
+        "note_count": 1946
+      },
+      "8th": {
+        "role_score": 21.328,
+        "overall_msd": 26.22,
+        "sample_count": 3,
+        "dispersion": 0.406,
+        "risk_flag": "ok",
+        "sample_scores": [
+          20.517,
+          21.328,
+          21.328
+        ],
+        "skillsets": {
+          "stream": 21.7,
+          "jumpstream": 26.22,
+          "handstream": 13.46,
+          "stamina": 24.7,
+          "jackspeed": 13.94,
+          "chordjack": 18.1,
+          "technical": 20.74
+        },
+        "duration_s": 97.0999984741211,
+        "note_count": 1080
+      },
+      "9th": {
+        "role_score": 24.537,
+        "overall_msd": 26.25,
+        "sample_count": 3,
+        "dispersion": 0.58,
+        "risk_flag": "ok",
+        "sample_scores": [
+          23.814,
+          24.537,
+          24.973
+        ],
+        "skillsets": {
+          "stream": 25.52,
+          "jumpstream": 24.9,
+          "handstream": 25.02,
+          "stamina": 24.33,
+          "jackspeed": 14.02,
+          "chordjack": 19.54,
+          "technical": 24.34
+        },
+        "duration_s": 115.5999984741211,
+        "note_count": 1707
+      },
+      "10th": {
+        "role_score": 22.433,
+        "overall_msd": 26.98,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          22.433
+        ],
+        "skillsets": {
+          "stream": 23.14,
+          "jumpstream": 26.98,
+          "handstream": 15.3,
+          "stamina": 25.49,
+          "jackspeed": 15.38,
+          "chordjack": 20.1,
+          "technical": 22.98
+        },
+        "duration_s": 129.39999389648438,
+        "note_count": 1535
+      },
+      "Alpha": {
+        "role_score": 25.399,
+        "overall_msd": 28.24,
+        "sample_count": 2,
+        "dispersion": 0.246,
+        "risk_flag": "weak",
+        "sample_scores": [
+          25.153,
+          25.645
+        ],
+        "skillsets": {
+          "stream": 26.68,
+          "jumpstream": 25.98,
+          "handstream": 25.37,
+          "stamina": 25.06,
+          "jackspeed": 16.66,
+          "chordjack": 20.58,
+          "technical": 25.66
+        },
+        "duration_s": 90.69999694824219,
+        "note_count": 1341
+      },
+      "Beta": {
+        "role_score": 25.261,
+        "overall_msd": 28.615,
+        "sample_count": 2,
+        "dispersion": 1.046,
+        "risk_flag": "weak",
+        "sample_scores": [
+          24.216,
+          26.307
+        ],
+        "skillsets": {
+          "stream": 27.0,
+          "jumpstream": 27.57,
+          "handstream": 18.98,
+          "stamina": 26.46,
+          "jackspeed": 15.3,
+          "chordjack": 21.14,
+          "technical": 26.1
+        },
+        "duration_s": 117.5999984741211,
+        "note_count": 1752
+      },
+      "Gamma": {
+        "role_score": 29.792,
+        "overall_msd": 31.425,
+        "sample_count": 2,
+        "dispersion": 0.122,
+        "risk_flag": "weak",
+        "sample_scores": [
+          29.671,
+          29.914
+        ],
+        "skillsets": {
+          "stream": 23.94,
+          "jumpstream": 32.06,
+          "handstream": 24.58,
+          "stamina": 32.2,
+          "jackspeed": 17.3,
+          "chordjack": 19.86,
+          "technical": 25.14
+        },
+        "duration_s": 159.3000030517578,
+        "note_count": 2504
+      },
+      "Delta": {
+        "role_score": 30.613,
+        "overall_msd": 32.19,
+        "sample_count": 2,
+        "dispersion": 0.105,
+        "risk_flag": "weak",
+        "sample_scores": [
+          30.507,
+          30.718
+        ],
+        "skillsets": {
+          "stream": 26.34,
+          "jumpstream": 32.26,
+          "handstream": 30.29,
+          "stamina": 30.6,
+          "jackspeed": 19.38,
+          "chordjack": 22.9,
+          "technical": 25.94
+        },
+        "duration_s": 100.0999984741211,
+        "note_count": 1741
+      },
+      "Epsilon": {
+        "role_score": 33.423,
+        "overall_msd": 34.94,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          33.423
+        ],
+        "skillsets": {
+          "stream": 31.18,
+          "jumpstream": 34.48,
+          "handstream": 33.15,
+          "stamina": 33.54,
+          "jackspeed": 20.42,
+          "chordjack": 25.14,
+          "technical": 29.7
+        },
+        "duration_s": 112.69999694824219,
+        "note_count": 2001
+      },
+      "Zeta": {
+        "role_score": 35.759,
+        "overall_msd": 36.9,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          35.759
+        ],
+        "skillsets": {
+          "stream": 27.22,
+          "jumpstream": 34.3,
+          "handstream": 36.62,
+          "stamina": 35.39,
+          "jackspeed": 22.42,
+          "chordjack": 26.26,
+          "technical": 28.34
+        },
+        "duration_s": 119.0,
+        "note_count": 1889
+      },
+      "Eta": {
+        "role_score": 35.398,
+        "overall_msd": 37.57,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          35.398
+        ],
+        "skillsets": {
+          "stream": 27.94,
+          "jumpstream": 37.42,
+          "handstream": 35.16,
+          "stamina": 35.5,
+          "jackspeed": 24.82,
+          "chordjack": 26.9,
+          "technical": 30.66
+        },
+        "duration_s": 136.8000030517578,
+        "note_count": 2392
+      },
+      "Theta": {
+        "role_score": 39.963,
+        "overall_msd": 41.66,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          39.963
+        ],
+        "skillsets": {
+          "stream": 38.9,
+          "jumpstream": 39.59,
+          "handstream": 41.02,
+          "stamina": 39.51,
+          "jackspeed": 27.14,
+          "chordjack": 28.66,
+          "technical": 38.3
+        },
+        "duration_s": 113.69999694824219,
+        "note_count": 2461
+      },
+      "Iota": {
+        "role_score": 48.067,
+        "overall_msd": 49.12,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          48.067
+        ],
+        "skillsets": {
+          "stream": 41.14,
+          "jumpstream": 35.46,
+          "handstream": 48.55,
+          "stamina": 47.86,
+          "jackspeed": 30.58,
+          "chordjack": 29.7,
+          "technical": 39.86
+        },
+        "duration_s": 133.0,
+        "note_count": 3723
+      },
+      "Kappa": {
+        "role_score": 50.713,
+        "overall_msd": 52.08,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak",
+        "sample_scores": [
+          50.713
+        ],
+        "skillsets": {
+          "stream": 40.66,
+          "jumpstream": 42.42,
+          "handstream": 51.63,
+          "stamina": 50.32,
+          "jackspeed": 33.78,
+          "chordjack": 33.7,
+          "technical": 43.62
+        },
+        "duration_s": 134.6999969482422,
+        "note_count": 3199
+      }
+    }
+  },
+  "thresholds": {
+    "jack": {
+      "1st": {
+        "lower": 6.416,
+        "center": 8.02,
+        "upper": 9.62,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "2nd": {
+        "lower": 9.62,
+        "center": 11.22,
+        "upper": 11.948,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "3rd": {
+        "lower": 10.172,
+        "center": 10.9,
+        "upper": 11.94,
+        "sample_count": 3,
+        "dispersion": 0.32,
+        "risk_flag": "ok"
+      },
+      "4th": {
+        "lower": 11.94,
+        "center": 12.98,
+        "upper": 13.708,
+        "sample_count": 3,
+        "dispersion": 0.96,
+        "risk_flag": "ok"
+      },
+      "5th": {
+        "lower": 11.692,
+        "center": 12.42,
+        "upper": 14.1,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "6th": {
+        "lower": 14.1,
+        "center": 15.78,
+        "upper": 16.508,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "7th": {
+        "lower": 16.332,
+        "center": 17.06,
+        "upper": 19.315,
+        "sample_count": 3,
+        "dispersion": 0.92,
+        "risk_flag": "ok"
+      },
+      "8th": {
+        "lower": 19.315,
+        "center": 21.57,
+        "upper": 22.298,
+        "sample_count": 3,
+        "dispersion": 1.45,
+        "risk_flag": "ok"
+      },
+      "9th": {
+        "lower": 18.932,
+        "center": 19.66,
+        "upper": 22.28,
+        "sample_count": 2,
+        "dispersion": 0.28,
+        "risk_flag": "weak"
+      },
+      "10th": {
+        "lower": 22.28,
+        "center": 24.9,
+        "upper": 25.628,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Alpha": {
+        "lower": 23.392,
+        "center": 24.12,
+        "upper": 25.663,
+        "sample_count": 3,
+        "dispersion": 0.735,
+        "risk_flag": "ok"
+      },
+      "Beta": {
+        "lower": 25.663,
+        "center": 27.205,
+        "upper": 27.933,
+        "sample_count": 2,
+        "dispersion": 0.775,
+        "risk_flag": "weak"
+      },
+      "Gamma": {
+        "lower": 26.262,
+        "center": 26.99,
+        "upper": 29.595,
+        "sample_count": 3,
+        "dispersion": 0.76,
+        "risk_flag": "ok"
+      },
+      "Delta": {
+        "lower": 29.595,
+        "center": 32.2,
+        "upper": 33.555,
+        "sample_count": 2,
+        "dispersion": 0.03,
+        "risk_flag": "weak"
+      },
+      "Epsilon": {
+        "lower": 33.555,
+        "center": 34.91,
+        "upper": 35.638,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Zeta": {
+        "lower": 33.462,
+        "center": 34.19,
+        "upper": 37.675,
+        "sample_count": 2,
+        "dispersion": 0.22,
+        "risk_flag": "weak"
+      },
+      "Eta": {
+        "lower": 37.675,
+        "center": 41.16,
+        "upper": 41.888,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Theta": {
+        "lower": 40.342,
+        "center": 41.07,
+        "upper": 43.46,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Iota": {
+        "lower": 43.46,
+        "center": 45.85,
+        "upper": 46.87,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Kappa": {
+        "lower": 46.87,
+        "center": 47.89,
+        "upper": 57.468,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      }
+    },
+    "speed": {
+      "1st": {
+        "lower": 10.408,
+        "center": 13.01,
+        "upper": 13.549,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "2nd": {
+        "lower": 12.961,
+        "center": 13.5,
+        "upper": 14.925,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "3rd": {
+        "lower": 14.925,
+        "center": 16.35,
+        "upper": 16.895,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "4th": {
+        "lower": 16.895,
+        "center": 17.44,
+        "upper": 19.047,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "5th": {
+        "lower": 19.047,
+        "center": 20.655,
+        "upper": 21.425,
+        "sample_count": 2,
+        "dispersion": 0.305,
+        "risk_flag": "weak"
+      },
+      "6th": {
+        "lower": 21.425,
+        "center": 22.195,
+        "upper": 22.734,
+        "sample_count": 2,
+        "dispersion": 0.355,
+        "risk_flag": "weak"
+      },
+      "7th": {
+        "lower": 22.216,
+        "center": 22.755,
+        "upper": 23.562,
+        "sample_count": 2,
+        "dispersion": 0.475,
+        "risk_flag": "weak"
+      },
+      "8th": {
+        "lower": 23.562,
+        "center": 24.37,
+        "upper": 24.909,
+        "sample_count": 2,
+        "dispersion": 0.13,
+        "risk_flag": "weak"
+      },
+      "9th": {
+        "lower": 24.286,
+        "center": 24.825,
+        "upper": 25.364,
+        "sample_count": 2,
+        "dispersion": 0.275,
+        "risk_flag": "weak"
+      },
+      "10th": {
+        "lower": 24.131,
+        "center": 24.67,
+        "upper": 26.325,
+        "sample_count": 2,
+        "dispersion": 0.29,
+        "risk_flag": "weak"
+      },
+      "Alpha": {
+        "lower": 26.325,
+        "center": 27.98,
+        "upper": 28.519,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Beta": {
+        "lower": 27.751,
+        "center": 28.29,
+        "upper": 29.725,
+        "sample_count": 4,
+        "dispersion": 0.575,
+        "risk_flag": "ok"
+      },
+      "Gamma": {
+        "lower": 29.725,
+        "center": 31.16,
+        "upper": 31.699,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Delta": {
+        "lower": 31.531,
+        "center": 32.07,
+        "upper": 34.44,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Epsilon": {
+        "lower": 34.44,
+        "center": 36.81,
+        "upper": 38.53,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Zeta": {
+        "lower": 38.53,
+        "center": 40.25,
+        "upper": 41.47,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Eta": {
+        "lower": 41.47,
+        "center": 42.69,
+        "upper": 43.229,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Theta": {
+        "lower": 42.031,
+        "center": 42.57,
+        "upper": 43.109,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Iota": {
+        "lower": 41.751,
+        "center": 42.29,
+        "upper": 44.75,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Kappa": {
+        "lower": 44.75,
+        "center": 47.21,
+        "upper": 56.652,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      }
+    },
+    "tech": {
+      "1st": {
+        "lower": 11.04,
+        "center": 13.8,
+        "upper": 14.55,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "2nd": {
+        "lower": 14.55,
+        "center": 15.3,
+        "upper": 15.937,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "3rd": {
+        "lower": 14.793,
+        "center": 15.43,
+        "upper": 16.608,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "4th": {
+        "lower": 16.608,
+        "center": 17.785,
+        "upper": 18.45,
+        "sample_count": 2,
+        "dispersion": 0.615,
+        "risk_flag": "weak"
+      },
+      "5th": {
+        "lower": 18.45,
+        "center": 19.115,
+        "upper": 19.752,
+        "sample_count": 2,
+        "dispersion": 0.165,
+        "risk_flag": "weak"
+      },
+      "6th": {
+        "lower": 19.573,
+        "center": 20.21,
+        "upper": 21.755,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "7th": {
+        "lower": 21.755,
+        "center": 23.3,
+        "upper": 23.937,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "8th": {
+        "lower": 23.388,
+        "center": 24.025,
+        "upper": 24.938,
+        "sample_count": 2,
+        "dispersion": 0.005,
+        "risk_flag": "weak"
+      },
+      "9th": {
+        "lower": 24.938,
+        "center": 25.85,
+        "upper": 26.76,
+        "sample_count": 2,
+        "dispersion": 0.48,
+        "risk_flag": "weak"
+      },
+      "10th": {
+        "lower": 26.76,
+        "center": 27.67,
+        "upper": 28.307,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Alpha": {
+        "lower": 27.048,
+        "center": 27.685,
+        "upper": 28.322,
+        "sample_count": 2,
+        "dispersion": 0.485,
+        "risk_flag": "weak"
+      },
+      "Beta": {
+        "lower": 25.493,
+        "center": 26.13,
+        "upper": 27.82,
+        "sample_count": 2,
+        "dispersion": 0.71,
+        "risk_flag": "weak"
+      },
+      "Gamma": {
+        "lower": 27.82,
+        "center": 29.51,
+        "upper": 30.925,
+        "sample_count": 3,
+        "dispersion": 0.215,
+        "risk_flag": "ok"
+      },
+      "Delta": {
+        "lower": 30.925,
+        "center": 32.34,
+        "upper": 33.19,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Epsilon": {
+        "lower": 33.19,
+        "center": 34.04,
+        "upper": 34.965,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Zeta": {
+        "lower": 34.965,
+        "center": 35.89,
+        "upper": 37.175,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Eta": {
+        "lower": 37.175,
+        "center": 38.46,
+        "upper": 40.8,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Theta": {
+        "lower": 40.8,
+        "center": 43.14,
+        "upper": 43.885,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Iota": {
+        "lower": 43.885,
+        "center": 44.63,
+        "upper": 46.35,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Kappa": {
+        "lower": 46.35,
+        "center": 48.07,
+        "upper": 57.684,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      }
+    },
+    "stamina": {
+      "1st": {
+        "lower": 11.064,
+        "center": 13.83,
+        "upper": 14.648,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "2nd": {
+        "lower": 14.409,
+        "center": 15.227,
+        "upper": 16.045,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "3rd": {
+        "lower": 13.562,
+        "center": 14.38,
+        "upper": 16.064,
+        "sample_count": 2,
+        "dispersion": 0.087,
+        "risk_flag": "weak"
+      },
+      "4th": {
+        "lower": 16.064,
+        "center": 17.747,
+        "upper": 19.107,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "5th": {
+        "lower": 19.107,
+        "center": 20.466,
+        "upper": 21.284,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "6th": {
+        "lower": 21.006,
+        "center": 21.824,
+        "upper": 22.642,
+        "sample_count": 2,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "7th": {
+        "lower": 21.492,
+        "center": 22.31,
+        "upper": 23.128,
+        "sample_count": 2,
+        "dispersion": 0.374,
+        "risk_flag": "weak"
+      },
+      "8th": {
+        "lower": 20.51,
+        "center": 21.328,
+        "upper": 22.932,
+        "sample_count": 3,
+        "dispersion": 0.406,
+        "risk_flag": "ok"
+      },
+      "9th": {
+        "lower": 22.932,
+        "center": 24.537,
+        "upper": 25.355,
+        "sample_count": 3,
+        "dispersion": 0.58,
+        "risk_flag": "ok"
+      },
+      "10th": {
+        "lower": 21.615,
+        "center": 22.433,
+        "upper": 23.916,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Alpha": {
+        "lower": 23.916,
+        "center": 25.399,
+        "upper": 26.217,
+        "sample_count": 2,
+        "dispersion": 0.246,
+        "risk_flag": "weak"
+      },
+      "Beta": {
+        "lower": 24.443,
+        "center": 25.261,
+        "upper": 27.526,
+        "sample_count": 2,
+        "dispersion": 1.046,
+        "risk_flag": "weak"
+      },
+      "Gamma": {
+        "lower": 27.526,
+        "center": 29.792,
+        "upper": 30.61,
+        "sample_count": 2,
+        "dispersion": 0.122,
+        "risk_flag": "weak"
+      },
+      "Delta": {
+        "lower": 29.795,
+        "center": 30.613,
+        "upper": 32.018,
+        "sample_count": 2,
+        "dispersion": 0.105,
+        "risk_flag": "weak"
+      },
+      "Epsilon": {
+        "lower": 32.018,
+        "center": 33.423,
+        "upper": 34.591,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Zeta": {
+        "lower": 34.591,
+        "center": 35.759,
+        "upper": 36.577,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Eta": {
+        "lower": 34.58,
+        "center": 35.398,
+        "upper": 37.681,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Theta": {
+        "lower": 37.681,
+        "center": 39.963,
+        "upper": 44.015,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Iota": {
+        "lower": 44.015,
+        "center": 48.067,
+        "upper": 49.39,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      },
+      "Kappa": {
+        "lower": 49.39,
+        "center": 50.713,
+        "upper": 60.856,
+        "sample_count": 1,
+        "dispersion": 0.0,
+        "risk_flag": "weak"
+      }
+    }
+  },
+  "monotonicity_adjustments": [
+    "jack/3rd: 10.900 <= prev 11.220 (INVERTED, kept as-is)",
+    "jack/5th: 12.420 <= prev 12.980 (INVERTED, kept as-is)",
+    "jack/9th: 19.660 <= prev 21.570 (INVERTED, kept as-is)",
+    "jack/Alpha: 24.120 <= prev 24.900 (INVERTED, kept as-is)",
+    "jack/Gamma: 26.990 <= prev 27.205 (INVERTED, kept as-is)",
+    "jack/Zeta: 34.190 <= prev 34.910 (INVERTED, kept as-is)",
+    "jack/Theta: 41.070 <= prev 41.160 (INVERTED, kept as-is)",
+    "speed/10th: 24.670 <= prev 24.825 (INVERTED, kept as-is)",
+    "speed/Theta: 42.570 <= prev 42.690 (INVERTED, kept as-is)",
+    "speed/Iota: 42.290 <= prev 42.570 (INVERTED, kept as-is)",
+    "tech/Beta: 26.130 <= prev 27.685 (INVERTED, kept as-is)",
+    "stamina/3rd: 14.380 <= prev 15.227 (INVERTED, kept as-is)",
+    "stamina/8th: 21.328 <= prev 22.310 (INVERTED, kept as-is)",
+    "stamina/10th: 22.433 <= prev 24.537 (INVERTED, kept as-is)",
+    "stamina/Beta: 25.261 <= prev 25.399 (INVERTED, kept as-is)",
+    "stamina/Eta: 35.398 <= prev 35.759 (INVERTED, kept as-is)"
+  ]
+}

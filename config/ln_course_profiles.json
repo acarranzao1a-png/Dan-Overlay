@@ -1,0 +1,401 @@
+{
+  "allround": {
+    "1st": {
+      "sr_mean": 2.3246,
+      "sr_count": 1
+    },
+    "2nd": {
+      "sr_mean": 1.7897,
+      "sr_count": 1
+    },
+    "3rd": {
+      "sr_mean": 2.7561,
+      "sr_count": 1
+    },
+    "4th": {
+      "sr_mean": 2.6084,
+      "sr_count": 1
+    },
+    "5th": {
+      "sr_mean": 3.477,
+      "sr_count": 1
+    },
+    "6th": {
+      "sr_mean": 3.1132,
+      "sr_count": 1
+    },
+    "7th": {
+      "sr_mean": 4.195,
+      "sr_count": 1
+    },
+    "8th": {
+      "sr_mean": 4.4407,
+      "sr_count": 1
+    },
+    "9th": {
+      "sr_mean": 4.9033,
+      "sr_count": 1
+    },
+    "10th": {
+      "sr_mean": 5.5391,
+      "sr_count": 1
+    },
+    "Yoake": {
+      "sr_mean": 5.7238,
+      "sr_count": 1
+    },
+    "Yuugure": {
+      "sr_mean": 6.0091,
+      "sr_count": 1
+    },
+    "Yoru": {
+      "sr_mean": 6.393,
+      "sr_count": 1
+    },
+    "Yami": {
+      "sr_mean": 6.891,
+      "sr_count": 1
+    },
+    "Yume": {
+      "sr_mean": 7.4672,
+      "sr_count": 1
+    },
+    "Yokaze": {
+      "sr_mean": 6.9452,
+      "sr_count": 1
+    }
+  },
+  "jack_technical": {
+    "1st": {
+      "sr_mean": 0.917,
+      "sr_count": 1
+    },
+    "2nd": {
+      "sr_mean": 2.1146,
+      "sr_count": 1
+    },
+    "3rd": {
+      "sr_mean": 3.5099,
+      "sr_count": 1
+    },
+    "4th": {
+      "sr_mean": 2.9725,
+      "sr_count": 1
+    },
+    "5th": {
+      "sr_mean": 3.0857,
+      "sr_count": 1
+    },
+    "6th": {
+      "sr_mean": 1.9911,
+      "sr_count": 1
+    },
+    "7th": {
+      "sr_mean": 3.681,
+      "sr_count": 1
+    },
+    "8th": {
+      "sr_mean": 2.8157,
+      "sr_count": 1
+    },
+    "9th": {
+      "sr_mean": 3.9959,
+      "sr_count": 1
+    },
+    "10th": {
+      "sr_mean": 4.7784,
+      "sr_count": 1
+    },
+    "Yoake": {
+      "sr_mean": 4.0904,
+      "sr_count": 1
+    },
+    "Yuugure": {
+      "sr_mean": 5.0529,
+      "sr_count": 1
+    },
+    "Yoru": {
+      "sr_mean": 6.0788,
+      "sr_count": 1
+    },
+    "Yami": {
+      "sr_mean": 7.0452,
+      "sr_count": 1
+    },
+    "Yume": {
+      "sr_mean": 6.9865,
+      "sr_count": 1
+    },
+    "Yokaze": {
+      "sr_mean": 7.5334,
+      "sr_count": 1
+    }
+  },
+  "inverse": {
+    "1st": {
+      "sr_mean": 0.373,
+      "sr_count": 1
+    },
+    "2nd": {
+      "sr_mean": 1.6848,
+      "sr_count": 1
+    },
+    "3rd": {
+      "sr_mean": 2.3061,
+      "sr_count": 1
+    },
+    "4th": {
+      "sr_mean": 1.6863,
+      "sr_count": 1
+    },
+    "5th": {
+      "sr_mean": 3.4617,
+      "sr_count": 1
+    },
+    "6th": {
+      "sr_mean": 3.1251,
+      "sr_count": 1
+    },
+    "7th": {
+      "sr_mean": 2.2816,
+      "sr_count": 1
+    },
+    "8th": {
+      "sr_mean": 3.485,
+      "sr_count": 1
+    },
+    "9th": {
+      "sr_mean": 4.3624,
+      "sr_count": 1
+    },
+    "10th": {
+      "sr_mean": 4.4354,
+      "sr_count": 1
+    },
+    "Yoake": {
+      "sr_mean": 5.9052,
+      "sr_count": 1
+    },
+    "Yuugure": {
+      "sr_mean": 5.9866,
+      "sr_count": 1
+    },
+    "Yoru": {
+      "sr_mean": 6.8257,
+      "sr_count": 1
+    },
+    "Yami": {
+      "sr_mean": 6.4333,
+      "sr_count": 1
+    },
+    "Yume": {
+      "sr_mean": 7.1386,
+      "sr_count": 1
+    },
+    "Yokaze": {
+      "sr_mean": 7.3977,
+      "sr_count": 1
+    }
+  },
+  "speed_density": {
+    "1st": {
+      "sr_mean": 1.6052,
+      "sr_count": 1
+    },
+    "2nd": {
+      "sr_mean": 3.0169,
+      "sr_count": 1
+    },
+    "3rd": {
+      "sr_mean": 3.4553,
+      "sr_count": 1
+    },
+    "4th": {
+      "sr_mean": 3.5086,
+      "sr_count": 1
+    },
+    "5th": {
+      "sr_mean": 3.5691,
+      "sr_count": 1
+    },
+    "6th": {
+      "sr_mean": 4.5535,
+      "sr_count": 1
+    },
+    "7th": {
+      "sr_mean": 5.0759,
+      "sr_count": 1
+    },
+    "8th": {
+      "sr_mean": 5.0227,
+      "sr_count": 1
+    },
+    "9th": {
+      "sr_mean": 5.0577,
+      "sr_count": 1
+    },
+    "10th": {
+      "sr_mean": 5.5354,
+      "sr_count": 1
+    },
+    "Yoake": {
+      "sr_mean": 5.7086,
+      "sr_count": 1
+    },
+    "Yuugure": {
+      "sr_mean": 5.9762,
+      "sr_count": 1
+    },
+    "Yoru": {
+      "sr_mean": 6.6037,
+      "sr_count": 1
+    },
+    "Yami": {
+      "sr_mean": 6.9833,
+      "sr_count": 1
+    },
+    "Yume": {
+      "sr_mean": 7.1522,
+      "sr_count": 1
+    },
+    "Yokaze": {
+      "sr_mean": 8.3187,
+      "sr_count": 1
+    }
+  },
+  "global": {
+    "1st": {
+      "sr_mean": 1.305,
+      "sr_count": 4,
+      "sr_std": 0.8463
+    },
+    "2nd": {
+      "sr_mean": 2.1515,
+      "sr_count": 4,
+      "sr_std": 0.6053
+    },
+    "3rd": {
+      "sr_mean": 2.8504,
+      "sr_count": 4,
+      "sr_std": 0.5797
+    },
+    "4th": {
+      "sr_mean": 2.8504,
+      "sr_count": 4,
+      "sr_std": 0.7668
+    },
+    "5th": {
+      "sr_mean": 3.2971,
+      "sr_count": 4,
+      "sr_std": 0.2138
+    },
+    "6th": {
+      "sr_mean": 3.2971,
+      "sr_count": 4,
+      "sr_std": 1.0498
+    },
+    "7th": {
+      "sr_mean": 3.8084,
+      "sr_count": 4,
+      "sr_std": 1.1695
+    },
+    "8th": {
+      "sr_mean": 3.941,
+      "sr_count": 4,
+      "sr_std": 0.9822
+    },
+    "9th": {
+      "sr_mean": 4.5798,
+      "sr_count": 4,
+      "sr_std": 0.4903
+    },
+    "10th": {
+      "sr_mean": 5.0721,
+      "sr_count": 4,
+      "sr_std": 0.5551
+    },
+    "Yoake": {
+      "sr_mean": 5.357,
+      "sr_count": 4,
+      "sr_std": 0.8491
+    },
+    "Yuugure": {
+      "sr_mean": 5.7562,
+      "sr_count": 4,
+      "sr_std": 0.4691
+    },
+    "Yoru": {
+      "sr_mean": 6.4753,
+      "sr_count": 4,
+      "sr_std": 0.3179
+    },
+    "Yami": {
+      "sr_mean": 6.8382,
+      "sr_count": 4,
+      "sr_std": 0.2773
+    },
+    "Yume": {
+      "sr_mean": 7.1861,
+      "sr_count": 4,
+      "sr_std": 0.2019
+    },
+    "Yokaze": {
+      "sr_mean": 7.5488,
+      "sr_count": 4,
+      "sr_std": 0.5716
+    }
+  },
+  "regression": {
+    "feature_order": [
+      "dp_sr",
+      "hold_occupancy",
+      "simultaneous_hold",
+      "release_density",
+      "ln_duration_cv",
+      "dp_sr_x_hold_occ",
+      "bias"
+    ],
+    "coefs": [
+      0.768445,
+      0.579175,
+      5.109795,
+      0.324758,
+      0.224097,
+      -0.265177,
+      -3.189884
+    ],
+    "training_n": 64,
+    "r2": 0.9482,
+    "mae": 0.8163
+  },
+  "family_feature_means": {
+    "allround": {
+      "hold_occupancy": 0.8273,
+      "simultaneous_hold": 0.6055,
+      "release_density": 9.7958,
+      "ln_duration_cv": 0.9124,
+      "ln_ratio": 0.6777
+    },
+    "jack_technical": {
+      "hold_occupancy": 0.8771,
+      "simultaneous_hold": 0.6875,
+      "release_density": 8.7761,
+      "ln_duration_cv": 0.9628,
+      "ln_ratio": 0.727
+    },
+    "inverse": {
+      "hold_occupancy": 0.8615,
+      "simultaneous_hold": 0.7736,
+      "release_density": 9.0285,
+      "ln_duration_cv": 0.8849,
+      "ln_ratio": 0.7729
+    },
+    "speed_density": {
+      "hold_occupancy": 0.7983,
+      "simultaneous_hold": 0.5693,
+      "release_density": 9.1562,
+      "ln_duration_cv": 1.2038,
+      "ln_ratio": 0.6877
+    }
+  }
+}

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DanOverlay - Modern</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="js-offscreen" aria-hidden="true">
+    <div id="mapTicker"><div class="marquee-track"><span></span><span></span></div></div>
+    <div id="statsTicker"><div class="marquee-track"><span></span><span></span></div></div>
+    <canvas id="vizCanvas"></canvas>
+    <span id="badgeLeft"></span>
+    <span id="badgeCenter"></span>
+    <span id="badgeRight"></span>
+    <p id="danDetails"></p>
+    <p id="danBands"></p>
+    <div id="danDensity"></div>
+    <div id="progressTrack"><div id="progressBar"></div></div>
+    <span id="progressTime"></span>
+  </div>
+
+  <main id="overlay">
+
+    <section class="dan-panel is-loading" id="danPanel">
+
+      <!-- Background image layer -->
+      <div class="dan-bg" id="danBg"></div>
+
+      <!-- Dimming scrim over the background image -->
+      <div class="dan-scrim"></div>
+
+      <!-- Top progress bar: JS-driven, synced to song time -->
+      <div class="top-drain-bar" id="drainBar"></div>
+
+      <!-- Bottom accent line: themed to current dan palette -->
+      <div class="dan-line" id="danLine"></div>
+
+      <!-- Loading / connecting state overlay -->
+      <div class="loading-wrap" id="loadingWrap">
+        <span class="loading-text" id="loadingText">Waiting for tosu</span>
+        <span class="loading-bar" aria-hidden="true"></span>
+      </div>
+
+      <!-- ── Mode picker: shown on every launch ────────────────── -->
+
+      <!-- ── Tutorial prompt (first 2 launches only) ─────────── -->
+      <div class="hint-screen hidden" id="tutorialPromptScreen">
+        <div class="hint-inner">
+          <div class="hint-title">DANOVERLAY — QUICK SETUP</div>
+          <p class="tut-prompt-question">Would you like to see a quick tutorial<br>on resize modes and scoring modes?</p>
+          <div class="tut-prompt-btns">
+            <button class="hint-btn tut-btn-yes"   id="tutYesBtn"   type="button">Yes</button>
+            <button class="hint-btn tut-btn-no"    id="tutNoBtn"    type="button">Skip</button>
+            <button class="hint-btn tut-btn-never" id="tutNeverBtn" type="button">Don’t show again</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── What's New screen (auto-advance after splash) ────── -->
+      <div class="hint-screen hidden" id="whatsNewScreen">
+        <div class="hint-inner">
+          <div class="hint-title">WHAT'S NEW — v2.0</div>
+          <div class="whats-new-list">
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">◈</span>
+              <span><strong>Resize modes</strong> — Free &amp; Locked replace streamer/personal mode.
+                Toggle with <kbd class="hint-key hint-key-sm">R</kbd></span>
+            </div>
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">◇</span>
+              <span><strong>Scoring modes</strong> — Reform, Celestial, Signicial &amp; Shoegazer
+                via <kbd class="hint-key hint-key-sm">Ctrl</kbd>&thinsp;<kbd class="hint-key hint-key-sm">1–4</kbd></span>
+            </div>
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">♬</span>
+              <span><strong>LN Course mode</strong> — Experimental rank estimation for 4K LN Dan Courses</span>
+            </div>
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">⊡</span>
+              <span><strong>Overlay toggle</strong> — Press <kbd class="hint-key hint-key-sm">Tab</kbd>
+                to pin or unpin the overlay over osu while keeping it interactive.
+                <span class="hint-note-subtle">More noticeable with fullscreen mode disabled.</span></span>
+            </div>
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">▦</span>
+              <span><strong>Classic skin</strong> — A new horizontal bar design is available.
+                Switch between Modern and Classic in
+                <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd>
+                under <em>Skin</em>.</span>
+            </div>
+          </div>
+          <button class="hint-btn hidden" id="whatsNewBtn" type="button">Got it</button>
+        </div>
+      </div>
+
+      <!-- ── Resize hint screen: 2-step walkthrough (Free then Locked) ──── -->
+      <div class="hint-screen hidden" id="hintScreen">
+        <div class="hint-inner">
+
+          <div class="hint-title">RESIZE MODE</div>
+
+          <div class="hint-r-indicator" id="hintRIndicator">
+            <kbd class="hint-key hint-key-lg">R</kbd>
+            <span class="hint-r-label" id="hintRLabel">press to try</span>
+          </div>
+
+          <div class="hint-modes">
+            <span class="hint-mode-item hint-mode-active" id="hintModeFree">
+              <span class="hint-mode-icon hint-free">◱</span> Free — drag each edge independently
+            </span>
+            <span class="hint-mode-item" id="hintModeLocked">
+              <span class="hint-mode-icon hint-locked">◈</span> Locked — scales everything up proportionally
+            </span>
+          </div>
+
+          <div class="hint-click-note">Click the overlay window first if the key doesn't respond. To reset size, press <strong>Ctrl+R</strong>.</div>
+
+          <button class="hint-btn hidden" id="hintBtn" type="button">Next</button>
+
+          <div class="hint-current">Current: <strong id="hintCurrentMode">Free</strong></div>
+        </div>
+      </div>
+
+      <!-- ── Scoring modes hint screen ─────────────────────────── -->
+      <div class="hint-screen hidden" id="hintScreen2">
+        <div class="hint-inner">
+          <div class="hint-title">SCORING MODES</div>
+          <div class="hint-click-note" style="margin-bottom:4px;opacity:0.55">try the key combos below</div>
+          <div class="hint-modes hint-modes-scoring">
+            <span class="hint-mode-item" id="smItem1">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1</kbd>
+              <span class="hint-mode-icon" style="color:#c5d5f4">◇</span>
+              <span>Reform <span class="hint-mode-tag">default</span></span>
+            </span>
+            <span class="hint-mode-item" id="smItem2">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">2</kbd>
+              <span class="hint-mode-icon" style="color:#b48cff">✦</span>
+              <span>Celestial</span>
+            </span>
+            <span class="hint-mode-item" id="smItem3">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">3</kbd>
+              <span class="hint-mode-icon" style="color:#ff9e6b">◆</span>
+              <span>Signicial</span>
+            </span>
+            <span class="hint-mode-item" id="smItem4">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">4</kbd>
+              <span class="hint-mode-icon" style="color:#5ddfb0">♫</span>
+              <span>Shoegazer</span>
+            </span>
+          </div>
+          <div class="hint-click-note hint-ln-auto" style="margin-top:6px">
+            ♬ LN Course mode activates automatically when a map has <strong>&gt;45%</strong> LN notes
+          </div>
+          <div class="hint-click-note hint-experimental">
+            ⚠ These modes are experimental — do not expect exact results
+          </div>
+          <button class="hint-btn hidden" id="hintBtn2" type="button">Next</button>
+        </div>
+      </div>
+
+      <!-- ── Layout modes hint screen ──────────────────────────── -->
+      <div class="hint-screen hidden" id="hintScreen3">
+        <div class="hint-inner">
+          <div class="hint-title">LAYOUT MODES</div>
+          <div class="hint-click-note" style="margin-bottom:6px;opacity:0.55">press <kbd class="hint-key hint-key-sm">L</kbd> to cycle through layouts</div>
+          <div class="hint-modes hint-modes-layout">
+            <span class="hint-mode-item hint-mode-active" id="lmItem1">
+              <span class="hint-mode-icon" style="color:#c5d5f4">◱</span>
+              <span><strong>Full</strong> — complete info view, all metrics visible</span>
+            </span>
+            <span class="hint-mode-item" id="lmItem2">
+              <span class="hint-mode-icon" style="color:#c5d5f4">◇</span>
+              <span><strong>Simplified</strong> — dan name &amp; score, minimal height</span>
+            </span>
+            <span class="hint-mode-item" id="lmItem3">
+              <span class="hint-mode-icon" style="color:#c5d5f4">▪</span>
+              <span><strong>Compact</strong> — thin bar, ideal for stream layouts</span>
+            </span>
+          </div>
+          <div class="hint-click-note" style="margin-top:6px;opacity:0.55">
+            Layout is saved automatically between sessions
+          </div>
+          <div class="hint-click-note" style="margin-top:4px;opacity:0.4;font-size:10px">
+            ⚠ Layout modes are only available in the Modern skin
+          </div>
+          <button class="hint-btn hidden" id="hintBtn3" type="button">Next</button>
+        </div>
+      </div>
+
+      <!-- ── Settings hint screen ───────────────────────────────── -->
+      <div class="hint-screen hidden" id="hintScreen4">
+        <div class="hint-inner">
+          <div class="hint-title">QUICK REFERENCE</div>
+          <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Tab</kbd>
+              <span>Pin / unpin overlay on top of osu!</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">R</kbd>
+              <span>Toggle resize mode — Free ↔ Locked ratio</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">L</kbd>
+              <span>Cycle layout — Full → Simplified → Compact</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd>
+              <span>Open settings panel</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">R</kbd>
+              <span>Reset window to default size</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1–4</kbd>
+              <span>Switch scoring mode</span>
+            </span>
+          </div>
+          <button class="hint-btn hidden" id="hintBtn4" type="button">Let's go!</button>
+        </div>
+      </div>
+      <!-- ── Settings shortcut hint (auto-advance 2s) ──────────── -->
+      <div class="hint-screen hidden" id="hintScreenSettings">
+        <div class="hint-inner hint-inner-sm">
+          <div class="hint-title" style="font-size:13px;letter-spacing:.18em;opacity:.55;margin-bottom:10px">TIP</div>
+          <div class="hint-modes hint-modes-scoring" style="gap:10px;margin-top:0">
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd>
+              <span>Open settings panel anywhere</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active" style="margin-top:2px">
+              <kbd class="hint-key hint-key-sm">Right-click</kbd>
+              <span>Also opens settings</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      <!-- ── Intro: splash screen ─────────────────────────────── -->
+      <div class="splash-screen hidden" id="splashScreen">
+        <div class="splash-inner">
+          <span class="splash-title">DAN OVERLAY</span>
+          <span class="splash-sub">by 8doul &nbsp;·&nbsp; discord: agent_ale</span>
+        </div>
+      </div>
+
+      <!-- ── Intro: tosu connection status ────────────────────── -->
+      <div class="connect-screen" id="connectScreen">
+        <div class="connect-inner">
+          <div class="connect-row">
+            <div class="connect-icon" id="connectIcon"></div>
+            <div class="connect-text">
+              <span class="connect-label" id="connectLabel">WAITING FOR CONNECTION</span>
+              <span class="connect-sub" id="connectSub">Connect tosu and open osu! to start</span>
+            </div>
+          </div>
+          <a class="connect-download hidden" id="connectDownload" href="https://github.com/tosuapp/tosu" target="_blank" rel="noopener noreferrer">
+            <span class="connect-download-icon">↗</span> Don't have tosu? Download it here
+          </a>
+          <div class="connect-osu hidden" id="connectOsu">
+            <span class="connect-osu-icon" id="connectOsuIcon"></span>
+            <span class="connect-osu-text" id="connectOsuText">osu!</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-transition-screen" id="mapTransitionScreen" aria-hidden="true"></div>
+
+      <!-- Pause overlay — shown when player pauses during gameplay -->
+      <div class="paused-overlay" id="pausedOverlay">
+        <span class="paused-overlay-text">PAUSED</span>
+      </div>
+
+      <!-- Play result overlay (Pass / Failed / etc.) -->
+      <div class="map-progress-wrap" id="progressWrap">
+        <div class="map-progress-result" id="progressResult"></div>
+      </div>
+
+      <!-- ── Mode switch announce (Ctrl+1/2/3) ───────────────── -->
+      <div class="mode-announce" id="modeAnnounce">
+        <span class="mode-announce-label">Mode</span>
+        <span class="mode-announce-name" id="modeAnnounceName">Reform</span>
+        <div class="mode-announce-divider"></div>
+      </div>
+
+      <!-- Premium subtle border -->
+      <div class="premium-border"></div>
+
+      <!-- Greek letter watermark — JS sets .src dynamically -->
+      <img class="dan-greek-bg" id="danGreekBg" src="" alt="" aria-hidden="true">
+
+
+      <!-- ── Two-row flex layout (header + core) ────────── -->
+      <div class="overlay-content">
+
+        <!-- TOP: Map context -->
+        <header class="map-header">
+          <div class="map-info">
+            <div class="map-title-wrap" id="mapTitleWrap">
+              <div class="map-title-track" id="mapTitleTrack">
+                <span class="map-title" id="mapTitle">Waiting for beatmap...</span>
+                <span class="map-title map-title-ghost" id="mapTitleGhost" aria-hidden="true">Waiting for beatmap...</span>
+              </div>
+            </div>
+            <span class="map-artist" id="mapArtist">—</span>
+          </div>
+
+          <div class="map-meta">
+            <div class="badges-row">
+              <span class="mod-badge" id="modBadge"></span>
+              <span class="scoring-mode-badge" id="scoringModeBadge" data-mode="reform">◇ Mode: Reform</span>
+            </div>
+            <div class="map-duration-row">
+              <div class="mini-viz" id="miniViz"></div>
+              <span class="map-duration" id="mapDuration">--:--</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- BOTTOM: Dan rank + MSD -->
+        <div class="dan-core">
+          <div class="dan-main-stats">
+            <span class="chart-family" id="chartFamily"></span>
+            <div class="dan-identity">
+              <span class="dan-name" id="danName">—</span>
+              <img id="danImage" class="signicial-icon" style="display: none;" src="" alt="" />
+              <span class="dan-sub" id="danSub">Sublevel</span>
+            </div>
+            <div class="dan-dp-row" id="danDpRow">
+              <span class="dan-dp-label">DP</span>
+              <span class="dan-dp-value" id="danDpValue">--</span>
+            </div>
+            <div class="intensity-bar" id="intensityBar">
+              <span class="intensity-label">LOW</span>
+              <div class="intensity-slot">
+                <div class="intensity-track">
+                  <div class="intensity-fill" id="intensityFill"></div>
+                </div>
+                <div class="intensity-thumb" id="intensityThumb"></div>
+              </div>
+              <span class="intensity-label">HIGH</span>
+            </div>
+          </div>
+
+          <div class="dan-metrics-box">
+            <span class="dan-metrics" id="danMetrics">--.-</span>
+            <span class="msd-unit">MSD</span>
+            <div class="map-stats-row">
+              <span class="map-stat-item" id="mapSr">--★</span>
+              <span class="map-stat-sep">·</span>
+              <span class="map-stat-item" id="mapBpm">-- BPM</span>
+              <span class="map-stat-sep">·</span>
+              <span class="map-stat-item" id="mapOd">OD --</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DP tooltip — shown on dan-identity hover -->
+        <span class="dp-tooltip" id="dpTooltip"></span>
+
+      </div>
+      <!-- ── end overlay-content ────────────────────────── -->
+
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- ── Hidden container for export chart (Canvas-only render) ── -->
+    <div id="exportChartContainer" style="display:none; position:absolute; left:0; top:0; width:1800px; height:980px; overflow:hidden;">
+      <canvas id="exportCanvas" width="1800" height="980" style="position:absolute; left:0; top:0;"></canvas>
+    </div>
+
+    <!-- ── Settings / Config panel (right-click to open) ─────── -->
+    <div class="cfg-overlay" id="cfgOverlay" aria-hidden="true">
+      <div class="cfg-panel" role="dialog" aria-labelledby="cfgTitleLabel">
+        <header class="cfg-header">
+          <span class="cfg-title" id="cfgTitleLabel">Overlay Settings</span>
+          <button class="cfg-close" id="cfgClose" aria-label="Close settings">✕</button>
+        </header>
+
+        <div class="cfg-body">
+
+          <!-- Visual section -->
+          <section>
+            <p class="cfg-section-title">Visual</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBlurSlider">Blur Strength</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBlurSlider" min="0" max="100" step="0.01">
+                <input type="number" class="cfg-num" id="cfgBlurNum" min="0" max="100" step="0.01">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBrightSlider">Background Brightness</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBrightSlider" min="0" max="100" step="0.01">
+                <input type="number" class="cfg-num" id="cfgBrightNum" min="0" max="100" step="0.01">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgLogoSizeSlider">Logo Size</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgLogoSizeSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgLogoSizeNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgLogoOpacitySlider">Logo Opacity</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgLogoOpacitySlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgLogoOpacityNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgDanScaleSlider">Dan Display Scale</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgDanScaleSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgDanScaleNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgGreenScreenChk">Green Screen Mode</label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgGreenScreenChk">
+                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgFramelessChk">Frameless Window
+                <span class="cfg-label-hint">(restart to apply)</span>
+              </label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgFramelessChk">
+                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+              </label>
+            </div>
+          </section>
+          <section>
+            <p class="cfg-section-title">Window Size</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgWinWidth">Width (px)</label>
+              <input type="number" class="cfg-num cfg-win-size" id="cfgWinWidth" min="300" max="8000" step="1" placeholder="Width">
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgWinHeight">Height (px)</label>
+              <input type="number" class="cfg-num cfg-win-size" id="cfgWinHeight" min="80" max="8000" step="1" placeholder="Height">
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label"></label>
+              <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (700×320)</button>
+            </div>
+          </section>
+          <section>
+            <p class="cfg-section-title">Skin</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgSkinSelect">Design</label>
+              <select class="cfg-select" id="cfgSkinSelect">
+                <option value="1">Modern</option>
+                <option value="2">Classic</option>
+                <option value="3">Graph</option>
+                <option value="4">Vertical Monolith</option>
+                <option value="5">Broadcast Bar</option>
+                <option value="6">Dark Vignette</option>
+              </select>
+            </div>
+            <div id="cfgUi6Settings" style="display: none;">
+              <div class="cfg-row">
+                <label class="cfg-label" for="cfgUi6NoVignetteChk">Hide Vignette Background</label>
+                <label class="cfg-toggle">
+                  <input type="checkbox" id="cfgUi6NoVignetteChk">
+                  <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <div class="cfg-row">
+                <label class="cfg-label" for="cfgUi6SimpleModeChk">Solid Colors</label>
+                <label class="cfg-toggle">
+                  <input type="checkbox" id="cfgUi6SimpleModeChk">
+                  <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+                </label>
+              </div>
+              <div class="cfg-row">
+                <label class="cfg-label" for="cfgUi6OutlinesChk">Show Outlines</label>
+                <label class="cfg-toggle">
+                  <input type="checkbox" id="cfgUi6OutlinesChk">
+                  <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <!-- Keybinds section -->
+          <section>
+            <p class="cfg-section-title">Keyboard Shortcuts</p>
+            <div id="cfgKeybinds"></div>
+          </section>
+
+          <!-- Help section -->
+          <section>
+            <p class="cfg-section-title">Help</p>
+            <div class="cfg-row">
+              <label class="cfg-label">Quick tutorial</label>
+              <button class="cfg-btn cfg-cancel" id="cfgTutorialBtn" type="button">Start</button>
+            </div>
+          </section>
+
+        </div>
+
+        <footer class="cfg-footer">
+          <button class="cfg-btn cfg-cancel" id="cfgCancel" type="button">Cancel</button>
+          <button class="cfg-btn cfg-save"   id="cfgSave"   type="button">Save</button>
+        </footer>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Hidden off-screen canvas for chart PNG export (G key) -->
+  <div id="exportChartContainer" style="display:none;position:absolute;left:-9999px;top:-9999px;">
+    <canvas id="exportCanvas" width="1800" height="980"></canvas>
+  </div>
+
+  <script src="overlay.js"></script>
+</body>
+</html>

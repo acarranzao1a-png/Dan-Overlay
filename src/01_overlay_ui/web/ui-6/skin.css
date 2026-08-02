@@ -1,0 +1,478 @@
+/* ================================================================
+   DanOverlay — ui-6 "Dark Vignette" (Floating Big-Type) skin
+   Extracted from prototype.html (skin 6 prototype folder).
+   CSS Rendering Rules (CRITICAL) from the prototype's blueprint modal.
+
+   RULE 1: El Ancla Oscura — .p3-container uses a dark-to-transparent
+           gradient, NOT glassmorphism. This gives physical shape to
+           the window in frameless mode.
+   RULE 2: The "DP" label uses writing-mode vertical to avoid pushing
+           the number to the right.
+   RULE 3: Stats drawer has NO extra background or blur — it already
+           sits on the dark vignette.
+   RULE 4: body / #overlay / .dan-panel must stay fully transparent.
+   ================================================================ */
+
+/* ── Reset & base ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: transparent !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* ── Overlay root: transparent ────────────────────────────────── */
+#overlay {
+  background: transparent !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  min-height: unset !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ── danPanel: transparent host ───────────────────────────────── */
+.dan-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: unset !important;
+  /* Flush with window edges */
+  padding: 0 !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  position: relative;
+  overflow: visible !important;
+}
+
+/* ── Off-screen holder ────────────────────────────────────────── */
+.js-offscreen {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ── Hide irrelevant shared elements ──────────────────────────── */
+#drainBar,
+.top-drain-bar,
+.dan-line,
+#danLine,
+.premium-border,
+.c2-content,
+.dan-bg,
+.dan-scrim {
+  display: none !important;
+}
+
+/* ================================================================
+   THE DARK VIGNETTE CONTAINER  (.p3-container)
+   "El Ancla Oscura" — dark gradient fades to transparent on the right.
+   Left border glows with the current dan's primary color.
+   ================================================================ */
+.p3-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+
+  /* El Ancla Oscura: near-black → lighter black → fully transparent */
+  background: linear-gradient(to right,
+      rgba(12, 12, 15, 0.95) 0%,
+      rgba(12, 12, 15, 0.80) 40%,
+      transparent 100%);
+
+  /* Left accent border — dynamic primary color */
+  border-left: 5px solid var(--dan-primary, rgb(120, 160, 255));
+  border-radius: 20px 0 0 20px;
+  /* Only round the left-side corners */
+
+  /* Left glow — bleeds outward from the accent border */
+  box-shadow: -10px 0 40px rgba(var(--dan-primary-raw, 120, 160, 255), 0.25);
+
+  /* Comfortable padding matching the prototype's clamp() */
+  padding: clamp(30px, 5vmin, 50px);
+
+  /* Smooth transitions when dan palette changes */
+  transition:
+    border-color 1s ease,
+    box-shadow 1s ease;
+
+  /* Mask the blurred beatmap background precisely to the skin shape */
+  overflow: hidden;
+}
+
+/* Map background element inside the card */
+#danBg {
+  display: block !important;
+  position: absolute;
+  inset: -20px;
+  /* Bleed for blur to prevent white edges */
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--cfg-blur, 12px)) brightness(var(--cfg-brightness, 0.82));
+  z-index: -2;
+  /* Behind scrim and content */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Scrim for high readability: dark overlays that blend the background */
+.p3-scrim {
+  position: absolute;
+  inset: 0;
+  /* Dark overlay dynamically based on brightness settings */
+  background: rgba(12, 12, 15, calc(1.0 - var(--cfg-brightness, 0.82) * 0.5));
+  z-index: -1;
+  /* Behind content but in front of background image */
+  pointer-events: none;
+}
+
+/* ================================================================
+   TOP ROW: Vertical "DP" label + Titanic number
+   ================================================================ */
+.p3-top {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(10px, 2vw, 20px);
+  /* Positive margin to give breathing room between DP and the rank name */
+  margin-bottom: 8px;
+}
+
+/* ── "DP" vertical label ──────────────────────────────────────── */
+.p3-lbl {
+  /* CRITICAL: vertical-rl + rotate(180deg) prevents layout collision.
+     Without this the label would push the numbers to the right. */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+
+  font-size: clamp(1.2rem, 3vmin, 2.5rem);
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: clamp(15px, 3vmin, 25px);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ── DP number split ─────────────────────────────────────────── */
+.p3-dp-stage {
+  display: flex;
+  align-items: baseline;
+  /* Ambient glow in the primary color — PROHIBITED to use white glow */
+  text-shadow: 0 10px 40px rgba(var(--dan-primary-raw, 120, 160, 255), 0.5);
+  transition: text-shadow 1s ease;
+}
+
+/* Integer part — titanic, maximum weight */
+.p3-dp-int {
+  font-size: clamp(5rem, 14vmin, 10rem);
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: -3px;
+  color: #ffffff;
+}
+
+/* Decimal part — slightly smaller, primary color */
+.p3-dp-dec {
+  font-size: clamp(2.5rem, 7vmin, 5rem);
+  font-weight: 800;
+  color: var(--dan-primary, rgb(120, 160, 255));
+  transition: color 1s ease;
+}
+
+/* ================================================================
+   DAN NAME  — massive gradient text
+   Indented to align with the right side of the DP number
+   ================================================================ */
+.p3-rank-name {
+  font-size: clamp(3.5rem, 10vmin, 7rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -3px;
+  line-height: 1;
+
+  /* Indent: aligns the name under the DP number, not the "DP" label */
+  margin-left: clamp(35px, 6vw, 55px);
+
+  /* Gradient text from animated dan palette */
+  background: var(--dan-gradient-anim, linear-gradient(135deg, #fff, #aaa));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Drop-shadow glow (works with text-fill-color: transparent) */
+  filter: drop-shadow(0 10px 30px rgba(var(--dan-primary-raw, 120, 160, 255), 0.4));
+  transition: filter 1s ease;
+
+  animation: p3GradientPan 4s linear infinite;
+
+  white-space: nowrap;
+}
+
+@keyframes p3GradientPan {
+  0% {
+    background-position: 0% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Signicial mode icon variant */
+.p3-signicial-icon {
+  width: 160px;
+  height: auto;
+  margin-left: clamp(35px, 6vw, 55px);
+  margin-top: 4px;
+}
+
+/* ================================================================
+   SUBLEVEL ROW  — 5 rounded pill bars + label
+   ================================================================ */
+.p3-sublevel-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: clamp(15px, 3vmin, 25px);
+  /* Indent: same as rank name to align column */
+  margin-left: clamp(45px, 8vw, 65px);
+}
+
+/* Each pill: rounded rectangle, JS colors active ones via .p3-sbar */
+.p3-pill {
+  width: clamp(20px, 4vw, 30px);
+  height: clamp(10px, 2vmin, 15px);
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  transition:
+    background-color 0.5s ease,
+    box-shadow 0.5s ease;
+  flex-shrink: 0;
+}
+
+/* Sublevel text label */
+.p3-sub-text {
+  font-size: clamp(1.2rem, 3vmin, 2rem);
+  font-weight: 800;
+  letter-spacing: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ================================================================
+   EXPANDABLE STATS DRAWER
+   CRITICAL: No glassmorphism / no background — the dark vignette
+   already provides the visual anchor. Only a dashed top separator.
+   ================================================================ */
+.p3-expanded-drawer {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  /* Indent: aligns with sublevel row */
+  margin-left: clamp(45px, 8vw, 65px);
+
+  transition:
+    max-height 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    margin-top 0.4s ease;
+}
+
+.dan-panel.is-expanded .p3-expanded-drawer {
+  max-height: 300px;
+  opacity: 1;
+  margin-top: clamp(20px, 4vmin, 40px);
+}
+
+/* Inner stats block — NO extra background, NO blur */
+.p3-glass-stats {
+  /* Only a subtle dashed separator on top */
+  padding: clamp(15px, 3vmin, 25px) 0 0 0;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+}
+
+/* Map title */
+.p3-map-title {
+  font-size: clamp(1rem, 2vmin, 1.3rem);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: clamp(15px, 3vmin, 20px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Horizontal stats row */
+.p3-stats-row {
+  display: flex;
+  gap: clamp(25px, 5vw, 50px);
+  flex-wrap: wrap;
+}
+
+.p3-stat-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.p3-stat-lbl {
+  font-size: clamp(0.6rem, 1.2vmin, 0.75rem);
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.p3-stat-val {
+  font-size: clamp(1.2rem, 3vmin, 2rem);
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1;
+}
+
+.p3-stat-unit {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ================================================================
+   LOADING STATE
+   ================================================================ */
+.dan-panel.is-loading .p3-container {
+  opacity: 0.5;
+}
+
+/* ================================================================
+   ENTRANCE ANIMATION — subtle slide from left
+   ================================================================ */
+@keyframes p3Reveal {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.dan-panel.revealing .p3-container {
+  animation: p3Reveal 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ================================================================
+   STREAMER / SIMPLE MODE OVERRIDES
+   ================================================================ */
+/* 1. Hide Vignette Background — removes gradient, background images, and scrims */
+.dan-panel.ui6-no-vignette .p3-container {
+  background: none !important;
+}
+
+.dan-panel.ui6-no-vignette .p3-scrim,
+.dan-panel.ui6-no-vignette #danBg {
+  display: none !important;
+}
+
+/* 2. Solid Colors (Simple Mode) */
+.dan-panel.ui6-simple-mode .p3-rank-name {
+  background: transparent !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--dan-solid, #fff) !important;
+  color: var(--dan-solid, #fff) !important;
+  text-shadow: none !important;
+  filter: none !important;
+  animation: none !important;
+}
+
+.dan-panel.ui6-simple-mode .p3-dp-int,
+.dan-panel.ui6-simple-mode .p3-dp-dec {
+  color: #ffffff !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+.dan-panel.ui6-simple-mode .p3-lbl,
+.dan-panel.ui6-simple-mode .p3-sub-text,
+.dan-panel.ui6-simple-mode .p3-map-title,
+.dan-panel.ui6-simple-mode .p3-stat-lbl,
+.dan-panel.ui6-simple-mode .p3-stat-val,
+.dan-panel.ui6-simple-mode .p3-stat-unit {
+  color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+.dan-panel.ui6-simple-mode .p3-dp-stage {
+  text-shadow: none !important;
+}
+
+.dan-panel.ui6-simple-mode .p3-pill {
+  box-shadow: none !important;
+}
+
+/* 3. Show Outlines */
+
+/* Dan name: gradient text uses -webkit-text-fill-color: transparent,
+   so stroke is invisible unless we make the fill opaque first. */
+.dan-panel.ui6-outlines .p3-rank-name {
+  background: transparent !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--dan-solid, #fff) !important;
+  animation: none !important;
+  -webkit-text-stroke: 5px #000 !important;
+  paint-order: stroke fill;
+}
+
+/* DP number and decimal */
+.dan-panel.ui6-outlines .p3-dp-int,
+.dan-panel.ui6-outlines .p3-dp-dec {
+  -webkit-text-stroke: 5px #000 !important;
+  paint-order: stroke fill;
+}
+
+/* Secondary text */
+.dan-panel.ui6-outlines .p3-lbl,
+.dan-panel.ui6-outlines .p3-sub-text,
+.dan-panel.ui6-outlines .p3-map-title,
+.dan-panel.ui6-outlines .p3-stat-val {
+  -webkit-text-stroke: 4px #000 !important;
+  paint-order: stroke fill;
+}
+
+/* Tiny labels */
+.dan-panel.ui6-outlines .p3-stat-lbl,
+.dan-panel.ui6-outlines .p3-stat-unit {
+  -webkit-text-stroke: 1px #000 !important;
+  paint-order: stroke fill;
+}
+
+/* Pills */
+.dan-panel.ui6-outlines .p3-pill {
+  border: 2.25px solid #000 !important;
+}

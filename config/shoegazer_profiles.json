@@ -1,0 +1,122 @@
+{
+  "1st": {
+    "sr_mean": 3.1267,
+    "sr_lower": 3.1267,
+    "sr_upper": 3.1267,
+    "sr_count": 1,
+    "overall_msd": 14.874,
+    "msd_lower": 14.874,
+    "msd_upper": 14.874,
+    "msd_count": 1
+  },
+  "2nd": {
+    "sr_mean": 3.507,
+    "sr_lower": 3.507,
+    "sr_upper": 3.507,
+    "sr_count": 1,
+    "overall_msd": 17.1051,
+    "msd_lower": 17.1051,
+    "msd_upper": 17.1051,
+    "msd_count": 1
+  },
+  "3rd": {
+    "sr_mean": 3.9562,
+    "sr_lower": 3.9562,
+    "sr_upper": 3.9562,
+    "sr_count": 1,
+    "overall_msd": 18.1818,
+    "msd_lower": 18.1818,
+    "msd_upper": 18.1818,
+    "msd_count": 1
+  },
+  "4th": {
+    "sr_mean": 4.6767,
+    "sr_lower": 4.6767,
+    "sr_upper": 4.6767,
+    "sr_count": 1,
+    "overall_msd": 20.7681,
+    "msd_lower": 20.7681,
+    "msd_upper": 20.7681,
+    "msd_count": 1
+  },
+  "5th": {
+    "sr_mean": 4.9451,
+    "sr_lower": 4.9451,
+    "sr_upper": 4.9451,
+    "sr_count": 1,
+    "overall_msd": 21.5229,
+    "msd_lower": 21.5229,
+    "msd_upper": 21.5229,
+    "msd_count": 1
+  },
+  "6th": {
+    "sr_mean": 5.5769,
+    "sr_lower": 5.5769,
+    "sr_upper": 5.5769,
+    "sr_count": 1,
+    "overall_msd": 23.7762,
+    "msd_lower": 23.7762,
+    "msd_upper": 23.7762,
+    "msd_count": 1
+  },
+  "7th": {
+    "sr_mean": 5.6621,
+    "sr_lower": 5.5689,
+    "sr_upper": 5.7553,
+    "sr_count": 2,
+    "overall_msd": 24.2646,
+    "msd_lower": 24.0537,
+    "msd_upper": 24.4755,
+    "msd_count": 2
+  },
+  "8th": {
+    "sr_mean": 6.0305,
+    "sr_lower": 6.0012,
+    "sr_upper": 6.0597,
+    "sr_count": 2,
+    "overall_msd": 24.9806,
+    "msd_lower": 24.9306,
+    "msd_upper": 25.0305,
+    "msd_count": 2
+  },
+  "9th": {
+    "sr_mean": 5.9935,
+    "sr_lower": 5.982,
+    "sr_upper": 6.005,
+    "sr_count": 2,
+    "overall_msd": 25.6022,
+    "msd_lower": 25.5078,
+    "msd_upper": 25.6965,
+    "msd_count": 2
+  },
+  "10th": {
+    "sr_mean": 6.619,
+    "sr_lower": 6.5946,
+    "sr_upper": 6.6434,
+    "sr_count": 2,
+    "overall_msd": 26.5345,
+    "msd_lower": 26.4291,
+    "msd_upper": 26.64,
+    "msd_count": 2
+  },
+  "Luminal": {
+    "sr_mean": 7.0461,
+    "sr_lower": 7.0321,
+    "sr_upper": 7.0602,
+    "sr_count": 2,
+    "overall_msd": 28.1662,
+    "msd_lower": 27.5946,
+    "msd_upper": 28.7379,
+    "msd_count": 2
+  },
+  "Tachyon": {
+    "sr_mean": 7.5711,
+    "sr_lower": 7.4949,
+    "sr_upper": 7.7039,
+    "sr_count": 3,
+    "overall_msd": 29.7369,
+    "msd_lower": 28.7712,
+    "msd_upper": 30.6693,
+    "msd_count": 3
+  }
+}

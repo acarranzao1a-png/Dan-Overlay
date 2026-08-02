@@ -1,0 +1,59 @@
+{
+  "_comment": "Confidence gates and bounded correction rules. Empirical lesson: gates were the biggest improvement source.",
+  "domain_gates": {
+    "min_notes": 20,
+    "min_drain_s": 5.0,
+    "ln_bands": {
+      "high": [0.00, 0.10],
+      "degraded": [0.10, 0.30],
+      "gray": [0.30, 0.45],
+      "out_of_domain": [0.45, 1.00]
+    },
+    "ln_confidence_multiplier": {
+      "high": 1.0,
+      "degraded": 0.75,
+      "gray": 0.45,
+      "out_of_domain": 0.15
+    }
+  },
+  "correction_gates": {
+    "extreme_bpm_low": 80,
+    "extreme_bpm_high": 320,
+    "extreme_bpm_confidence_penalty": 0.30,
+    "max_total_correction_dp": 3.0,
+    "min_note_count_for_correction": 100,
+    "boundary_guard": {
+      "_comment": "Near dan boundaries (±0.3 dp), reduce correction aggressiveness",
+      "boundary_zone_dp": 0.30,
+      "boundary_correction_scale": 0.50
+    }
+  },
+  "family_gates": {
+    "jack": {
+      "min_jack_ratio": 0.40,
+      "min_jbar_max": 20.0,
+      "max_correction_dp": 2.5
+    },
+    "tech": {
+      "min_density_cv": 0.22,
+      "min_transition_var": 0.12,
+      "max_correction_dp": 2.0
+    },
+    "speed": {
+      "min_bpm": 155,
+      "max_correction_dp": 1.5
+    },
+    "stamina": {
+      "min_drain_s": 120,
+      "min_active_ratio": 0.70,
+      "max_correction_dp": 1.0
+    }
+  },
+  "sublevel_labels": [
+    [0.00, 0.20, "Low"],
+    [0.20, 0.40, "Mid-Low"],
+    [0.40, 0.60, "Mid"],
+    [0.60, 0.80, "Mid-High"],
+    [0.80, 1.00, "High"]
+  ]
+}

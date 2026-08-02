@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DanOverlay - Density Graph</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="js-offscreen" aria-hidden="true">
+    <div id="mapTicker"><div class="marquee-track"><span></span><span></span></div></div>
+    <div id="statsTicker"><div class="marquee-track"><span></span><span></span></div></div>
+    <canvas id="vizCanvas"></canvas>
+    <div class="mini-viz" id="miniViz"></div>
+    <span class="map-artist" id="mapArtist" aria-hidden="true"></span>
+    <span id="badgeLeft"></span>
+    <span id="badgeCenter"></span>
+    <span id="badgeRight"></span>
+    <p id="danDetails"></p>
+    <p id="danBands"></p>
+    <div id="danDensity"></div>
+    <div id="progressTrack"><div id="progressBar"></div></div>
+    <span id="progressTime"></span>
+    <!-- chartBtn is referenced but unused by JS; keep it off-screen -->
+    <span id="chartBtn"></span>
+    <!-- Hidden components for this skin -->
+    <div class="intensity-bar" id="intensityBar"><div class="intensity-fill" id="intensityFill"></div><div class="intensity-thumb" id="intensityThumb"></div></div>
+  </div>
+
+  <main id="overlay">
+
+    <section class="dan-panel is-loading" id="danPanel">
+
+      <!-- Background image layer -->
+      <div class="dan-bg" id="danBg"></div>
+
+      <!-- Dimming scrim over the background image -->
+      <div class="dan-scrim"></div>
+
+      <!-- Top progress bar: JS-driven, synced to song time -->
+      <div class="top-drain-bar" id="drainBar"></div>
+
+      <!-- Bottom accent line: themed to current dan palette -->
+      <div class="dan-line" id="danLine"></div>
+
+      <!-- Loading / connecting state overlay -->
+      <div class="loading-wrap" id="loadingWrap">
+        <span class="loading-text" id="loadingText">Waiting for tosu</span>
+        <span class="loading-bar" aria-hidden="true"></span>
+      </div>
+
+      <!-- ── Tutorial prompt (first 2 launches only) ─────────── -->
+      <div class="hint-screen hidden" id="tutorialPromptScreen">
+        <div class="hint-inner">
+          <div class="hint-title">DANOVERLAY — QUICK SETUP</div>
+          <p class="tut-prompt-question">Would you like to see a quick tutorial<br>on resize modes and scoring modes?</p>
+          <div class="tut-prompt-btns">
+            <button class="hint-btn tut-btn-yes"   id="tutYesBtn"   type="button">Yes</button>
+            <button class="hint-btn tut-btn-no"    id="tutNoBtn"    type="button">Skip</button>
+            <button class="hint-btn tut-btn-never" id="tutNeverBtn" type="button">Don't show again</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── What's New screen (auto-advance after splash) ────── -->
+      <div class="hint-screen hidden" id="whatsNewScreen">
+        <div class="hint-inner">
+          <div class="hint-title">WHAT'S NEW — v2.0</div>
+          <div class="whats-new-list">
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">◈</span>
+              <span><strong>Graph skin</strong> — Real-time note density graph as you play.</span>
+            </div>
+            <div class="whats-new-item">
+              <span class="whats-new-bullet">◇</span>
+              <span><strong>Scoring modes</strong> — Reform, Celestial, Signicial &amp; Shoegazer
+                via <kbd class="hint-key hint-key-sm">Ctrl</kbd>&thinsp;<kbd class="hint-key hint-key-sm">1–4</kbd></span>
+            </div>
+          </div>
+          <button class="hint-btn hidden" id="whatsNewBtn" type="button">Got it</button>
+        </div>
+      </div>
+
+      <!-- ── Resize hint screen: 2-step walkthrough ──── -->
+      <div class="hint-screen hidden" id="hintScreen">
+        <div class="hint-inner">
+          <div class="hint-title">RESIZE MODE</div>
+          <div class="hint-r-indicator" id="hintRIndicator">
+            <kbd class="hint-key hint-key-lg">R</kbd>
+            <span class="hint-r-label" id="hintRLabel">press to try</span>
+          </div>
+          <div class="hint-modes">
+            <span class="hint-mode-item hint-mode-active" id="hintModeFree">
+              <span class="hint-mode-icon hint-free">◱</span> Free — drag each edge independently
+            </span>
+            <span class="hint-mode-item" id="hintModeLocked">
+              <span class="hint-mode-icon hint-locked">◈</span> Locked — scales everything up proportionally
+            </span>
+          </div>
+          <div class="hint-click-note">Click the overlay window first if the key doesn't respond. To reset size, press <strong>Ctrl+R</strong>.</div>
+          <button class="hint-btn hidden" id="hintBtn" type="button">Next</button>
+          <div class="hint-current">Current: <strong id="hintCurrentMode">Free</strong></div>
+        </div>
+      </div>
+
+      <!-- ── Scoring modes hint screen ─────────────────────────── -->
+      <div class="hint-screen hidden" id="hintScreen2">
+        <div class="hint-inner">
+          <div class="hint-title">SCORING MODES</div>
+          <div class="hint-click-note" style="margin-bottom:4px;opacity:0.55">try the key combos below</div>
+          <div class="hint-modes hint-modes-scoring">
+            <span class="hint-mode-item" id="smItem1">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1</kbd>
+              <span class="hint-mode-icon" style="color:#c5d5f4">◇</span>
+              <span>Reform <span class="hint-mode-tag">default</span></span>
+            </span>
+            <span class="hint-mode-item" id="smItem2">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">2</kbd>
+              <span class="hint-mode-icon" style="color:#b48cff">✦</span>
+              <span>Celestial</span>
+            </span>
+            <span class="hint-mode-item" id="smItem3">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">3</kbd>
+              <span class="hint-mode-icon" style="color:#ff9e6b">◆</span>
+              <span>Signicial</span>
+            </span>
+            <span class="hint-mode-item" id="smItem4">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">4</kbd>
+              <span class="hint-mode-icon" style="color:#5ddfb0">♫</span>
+              <span>Shoegazer</span>
+            </span>
+          </div>
+          <div class="hint-click-note hint-ln-auto" style="margin-top:6px">
+            ♬ LN Course mode activates automatically when a map has <strong>&gt;45%</strong> LN notes
+          </div>
+          <div class="hint-click-note hint-experimental">
+            ⚠ These modes are experimental — do not expect exact results
+          </div>
+          <button class="hint-btn hidden" id="hintBtn2" type="button">Next</button>
+        </div>
+      </div>
+
+      <!-- ── Layout modes hint screen ──────────────────────────── -->
+      <div class="hint-screen hidden" id="hintScreen3">
+        <div class="hint-inner">
+          <div class="hint-title">LAYOUT MODES</div>
+          <div class="hint-click-note" style="margin-bottom:6px;opacity:0.55">press <kbd class="hint-key hint-key-sm">L</kbd> to cycle through layouts</div>
+          <div class="hint-modes hint-modes-layout">
+            <span class="hint-mode-item hint-mode-active" id="lmItem1">
+              <span class="hint-mode-icon" style="color:#c5d5f4">◱</span>
+              <span><strong>Full</strong> — complete info view, all metrics visible</span>
+            </span>
+            <span class="hint-mode-item" id="lmItem2">
+              <span class="hint-mode-icon" style="color:#c5d5f4">◇</span>
+              <span><strong>Simplified</strong> — dan name &amp; score, minimal height</span>
+            </span>
+            <span class="hint-mode-item" id="lmItem3">
+              <span class="hint-mode-icon" style="color:#c5d5f4">▪</span>
+              <span><strong>Compact</strong> — thin bar, ideal for stream layouts</span>
+            </span>
+          </div>
+          <button class="hint-btn hidden" id="hintBtn3" type="button">Next</button>
+        </div>
+      </div>
+
+      <!-- ── Quick reference hint screen ───────────────────────── -->
+      <div class="hint-screen hidden" id="hintScreen4">
+        <div class="hint-inner">
+          <div class="hint-title">QUICK REFERENCE</div>
+          <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Tab</kbd>
+              <span>Pin / unpin overlay on top of osu!</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">R</kbd>
+              <span>Toggle resize mode — Free ↔ Locked ratio</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">L</kbd>
+              <span>Cycle layout — Full → Simplified → Compact</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd>
+              <span>Open settings panel</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">R</kbd>
+              <span>Reset window to default size</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1–4</kbd>
+              <span>Switch scoring mode</span>
+            </span>
+          </div>
+          <button class="hint-btn hidden" id="hintBtn4" type="button">Let's go!</button>
+        </div>
+      </div>
+
+      <!-- ── Settings shortcut hint (auto-advance 2s) ──────────── -->
+      <div class="hint-screen hidden" id="hintScreenSettings">
+        <div class="hint-inner hint-inner-sm">
+          <div class="hint-title" style="font-size:13px;letter-spacing:.18em;opacity:.55;margin-bottom:10px">TIP</div>
+          <div class="hint-modes hint-modes-scoring" style="gap:10px;margin-top:0">
+            <span class="hint-mode-item hint-mode-active">
+              <kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd>
+              <span>Open settings panel anywhere</span>
+            </span>
+            <span class="hint-mode-item hint-mode-active" style="margin-top:2px">
+              <kbd class="hint-key hint-key-sm">Right-click</kbd>
+              <span>Also opens settings</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Intro: splash screen ─────────────────────────────── -->
+      <div class="splash-screen hidden" id="splashScreen">
+        <div class="splash-inner">
+          <span class="splash-title">DAN OVERLAY</span>
+          <span class="splash-sub">by 8doul &nbsp;·&nbsp; discord: agent_ale</span>
+        </div>
+      </div>
+
+      <!-- ── Intro: tosu connection status ────────────────────── -->
+      <div class="connect-screen hidden" id="connectScreen">
+        <div class="connect-inner">
+          <div class="connect-row">
+            <div class="connect-icon" id="connectIcon"></div>
+            <div class="connect-text">
+              <span class="connect-label" id="connectLabel">WAITING FOR TOSU</span>
+              <span class="connect-sub" id="connectSub">Starting up...</span>
+            </div>
+          </div>
+          <a class="connect-download hidden" id="connectDownload" href="https://github.com/tosuapp/tosu" target="_blank" rel="noopener noreferrer">
+            <span class="connect-download-icon">⬇</span> Download tosu
+          </a>
+          <div class="connect-osu hidden" id="connectOsu">
+            <span class="connect-osu-icon" id="connectOsuIcon"></span>
+            <span class="connect-osu-text" id="connectOsuText">osu!</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="map-transition-screen" id="mapTransitionScreen" aria-hidden="true"></div>
+
+      <!-- Pause overlay -->
+      <div class="paused-overlay" id="pausedOverlay">
+        <span class="paused-overlay-text">PAUSED</span>
+      </div>
+
+      <!-- Play result overlay (Pass / Failed / etc.) -->
+      <div class="map-progress-wrap" id="progressWrap">
+        <div class="map-progress-result" id="progressResult"></div>
+      </div>
+
+      <!-- Mode switch announce (Ctrl+1/2/3) -->
+      <div class="mode-announce" id="modeAnnounce">
+        <span class="mode-announce-label">Mode</span>
+        <span class="mode-announce-name" id="modeAnnounceName">Reform</span>
+        <div class="mode-announce-divider"></div>
+      </div>
+
+      <!-- Premium subtle border -->
+      <div class="premium-border"></div>
+
+      <!-- Greek letter watermark — JS sets .src dynamically -->
+      <img class="g3-greek-bg" id="danGreekBg" src="" alt="" aria-hidden="true">
+
+      <!-- DP tooltip -->
+      <span class="dp-tooltip" id="dpTooltip"></span>
+
+      <!-- ══════════════════════════════════════════════════════
+           GRAPH SKIN LAYOUT (ui-3)
+           Prototype layout: 2-column text area + full-width graph
+           Left:  title marquee / stats badges row
+           Right: dan plaque (name, sublevel, DP)
+           Bottom: density graph (fills all remaining space)
+           ══════════════════════════════════════════════════════ -->
+      <div class="g3-layout overlay-content">
+
+        <!-- ── TEXT AREA: 2 columns ──────────────────────────── -->
+        <div class="g3-text-area">
+
+          <!-- LEFT PANEL: Title marquee + stats badges -->
+          <div class="g3-info-panel">
+
+            <!-- Title marquee -->
+            <div class="map-title-wrap" id="mapTitleWrap">
+              <div class="map-title-track" id="mapTitleTrack">
+                <span class="map-title" id="mapTitle">Waiting for beatmap...</span>
+                <span class="map-title map-title-ghost" id="mapTitleGhost" aria-hidden="true">Waiting for beatmap...</span>
+              </div>
+            </div>
+
+            <!-- Stats row: time badge + scrolling stat badges -->
+            <div class="g3-stats-row">
+              <!-- Time badge (fixed, no marquee) -->
+              <div class="g3-time-badge" id="mapDuration">0:00</div>
+
+              <!-- Stat badges: scrolling loop with auto-synced ghost copy -->
+              <div class="g3-badges-wrap">
+                <div class="g3-badges-track">
+                  <!-- Real badges (updated by overlay.js via IDs) -->
+                  <div class="g3-badges-group">
+                    <!-- SR: JS sets "5.44★" — label is separate -->
+                    <div class="g3-stat-badge"><small>SR</small><span id="mapSr">--★</span></div>
+                    <!-- BPM: JS sets "210 BPM" already — no extra label -->
+                    <div class="g3-stat-badge"><span id="mapBpm">-- BPM</span></div>
+                    <!-- OD: JS sets "OD 9.0" already — no extra label -->
+                    <div class="g3-stat-badge"><span id="mapOd">OD --</span></div>
+                    <!-- MSD: JS sets "27.39" — label is separate -->
+                    <div class="g3-stat-badge"><small>MSD</small><span id="danMetrics">--.-</span></div>
+                  </div>
+                  <!-- Ghost copy: auto-synced via MutationObserver script below -->
+                  <div class="g3-badges-group" aria-hidden="true">
+                    <div class="g3-stat-badge"><small>SR</small><span data-mirror="mapSr">--★</span></div>
+                    <div class="g3-stat-badge"><span data-mirror="mapBpm">-- BPM</span></div>
+                    <div class="g3-stat-badge"><span data-mirror="mapOd">OD --</span></div>
+                    <div class="g3-stat-badge"><small>MSD</small><span data-mirror="danMetrics">--.-</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT PANEL: Dan Plaque -->
+          <div class="g3-badge-plaque">
+            <!-- chart family tiny label above -->
+            <span class="chart-family g3-family-label" id="chartFamily"></span>
+            <!-- Dan name (animated gradient) + sublevel badge -->
+            <div class="g3-dan-row">
+              <span class="dan-name" id="danName">—</span>
+              <span class="dan-sub" id="danSub">MID</span>
+            </div>
+            <!-- DP line -->
+            <div class="g3-dp-line" id="danDpRow">
+              <span class="g3-dp-label">DP</span>
+              <span class="dan-dp-value" id="danDpValue">--</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ── DENSITY GRAPH (fills all remaining vertical space) ── -->
+        <div class="g3-graph-panel">
+          <div class="g3-graph-overlay"></div>
+          <canvas id="densityGraph"></canvas>
+        </div>
+
+      </div>
+      <!-- end g3-layout -->
+
+      <!-- Off-screen elements JS expects but this skin doesn't show -->
+      <div class="js-offscreen-extra" aria-hidden="true" style="position:absolute;left:-9999px">
+        <span class="mod-badge" id="modBadge"></span>
+        <span class="scoring-mode-badge" id="scoringModeBadge" data-mode="reform">◇ Mode: Reform</span>
+      </div>
+
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- ── Settings / Config panel (right-click to open) ─────── -->
+    <div class="cfg-overlay" id="cfgOverlay" aria-hidden="true">
+      <div class="cfg-panel" role="dialog" aria-labelledby="cfgTitleLabel">
+        <header class="cfg-header">
+          <span class="cfg-title" id="cfgTitleLabel">Overlay Settings</span>
+          <button class="cfg-close" id="cfgClose" aria-label="Close settings">✕</button>
+        </header>
+
+        <div class="cfg-body">
+
+          <!-- Visual section -->
+          <section>
+            <p class="cfg-section-title">Visual</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBlurSlider">Blur Strength</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBlurSlider" min="0" max="100" step="0.01">
+                <input type="number" class="cfg-num" id="cfgBlurNum" min="0" max="100" step="0.01">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgBrightSlider">Background Brightness</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgBrightSlider" min="0" max="100" step="0.01">
+                <input type="number" class="cfg-num" id="cfgBrightNum" min="0" max="100" step="0.01">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgLogoSizeSlider">Logo Size</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgLogoSizeSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgLogoSizeNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgLogoOpacitySlider">Logo Opacity</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgLogoOpacitySlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgLogoOpacityNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgDanScaleSlider">Dan Display Scale</label>
+              <div class="cfg-slider-group">
+                <input type="range" class="cfg-slider" id="cfgDanScaleSlider" min="0" max="100" step="1">
+                <input type="number" class="cfg-num" id="cfgDanScaleNum" min="0" max="100" step="1">
+              </div>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgGreenScreenChk">Green Screen Mode</label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgGreenScreenChk">
+                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+              </label>
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgFramelessChk">Frameless Window</label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgFramelessChk">
+                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+              </label>
+            </div>
+          </section>
+
+          <section>
+            <p class="cfg-section-title">Window Size</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgWinWidth">Width (px)</label>
+              <input type="number" class="cfg-num cfg-win-size" id="cfgWinWidth" min="300" max="8000" step="1" placeholder="Width">
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgWinHeight">Height (px)</label>
+              <input type="number" class="cfg-num cfg-win-size" id="cfgWinHeight" min="80" max="8000" step="1" placeholder="Height">
+            </div>
+            <div class="cfg-row">
+              <label class="cfg-label"></label>
+              <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (700×320)</button>
+            </div>
+          </section>
+
+          <section>
+            <p class="cfg-section-title">Skin</p>
+            <div class="cfg-row">
+              <label class="cfg-label" for="cfgSkinSelect">Design</label>
+              <select class="cfg-select" id="cfgSkinSelect">
+                <option value="1">Modern</option>
+                <option value="2">Classic</option>
+                <option value="3">Graph</option>
+                <option value="4">Vertical Monolith</option>
+                <option value="5">Broadcast Bar</option>
+                <option value="6">Dark Vignette</option>
+              </select>
+            </div>
+          </section>
+
+          <!-- Keybinds section -->
+          <section>
+            <p class="cfg-section-title">Keyboard Shortcuts</p>
+            <div id="cfgKeybinds"></div>
+          </section>
+
+          <!-- Help section -->
+          <section>
+            <p class="cfg-section-title">Help</p>
+            <div class="cfg-row">
+              <label class="cfg-label">Quick tutorial</label>
+              <button class="cfg-btn cfg-cancel" id="cfgTutorialBtn" type="button">Start</button>
+            </div>
+          </section>
+
+        </div>
+
+        <footer class="cfg-footer">
+          <button class="cfg-btn cfg-cancel" id="cfgCancel" type="button">Cancel</button>
+          <button class="cfg-btn cfg-save"   id="cfgSave"   type="button">Save</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Export Chart Hidden Canvas -->
+    <div id="exportChartContainer" style="display:none;position:absolute;left:-9999px;top:-9999px;">
+      <canvas id="exportCanvas" width="1800" height="980"></canvas>
+    </div>
+
+  </main>
+
+  <!-- overlay.js is one level up — same script, different skin -->
+  <script src="../overlay.js"></script>
+
+  <!-- Ghost badge sync: mirrors real badge values to the scroll ghost copy
+       so the looping animation always shows up-to-date values.
+       Uses MutationObserver — does NOT modify overlay.js in any way. -->
+  <script>
+    (function () {
+      // IDs of real spans → their ghost mirrors (data-mirror attribute)
+      const mirrorIds = ["mapSr", "mapBpm", "mapOd", "danMetrics"];
+
+      function setupMirror(id) {
+        const source = document.getElementById(id);
+        const mirror = document.querySelector(`[data-mirror="${id}"]`);
+        if (!source || !mirror) return;
+
+        // Initial sync
+        mirror.textContent = source.textContent;
+
+        // Watch for text changes and sync immediately
+        new MutationObserver(function () {
+          mirror.textContent = source.textContent;
+        }).observe(source, { childList: true, characterData: true, subtree: true });
+      }
+
+      // Run after DOM is fully parsed
+      mirrorIds.forEach(setupMirror);
+    })();
+  </script>
+
+</body>
+</html>

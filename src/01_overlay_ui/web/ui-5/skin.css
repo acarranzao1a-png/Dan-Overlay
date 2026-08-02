@@ -1,0 +1,404 @@
+/* ================================================================
+   DanOverlay — ui-5 "Broadcast Bar" skin
+   Extracted faithfully from ai_studio_code (89).html prototype.
+   All hardcoded colors replaced with --dan-* CSS variables.
+   RULE: body / #overlay / .dan-panel must stay fully transparent.
+   ================================================================ */
+
+/* ── Reset & base ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background: transparent !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* ── Overlay root: transparent, stretches to viewport ───────────── */
+#overlay {
+  background: transparent !important;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: unset !important;
+  padding: 0 !important;
+}
+
+/* ── danPanel: transparent host ───────────────────────────────── */
+.dan-panel {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: unset !important;
+  /* Breathing room so outer glow isn't clipped */
+  padding: 14px;
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  position: relative;
+  overflow: visible !important;
+}
+
+/* ── Off-screen holder ────────────────────────────────────────── */
+.js-offscreen {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ── Hide irrelevant shared elements ──────────────────────────── */
+#drainBar,
+.top-drain-bar,
+.dan-line,
+#danLine,
+.premium-border,
+.c2-content,
+.dan-bg,
+.dan-scrim {
+  display: none !important;
+}
+
+/* ================================================================
+   WRAPPER  — vertical stack: bar on top, drawer below
+   ================================================================ */
+.p2-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ================================================================
+   THE MAIN BAR  (.p2-bar)
+   ================================================================ */
+.p2-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  border-radius: 20px;
+  overflow: hidden;
+  flex: 1;
+
+  /* Contenedor Principal (El Cristal Base) */
+  background: rgba(12, 12, 15, 0.85);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+
+  /* Dynamic border from primary color */
+  border: var(--cfg-bcast-border-thick, 1px) solid rgba(var(--dan-primary-raw, 120, 160, 255), var(--cfg-bcast-border-bright, 0.75));
+
+  /* Dual box-shadow: outer glow (dynamic) + deep black drop */
+  box-shadow:
+    0 0 30px rgba(var(--dan-primary-raw, 120, 160, 255), calc(var(--cfg-bcast-border-bright, 0.75) * 0.8)),
+    0 30px 60px rgba(0, 0, 0, 0.8);
+
+  /* Smooth transitions when palette changes */
+  transition:
+    border-color 1s ease,
+    box-shadow 1s ease,
+    border-radius 0.5s ease;
+
+  /* When drawer opens: flatten bottom corners */
+  /* (applied via parent .is-expanded) */
+}
+
+.dan-panel.is-expanded .p2-bar {
+  border-radius: 20px 20px 0 0;
+  flex: none;
+  height: var(--p2-bar-height, 131px);
+}
+
+/* ================================================================
+   LEFT PANEL  (.p2-left  /  .left-panel)
+   overlay.js injects: leftPanel.style.background = `linear-gradient(...)`
+   CSS also sets it as fallback and handles the inner separator shadow.
+   ================================================================ */
+.p2-left {
+  width: var(--p2-left-width, 220px);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 30px;
+  position: relative;
+
+  /* Fallback gradient — JS overrides with actual palette colors */
+  background: linear-gradient(135deg, var(--dan-primary), var(--dan-secondary));
+  box-shadow: inset -10px 0 20px rgba(0, 0, 0, 0.15), 15px 0 30px rgba(0, 0, 0, 0.4);
+
+  /* Smooth background transition when palette changes */
+  transition: background 1s ease;
+}
+
+/* ── DP label above the number ─────────────────────────────── */
+.p2-dp-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  /* Text shadow for legibility on any gradient */
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
+/* ── DP number split: integer + decimal ─────────────────────── */
+.p2-dp-stage {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  /* Triple shadow: sharp definition + mid-range + wide ambient */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 8px 15px rgba(0, 0, 0, 0.7), 0 15px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Large integer — pure white, maximum weight */
+.p2-dp-int {
+  font-size: 3.6rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+}
+
+/* Smaller decimal — near-white, slightly smaller */
+.p2-dp-dec {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* ================================================================
+   RIGHT PANEL  (.p2-right)
+   Dark background tinted with the primary dan color.
+   ================================================================ */
+.p2-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px 44px;
+  min-width: 0;
+  /* allow text to truncate */
+
+  /* Tinted dark gradient: black → primary tint (never neutral grey) */
+  background: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, rgba(var(--dan-primary-raw, 120, 160, 255), 1) 100%);
+
+  /* Smooth transition when palette changes */
+  transition: background 1s ease;
+}
+
+/* ── Dan name — massive gradient text ─────────────────────── */
+.p2-rank-name {
+  font-size: 2.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -2px;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+
+  /* Animated palette gradient on the text */
+  background: var(--dan-gradient-anim, linear-gradient(135deg, #fff, #aaa));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: p2GradientPan 4s linear infinite;
+}
+
+@keyframes p2GradientPan {
+  0% {
+    background-position: 0% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* ── Sublevel row: 5 oval pills + label ───────────────────── */
+.p2-sublevel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Each pill — oval, small, JS colors active ones */
+.p2-pill {
+  width: 16px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  transform: skewX(-20deg);
+  transition:
+    background-color 0.5s ease,
+    box-shadow 0.5s ease;
+  flex-shrink: 0;
+}
+
+/* Sublevel text label */
+.p2-sub-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+  white-space: nowrap;
+  margin-left: 4px;
+}
+
+/* ================================================================
+   EXPANDABLE STATS DRAWER
+   Slides below the bar when danPanel gets .is-expanded (L key).
+   ================================================================ */
+.p2-expanded-drawer {
+  position: relative;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+
+  /* Glassmorphism drawer */
+  background: transparent !important;
+  /* Transparent so #danBg + scrim show through */
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 0 0 20px 20px;
+  /* Match the main bar's border (minus top) */
+  border: 1px solid rgba(var(--dan-primary-raw, 120, 160, 255), 0.3);
+  border-top: none;
+
+  /* Subtle primary tint inside the drawer */
+  box-shadow:
+    inset 0 1px 0 rgba(var(--dan-primary-raw, 120, 160, 255), 0.12),
+    0 20px 40px rgba(0, 0, 0, 0.5);
+
+  padding: 0 44px;
+
+  transition:
+    height 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 1s ease;
+}
+
+/* Map background element inside drawer */
+.p2-expanded-drawer #danBg {
+  display: block !important;
+  position: absolute;
+  inset: -20px;
+  /* bleed for blur */
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--cfg-blur)) brightness(var(--cfg-brightness));
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Scrim inside drawer */
+.p2-drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 8, 12, calc(1.0 - var(--cfg-brightness) * 0.5));
+  z-index: 1;
+  pointer-events: none;
+}
+
+.dan-panel.is-expanded .p2-expanded-drawer {
+  height: var(--p2-drawer-height, 180px);
+  opacity: 1;
+  padding: 24px 44px;
+}
+
+/* Map title inside drawer */
+.p2-drawer-map-title {
+  position: relative;
+  z-index: 2;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+  margin-bottom: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Horizontal stats row */
+.p2-stats-row {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 50px;
+  align-items: flex-start;
+}
+
+.p2-stat-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.p2-stat-lbl {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.p2-stat-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.p2-stat-unit {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* ================================================================
+   LOADING STATE
+   ================================================================ */
+.dan-panel.is-loading .p2-bar {
+  opacity: 0.5;
+}
+
+/* ================================================================
+   CARD ENTRANCE ANIMATION
+   ================================================================ */
+@keyframes p2Reveal {
+  from {
+    opacity: 0;
+    transform: scaleX(0.94) translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleX(1) translateY(0);
+  }
+}
+
+.dan-panel.revealing .p2-bar {
+  animation: p2Reveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

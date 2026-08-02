@@ -1,0 +1,2173 @@
+/* ============================================================
+   Dan Overlay 4K — Compact bar design  850 × 110 px
+   ============================================================ */
+
+/* ── Color / theme variables ──────────────────────────────── */
+:root {
+  /* Dan palette defaults (4th Dan). JS overwrites these at runtime. */
+  --dan-primary:        rgb(120, 155, 255);
+  --dan-secondary:      rgb(168, 205, 255);
+  --dan-primary-raw:    120, 155, 255;
+  --dan-secondary-raw:  168, 205, 255;
+  --dan-glow:           rgba(120, 155, 255, 0.45);
+  --dan-border:         rgba(120, 155, 255, 0.35);
+  --dan-bg-tint:        rgba(120, 155, 255, 0.08);
+  --dan-gradient:       linear-gradient(90deg, rgb(120, 155, 255), rgb(168, 205, 255));
+  --dan-gradient-anim:  linear-gradient(90deg, rgb(120, 155, 255), rgb(168, 205, 255), rgb(120, 155, 255));
+  --line-color:         rgb(120, 155, 255);
+
+  /* Text */
+  --text-main:  #eef4ff;
+  --text-soft:  #c5d5f4;
+  --text-dim:   #8fa9ce;
+
+  /* Shared text shadow for all visible labels */
+  --txt-shadow: 0 2px 8px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 1);
+
+  /* Glass blur (set by adaptZoom in JS; unused in this layout but kept for compat) */
+  --glass-blur: blur(12px) saturate(140%);
+  --scale: 1;
+
+  /* Settings-controlled visual tweaks (overridden by JS from localStorage) */
+  --cfg-blur:       12px;
+  --cfg-brightness: 0.8500;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+html, body {
+  width:   100%;
+  height:  100%;
+  margin:  0;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, 'Segoe UI', 'Inter', sans-serif;
+}
+
+/* ── Off-screen JS compat container ──────────────────────── */
+.js-offscreen {
+  position: absolute;
+  left:    -9999px;
+  top:     -9999px;
+  width:   1px;
+  height:  1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+/* Allow JS to still run setTickerText on hidden tickers */
+.marquee-track {
+  display: inline-flex;
+  gap: 42px;
+  white-space: nowrap;
+}
+
+/* ── Overlay wrapper ──────────────────────────────────────── */
+#overlay {
+  width:   100%;
+  height:  100%;
+  display: flex;
+  align-items: stretch;
+}
+
+/* ── Dan panel: the compact bar ───────────────────────────── */
+.dan-panel {
+  position:      relative;
+  flex:          1;
+  border-radius: 12px;
+  overflow:      hidden;
+  isolation:     isolate;
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.6),
+    0 2px 8px  rgba(0, 0, 0, 0.45),
+    0 0  0 1px rgba(255, 255, 255, 0.06);
+  animation: panelIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Smooth panel resize when the window size changes */
+  transition: height 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Background image layer ───────────────────────────────── */
+.dan-bg {
+  position:            absolute;
+  inset:               -10px; /* Prevent blur edge artifacts */
+  background-size:     cover;
+  background-position: center;
+  /* Brightness controlled by settings slider */
+  filter:              saturate(0.8) brightness(var(--cfg-brightness));
+  z-index:             0;
+  transition:          opacity 500ms ease-in-out;
+}
+
+/* ── Dimming scrim: Glassmorphism Premium ─────────────────── */
+.dan-scrim {
+  position:   absolute;
+  inset:      0;
+  /* Soft, cool-toned gradient */
+  background: linear-gradient(135deg,
+    rgba(12, 14, 20, 0.4) 0%,
+    rgba(8, 10, 15, 0.75) 100%
+  );
+  /* Blur controlled by settings slider */
+  backdrop-filter: blur(var(--cfg-blur)) saturate(120%);
+  -webkit-backdrop-filter: blur(var(--cfg-blur)) saturate(120%);
+  z-index: 1;
+}
+
+/* ── Top drain bar: ultra-fine progress line ──────────────── */
+.top-drain-bar {
+  position:         absolute;
+  top:              0;
+  left:             0;
+  height:           2px;
+  width:            0%;
+  background:       var(--line-color);
+  box-shadow:       0 0 12px var(--dan-glow), 0 0 4px var(--dan-glow);
+  z-index:          20;
+  transition:       width 100ms linear, background 500ms ease, box-shadow 500ms ease;
+}
+
+/* ── Bottom accent line ───────────────────────────────────── */
+.dan-line {
+  position:   absolute;
+  bottom:     0;
+  left:       0;
+  right:      0;
+  height:     5px;
+  background: linear-gradient(
+    90deg,
+    transparent          0%,
+    var(--line-color)   25%,
+    var(--line-color)   75%,
+    transparent        100%
+  );
+  box-shadow: 0 -2px 10px var(--dan-glow), 0 0 18px var(--dan-glow);
+  z-index:    6;
+  transition: background 500ms ease, box-shadow 500ms ease;
+}
+
+/* ── Loading overlay ──────────────────────────────────────── */
+.loading-wrap {
+  position:       absolute;
+  inset:          0;
+  z-index:        10;
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  justify-content: center;
+  gap:            10px;
+  background:     rgba(12, 12, 15, 0.92);
+  opacity:        0;
+  pointer-events: none;
+  transition:     opacity 220ms ease;
+}
+
+.dan-panel.is-loading .loading-wrap {
+  opacity:        1;
+  pointer-events: auto;
+}
+
+.dan-panel.is-loading .overlay-content {
+  opacity:        0;
+  pointer-events: none;
+}
+
+.dan-panel.is-loading .top-drain-bar {
+  opacity: 0.3;
+}
+
+.map-transition-screen {
+  position:      absolute;
+  inset:         0;
+  z-index:       11;
+  background:    #000;
+  opacity:       0;
+  pointer-events: none;
+  transition:    opacity 180ms ease;
+}
+
+.dan-panel.is-map-transition .map-transition-screen {
+  opacity: 1;
+}
+
+.dan-panel.is-map-transition .top-drain-bar,
+.dan-panel.is-map-transition .dan-line,
+.dan-panel.is-map-transition .overlay-content {
+  transition: opacity 180ms ease;
+}
+
+.dan-panel.is-map-transition .top-drain-bar,
+.dan-panel.is-map-transition .dan-line {
+  opacity: 0;
+}
+
+.loading-text {
+  color:          var(--text-dim);
+  font-size:      13px;
+  font-weight:    600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  text-shadow:    none;
+}
+
+.loading-bar {
+  width:         120px;
+  height:        2px;
+  border-radius: 999px;
+  background:    rgba(255, 255, 255, 0.08);
+  overflow:      hidden;
+  position:      relative;
+}
+
+.loading-bar::after {
+  content:    "";
+  position:   absolute;
+  top:        0;
+  left:       -60%;
+  width:      60%;
+  height:     100%;
+  background: linear-gradient(90deg, transparent, var(--dan-primary), transparent);
+  animation:  loadingScan 1.4s ease-in-out infinite;
+}
+
+/* ── Premium border overlay ───────────────────────────────── */
+.premium-border {
+  position:       absolute;
+  inset:          0;
+  border-radius:  12px;
+  border:         1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+  z-index:        20;
+}
+
+/* ── Two-row flex layout (replaces 3-col grid) ────────────── */
+.overlay-content {
+  position:        absolute;
+  inset:           0;
+  z-index:         4;
+  display:         flex;
+  flex-direction:  column;
+  justify-content: space-between;
+  padding:         28px 36px;
+  transition:      opacity 220ms ease;
+}
+
+/* Universal text-shadow applied via inheritance */
+.overlay-content * {
+  text-shadow: var(--txt-shadow);
+}
+
+/* ── Header (top): map info + badges ──────────────────────── */
+.map-header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-start;
+  width:           100%;
+  animation:       fadeSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+  opacity:         0;
+}
+
+.map-info {
+  max-width:  60%;
+  overflow:   hidden;
+}
+
+.map-title-wrap {
+  width:     100%;
+  overflow:  hidden;
+}
+
+.map-title-track {
+  --title-gap: 40px;
+  --title-shift: 0px;
+  --title-duration: 12s;
+  display:      inline-flex;
+  align-items:  center;
+  gap:          var(--title-gap);
+  width:        100%;
+  min-width:    100%;
+  transform:    translateX(0);
+  will-change:  transform;
+}
+
+.map-title-track.is-marquee {
+  width:      max-content;
+  min-width:  100%;
+  animation:  mapTitleMarquee var(--title-duration) linear infinite;
+}
+
+.map-title {
+  display:        block;
+  flex-shrink:    0;
+  font-size:      20px;
+  font-weight:    500;
+  color:          var(--text-main);
+  letter-spacing: -0.02em;
+  margin-bottom:  4px;
+  text-shadow:    0 2px 12px rgba(0,0,0,0.6);
+  white-space:    nowrap;
+  line-height:    1.2;
+}
+
+.map-title-track:not(.is-marquee) .map-title {
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  max-width:     100%;
+}
+
+.map-title-ghost {
+  display: none;
+}
+
+.map-title-track.is-marquee .map-title-ghost {
+  display: block;
+}
+
+.map-artist {
+  display:       block;
+  font-size:     13px;
+  font-weight:   400;
+  color:         var(--text-soft);
+  white-space:   nowrap;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  max-width:     100%;
+  line-height:   1.2;
+}
+
+.map-meta {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     flex-end;
+  gap:             10px;
+}
+
+.badges-row {
+  display: flex;
+  gap:     8px;
+}
+
+.map-duration-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+}
+
+.map-duration {
+  font-family:         'Courier New', ui-monospace, monospace;
+  font-size:           13px;
+  font-weight:         400;
+  color:               var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mini audio visualizer bars */
+.mini-viz {
+  display:        flex;
+  gap:            2px;
+  height:         12px;
+  align-items:    flex-end;
+  opacity:        0.35;
+  mix-blend-mode: screen;
+}
+.viz-bar {
+  width:         2px;
+  background:    white;
+  border-radius: 1px;
+  height:        2px;
+  transition:    height 0.1s ease;
+}
+
+/* ── Mod badge ────────────────────────────────────────────── */
+.mod-badge {
+  display:        inline-flex;
+  align-items:    center;
+  font-size:      10px;
+  font-weight:    600;
+  letter-spacing: 0.05em;
+  padding:        4px 10px;
+  border-radius:  6px;
+  background:     rgba(0, 0, 0, 0.2);
+  border:         1px solid rgba(255, 255, 255, 0.15);
+  color:          var(--text-soft);
+  backdrop-filter: blur(4px);
+  text-transform: uppercase;
+  opacity:        0;
+  transition:     opacity 200ms ease;
+}
+.mod-badge:not(:empty) { opacity: 1; }
+.mod-badge[data-mod="HT"] { color: #4af3ff; border-color: rgba(74, 243, 255, 0.5); }
+.mod-badge[data-mod="DT"] { color: #ffaa00; border-color: rgba(255, 170, 0, 0.5); }
+.mod-badge[data-mod="NC"] { color: #cc88ff; border-color: rgba(204, 136, 255, 0.5); }
+.mod-badge.recalculating { animation: modPulse 0.9s ease-in-out infinite; }
+
+/* Scoring mode badge */
+.scoring-mode-badge {
+  font-size:      10px;
+  font-weight:    600;
+  letter-spacing: 0.05em;
+  padding:        4px 10px;
+  border-radius:  6px;
+  color:          var(--dan-primary);
+  border:         1px solid var(--dan-border);
+  background:     var(--dan-bg-tint);
+  backdrop-filter: blur(4px);
+  user-select:    none;
+  cursor:         default;
+  transition:     color 0.25s ease, border-color 0.25s ease, background 0.25s ease, text-shadow 0.25s ease;
+}
+.scoring-mode-badge[data-mode="reform"] {
+  color:        var(--dan-primary);
+  border-color: var(--dan-border);
+  background:   var(--dan-bg-tint);
+  text-shadow:  0 0 6px var(--dan-glow);
+}
+.scoring-mode-badge[data-mode="celestial"] {
+  color:        rgb(180, 140, 255);
+  border-color: rgba(180, 140, 255, 0.5);
+  background:   rgba(100, 60, 180, 0.22);
+  text-shadow:  0 0 6px rgba(180, 140, 255, 0.6);
+}
+.scoring-mode-badge[data-mode="signicial"] {
+  color:        #ffaa44;
+  border-color: rgba(255, 170, 68, 0.45);
+  background:   rgba(180, 100, 10, 0.18);
+  text-shadow:  0 0 6px rgba(255, 170, 68, 0.65);
+}
+.scoring-mode-badge[data-mode="shoegazer"] {
+  color:        #44ddcc;
+  border-color: rgba(68, 221, 204, 0.45);
+  background:   rgba(20, 160, 145, 0.18);
+  text-shadow:  0 0 6px rgba(68, 221, 204, 0.65);
+}
+.scoring-mode-badge[data-mode="ln_course"] {
+  color:        #ff88cc;
+  border-color: rgba(255, 136, 204, 0.45);
+  background:   rgba(180, 50, 120, 0.18);
+  text-shadow:  0 0 6px rgba(255, 136, 204, 0.65);
+}
+@keyframes modePulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+/* ── Core (bottom): dan rank + MSD ────────────────────────── */
+.dan-core {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-end;
+  width:           100%;
+  animation:       fadeSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+  opacity:         0;
+}
+
+.dan-main-stats {
+  display:         flex;
+  flex-direction:  column;
+}
+
+/* ── Chart family label (above dan name) ─────────────────── */
+.chart-family {
+  display:        block;
+  font-size:      11px;
+  font-weight:    700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  line-height:    1;
+  min-height:     14px;
+  margin-bottom:  6px;
+  color:          var(--dan-primary);
+  text-shadow:    0 0 10px var(--dan-glow);
+  transition:     color 300ms ease, opacity 300ms ease;
+}
+.chart-family[data-family="TECH"]    { color: #00e8d8; text-shadow: 0 0 8px rgba(0,232,216,0.6); }
+.chart-family[data-family="JACK"]    { color: #ff8800; text-shadow: 0 0 8px rgba(255,136,0,0.6); }
+.chart-family[data-family="SPEED"]   { color: #ff3355; text-shadow: 0 0 8px rgba(255,51,85,0.6);  }
+.chart-family[data-family="STREAM"]  { color: #4499ff; text-shadow: 0 0 8px rgba(68,153,255,0.6); }
+.chart-family[data-family="STAMINA"] { color: #44dd88; text-shadow: 0 0 8px rgba(68,221,136,0.6); }
+.chart-family[data-family="HYBRID"]  { color: #bb88ff; text-shadow: 0 0 8px rgba(187,136,255,0.6); }
+
+/* ── Dan display scale (user-configurable) ───────────────── */
+.dan-identity {
+  display:          flex;
+  align-items:      center;
+  gap:              16px;
+  position:         relative;
+  transform:        scale(var(--dan-scale, 1));
+  transform-origin: left center;
+}
+
+.signicial-icon {
+  height: 54px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px rgba(255, 170, 68, 0.4));
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Dan name: large thin premium text ────────────────────── */
+.dan-name {
+  margin:          0;
+  font-size:       52px;
+  font-weight:     700;
+  line-height:     1;
+  letter-spacing:  -0.03em;
+  background:      var(--dan-gradient-anim);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip:         text;
+  -webkit-text-fill-color: transparent;
+  color:           transparent;
+  animation:       danNameGradient 4s linear infinite;
+  text-shadow:     none;
+  position:        relative;
+  isolation:       isolate;
+}
+
+/* Glow layers — placed behind the text via z-index: -1 inside the
+   isolation context. ::before pulses primary, ::after pulses secondary
+   in reverse phase, creating an alternating gradient-like glow. */
+.dan-name::before,
+.dan-name::after {
+  content:                 attr(data-lastText);
+  position:                absolute;
+  top:                     0;
+  left:                    0;
+  width:                   100%;
+  pointer-events:          none;
+  user-select:             none;
+  font-size:               inherit;
+  font-weight:             inherit;
+  letter-spacing:          inherit;
+  line-height:             inherit;
+  white-space:             nowrap;
+  /* Remove inherited gradient-text setup so blur renders solid colour */
+  background:              none;
+  -webkit-background-clip: unset;
+  background-clip:         unset;
+  -webkit-text-fill-color: unset;
+  z-index:                 -1;
+}
+
+.dan-name::before {
+  color:     var(--dan-primary);
+  filter:    blur(10px);
+  animation: danNameGlowPulse 2.5s ease-in-out infinite;
+}
+
+.dan-name::after {
+  color:     var(--dan-secondary);
+  filter:    blur(18px);
+  animation: danNameGlowPulse 2.5s ease-in-out infinite reverse;
+}
+
+@keyframes danNameGlowPulse {
+  0%, 100% { opacity: 0.30; }
+  50%       { opacity: 0.75; }
+}
+
+@keyframes danNameGradient {
+  from { background-position: 0% center; }
+  to   { background-position: 200% center; }
+}
+
+/* Keep gradient running while text transitions in */
+.dan-name.entering {
+  animation: textIn 300ms cubic-bezier(0.16, 1, 0.3, 1),
+             danNameGradient 4s linear infinite;
+}
+
+/* ── Dan sub badge ────────────────────────────────────────── */
+.dan-sub {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       12px;
+  font-weight:     600;
+  text-transform:  uppercase;
+  letter-spacing:  0.1em;
+  padding:         4px 10px;
+  border-radius:   4px;
+  background:      var(--dan-bg-tint);
+  color:           var(--dan-secondary);
+  border:          1px solid var(--dan-border);
+  transform:       translateY(-4px);
+}
+
+/* Beyond badge: force white text regardless of dark palette */
+.dan-sub.is-beyond {
+  color:        #ffffff;
+  background:   rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Dan Points inline display ──────────────────────────── */
+.dan-dp-row {
+  display:          flex;
+  align-items:      baseline;
+  gap:              5px;
+  margin-top:       5px;
+  margin-bottom:    2px;
+  transform:        scale(var(--dan-scale, 1));
+  transform-origin: left center;
+}
+
+.dan-dp-label {
+  font-size:       9px;
+  font-weight:     700;
+  letter-spacing:  0.14em;
+  color:           var(--dan-secondary);
+  opacity:         0.55;
+  text-transform:  uppercase;
+}
+
+.dan-dp-value {
+  font-size:       13px;
+  font-weight:     700;
+  letter-spacing:  0.04em;
+  color:           var(--dan-secondary);
+  opacity:         0.8;
+}
+
+.dan-panel.layout-compact .dan-dp-row { display: none; }
+
+/* ── Intensity bar ───────────────────────────────────────── */
+.intensity-bar {
+  width:            240px;
+  height:           18px;
+  position:         relative;
+  margin-top:       14px;
+  display:          flex;
+  align-items:      center;
+  gap:              7px;
+  transform:        scale(var(--dan-scale, 1));
+  transform-origin: left center;
+}
+
+.intensity-label {
+  font-size:      8px;
+  font-weight:    700;
+  letter-spacing: 0.1em;
+  opacity:        0.45;
+  color:          #fff;
+  flex-shrink:    0;
+  pointer-events: none;
+  user-select:    none;
+}
+
+.intensity-slot {
+  flex:          1;
+  position:      relative;
+  height:        5px;
+  display:       flex;
+  align-items:   center;
+}
+
+.intensity-track {
+  position:      absolute;
+  inset:         0;
+  height:        5px;
+  background:    rgba(255, 255, 255, 0.13);
+  border-radius: 5px;
+  overflow:      hidden;
+}
+
+.intensity-fill {
+  height:        100%;
+  width:         0%;
+  background:    linear-gradient(to right, var(--dan-secondary), var(--dan-primary));
+  border-radius: 5px;
+  transition:    width 0.3s ease-out;
+}
+
+.intensity-thumb {
+  position:      absolute;
+  width:         12px;
+  height:        12px;
+  border-radius: 50%;
+  background:    #fff;
+  left:          0%;
+  transform:     translateX(-50%);
+  box-shadow:    0 0 5px 1px rgba(255,255,255,0.85),
+                 0 0 14px var(--dan-primary),
+                 0 0 28px var(--dan-primary);
+  transition:    left 0.3s ease-out;
+  z-index:       1;
+}
+
+/* ── Greek letter watermark (img, repositioned bottom-right) ─ */
+.dan-greek-bg {
+  position:        absolute;
+  right:           -30px;
+  bottom:          -60px;
+  width:           var(--logo-size,     300px);
+  height:          var(--logo-size,     300px);
+  object-fit:      contain;
+  opacity:         var(--logo-opacity,  0.14);
+  pointer-events:  none;
+  user-select:     none;
+  filter:          blur(0.5px) brightness(1.4);
+  z-index:         2;
+  transition:      opacity 400ms ease, width 200ms ease, height 200ms ease;
+}
+
+/* Celestial tier PNG icon */
+.dan-greek-bg[src*="celestial_images"] {
+  width:   var(--logo-size-cel, 220px);
+  height:  var(--logo-size-cel, 220px);
+  filter:  blur(0.5px) brightness(1.4);
+}
+
+.dan-greek-bg[src=""] {
+  opacity: 0;
+}
+
+/* DP tooltip — hidden by default, shown on dan-identity hover */
+.dp-tooltip {
+  position:        absolute;
+  bottom:          calc(100% + 5px);
+  left:            0;
+  background:      rgba(10, 12, 20, 0.88);
+  border:          1px solid rgba(255, 255, 255, 0.16);
+  color:           #e8eaf0;
+  font-size:       11px;
+  font-weight:     600;
+  letter-spacing:  0.06em;
+  padding:         3px 9px;
+  border-radius:   6px;
+  white-space:     nowrap;
+  pointer-events:  none;
+  opacity:         0;
+  transition:      opacity 150ms ease;
+  z-index:         5;
+}
+
+.dan-identity:hover .dp-tooltip {
+  opacity: 1;
+}
+
+/* ── MSD metrics (bottom right) ───────────────────────────── */
+.dan-metrics-box {
+  text-align: right;
+}
+
+/* BPM · OD row under the MSD number */
+.map-stats-row {
+  display:         flex;
+  align-items:     center;
+  justify-content: flex-end;
+  gap:             5px;
+  margin-top:      5px;
+}
+
+.map-stat-item {
+  font-size:      11px;
+  font-weight:    600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          var(--text-soft);
+  opacity:        0.85;
+}
+
+.map-stat-sep {
+  font-size:  11px;
+  color:      var(--text-dim);
+  opacity:    0.5;
+}
+
+/* Hide BPM/OD in simplified and compact modes */
+.dan-panel.layout-simplified .map-stats-row,
+.dan-panel.layout-compact    .map-stats-row { display: none; }
+
+.dan-metrics {
+  font-size:            42px;
+  font-weight:          200;
+  color:                var(--text-main);
+  font-variant-numeric: tabular-nums;
+  line-height:          0.9;
+  letter-spacing:       -0.04em;
+}
+
+.msd-unit {
+  display:        block;
+  font-size:      11px;
+  font-weight:    700;
+  letter-spacing: 0.25em;
+  color:          var(--dan-secondary);
+  text-transform: uppercase;
+  margin-top:     6px;
+  opacity:        0.8;
+}
+.mode-announce {
+  position:        absolute;
+  inset:           0;
+  z-index:         9;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  gap:             4px;
+  background:      rgba(8, 10, 18, 0.80);
+  backdrop-filter: blur(3px);
+  opacity:         0;
+  pointer-events:  none;
+}
+.mode-announce.is-visible {
+  animation: modeAnnounceAnim 1.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.mode-announce-label {
+  font-size:       9px;
+  font-weight:     700;
+  letter-spacing:  0.32em;
+  text-transform:  uppercase;
+  color:           rgba(190, 210, 240, 0.45);
+  text-shadow:     0 2px 8px rgba(0, 0, 0, 0.9);
+}
+.mode-announce-name {
+  font-size:       32px;
+  font-weight:     900;
+  letter-spacing:  0.06em;
+  text-transform:  uppercase;
+  line-height:     1;
+  color:           var(--dan-primary);
+  filter:          drop-shadow(0 0 14px var(--dan-glow));
+  text-shadow:     none;
+}
+.mode-announce-divider {
+  width:           52px;
+  height:          2px;
+  border-radius:   999px;
+  margin-top:      4px;
+  background:      var(--dan-primary);
+  box-shadow:      0 0 10px var(--dan-glow);
+}
+.mode-announce[data-mode="celestial"] .mode-announce-name    { color: #b48cff; filter: drop-shadow(0 0 14px rgba(180,140,255,0.75)); }
+.mode-announce[data-mode="celestial"] .mode-announce-divider { background: #b48cff; box-shadow: 0 0 10px rgba(180,140,255,0.7); }
+.mode-announce[data-mode="signicial"]  .mode-announce-name    { color: #ffaa44; filter: drop-shadow(0 0 14px rgba(255,170,68,0.75)); }
+.mode-announce[data-mode="signicial"]  .mode-announce-divider { background: #ffaa44; box-shadow: 0 0 10px rgba(255,170,68,0.7); }
+.mode-announce[data-mode="shoegazer"]  .mode-announce-name    { color: #44ddcc; filter: drop-shadow(0 0 14px rgba(68,221,204,0.75)); }
+.mode-announce[data-mode="shoegazer"]  .mode-announce-divider { background: #44ddcc; box-shadow: 0 0 10px rgba(68,221,204,0.7); }
+.mode-announce[data-mode="ln_course"]  .mode-announce-name    { color: #ff88cc; filter: drop-shadow(0 0 14px rgba(255,136,204,0.75)); }
+.mode-announce[data-mode="ln_course"]  .mode-announce-divider { background: #ff88cc; box-shadow: 0 0 10px rgba(255,136,204,0.7); }
+@keyframes modeAnnounceAnim {
+  0%   { opacity: 0; transform: scale(0.94); }
+  12%  { opacity: 1; transform: scale(1);    }
+  73%  { opacity: 1; transform: scale(1);    }
+  100% { opacity: 0; transform: scale(1.03); }
+}
+
+/* ── Play result overlay (Pass / Failed) ──────────────────── */
+.map-progress-wrap {
+  position:        absolute;
+  inset:           0;
+  z-index:         8;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(12, 12, 15, 0.72);
+  opacity:         0;
+  pointer-events:  none;
+  transition:      opacity 400ms ease;
+}
+
+.map-progress-wrap.showing {
+  opacity: 1;
+}
+
+.map-progress-result {
+  font-size:      28px;
+  font-weight:    800;
+  color:          var(--text-main);
+  letter-spacing: 0.06em;
+  text-shadow:    var(--txt-shadow);
+}
+
+.map-progress-result.failed {
+  color: #ff4040;
+  animation: shakeFail 450ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* ── Toast notification ───────────────────────────────────── */
+.toast {
+  position:       fixed;
+  bottom:         16px;
+  left:           50%;
+  transform:      translateX(-50%) translateY(14px);
+  padding:        8px 18px;
+  border-radius:  999px;
+  background:     rgba(22, 32, 54, 0.94);
+  border:         1px solid rgba(255, 255, 255, 0.14);
+  color:          var(--text-main);
+  font-size:      13px;
+  font-weight:    600;
+  letter-spacing: 0.04em;
+  white-space:    nowrap;
+  opacity:        0;
+  pointer-events: none;
+  transition:     opacity 260ms ease, transform 260ms ease;
+  z-index:        100;
+}
+
+.toast.visible {
+  opacity:   1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dan-panel.is-loading .overlay-content {
+  opacity:        0;
+  pointer-events: none;
+}
+
+/* ── Text entry animation class (set by JS withEnterAnimation) */
+.entering {
+  animation: textIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── @keyframes ───────────────────────────────────────────── */
+
+/* Top drain bar: right-anchored width 100% → 0%, drains left-to-right */
+@keyframes drainBar {
+  from { width: 100%; }
+  to   { width: 0%;   }
+}
+
+/* Gradient pan across the dan name text */
+@keyframes danGradientFlow {
+  from { background-position: 0%   50%; }
+  to   { background-position: 100% 50%; }
+}
+
+/* Element entry: slight upward fade-in */
+@keyframes textIn {
+  from {
+    opacity:   0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0)   scale(1);
+  }
+}
+
+/* Staggered fade-slide for header/core sections */
+@keyframes fadeSlideIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Panel entry animation */
+@keyframes panelIn {
+  0% { opacity: 0; transform: scale(0.96) translateY(10px); filter: blur(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+
+/* Loading bar shimmer */
+@keyframes loadingScan {
+  0%   { left: -60%; }
+  100% { left: 110%; }
+}
+
+/* Sweep-reveal flash (triggered by JS .revealing class) */
+@keyframes sweepReveal {
+  from { transform: translateX(-160%); }
+  to   { transform: translateX(160%);  }
+}
+
+/* Fail shake */
+@keyframes shakeFail {
+  0%, 100% { transform: translateX(0);  }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX( 6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX( 4px); }
+}
+
+/* Chart button animations */
+@keyframes chartSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes barBounce {
+  0%, 100% { transform: scaleY(0.45); opacity: 0.55; }
+  50%       { transform: scaleY(1.10); opacity: 1.00; }
+}
+
+@keyframes fabGlowPulse {
+  0%, 100% { box-shadow: 0 10px 26px rgba(0, 0, 0, 0.30), inset 0 0 0 1px rgba(255, 255, 255, 0.04); }
+  50%       { box-shadow: 0 10px 26px rgba(0, 0, 0, 0.30), inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 0 16px 4px var(--dan-glow); }
+}
+
+/* Ticker marquee — elements are off-screen but JS adjusts --duration */
+@keyframes marquee-left {
+  from { transform: translateY(-50%) translateX(0);    }
+  to   { transform: translateY(-50%) translateX(-50%); }
+}
+@keyframes marquee-right {
+  from { transform: translateY(-50%) translateX(-50%); }
+  to   { transform: translateY(-50%) translateX(0);    }
+}
+
+@keyframes mapTitleMarquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(calc(-1 * var(--title-shift))); }
+}
+
+/* ============================================================
+   Stream mode: 20 % bigger window, content zoomed 1.2× so
+   OBS captures at native resolution with no upscaling blur.
+   ============================================================ */
+.stream-mode {
+  zoom: 1.2;
+}
+
+/* ============================================================
+   Hint screen — 2-step walkthrough (Free then Locked)
+   ============================================================ */
+.hint-screen {
+  position:        absolute;
+  inset:           0;
+  z-index:         30;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  padding:         18px 24px;         /* keep content away from edges */
+  background:      rgba(8, 8, 10, 0.97);
+  opacity:         1;
+  transition:      opacity 500ms ease;
+  pointer-events:  auto;
+}
+
+.hint-screen.fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hint-screen.hidden {
+  display: none;
+}
+
+.hint-inner {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             8px;
+  animation:       splashEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Step indicator dots */
+.hint-title {
+  font-size:      10px;
+  font-weight:    700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color:          var(--text-dim);
+  opacity:        0.55;
+  margin-bottom:  4px;
+  transition:     opacity 0.3s ease;
+}
+
+.hint-row {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+}
+
+.hint-key {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-width:       28px;
+  height:          28px;
+  padding:         0 8px;
+  border-radius:   6px;
+  background:      rgba(255, 255, 255, 0.08);
+  border:          1px solid rgba(255, 255, 255, 0.22);
+  color:           var(--text-main);
+  font-family:     inherit;
+  font-size:       13px;
+  font-weight:     700;
+  letter-spacing:  0.04em;
+  box-shadow:      0 2px 0 rgba(0,0,0,0.5);
+}
+
+.hint-desc {
+  font-size:   11px;
+  font-weight: 400;
+  color:       var(--text-dim);
+}
+
+.hint-desc strong {
+  color: var(--text-main);
+  font-weight: 700;
+}
+
+.hint-modes {
+  display:        flex;
+  flex-direction: column;
+  align-items:    flex-start;
+  gap:            4px;
+  margin-top:     4px;
+  padding:        10px 14px;
+  border-radius:  8px;
+  background:     rgba(255, 255, 255, 0.03);
+  border:         1px solid rgba(255, 255, 255, 0.07);
+}
+
+.hint-mode-item {
+  font-size:   10px;
+  color:       var(--text-dim);
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  transition:  color 0.3s ease, opacity 0.3s ease;
+  opacity:     0.5;
+}
+
+.hint-mode-item.hint-mode-active {
+  color:   var(--text-main);
+  opacity: 1;
+}
+
+.hint-mode-icon {
+  font-size: 14px;
+}
+
+.hint-free   { color: rgb(249, 115, 22); }
+.hint-locked { color: rgb(120, 155, 255); }
+
+/* Floating R key indicator — waits for user to press R each step */
+.hint-r-indicator {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  gap:            5px;
+  margin-top:     10px;
+}
+
+.hint-key-lg {
+  min-width:   42px;
+  height:      42px;
+  font-size:   18px;
+  padding:     0 10px;
+  animation:   hint-r-pulse 1.4s ease-in-out infinite;
+  transition:  background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.1s ease;
+}
+
+@keyframes hint-r-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Locked mode — blue glow, no pulse */
+.hint-r-indicator.hint-locked .hint-key-lg {
+  animation:    none;
+  background:   rgba(120, 155, 255, 0.18);
+  border-color: rgb(120, 155, 255);
+  color:        rgb(120, 155, 255);
+  box-shadow:   0 0 8px rgba(120, 155, 255, 0.35), 0 2px 0 rgba(0,0,0,0.5);
+}
+
+/* Free mode after interaction — stop pulsing, stay grey */
+.hint-r-indicator.hint-free-interacted .hint-key-lg {
+  animation: none;
+}
+
+.hint-r-label {
+  font-size:      9px;
+  font-weight:    700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color:          var(--text-dim);
+  opacity:        0.5;
+  transition:     color 0.3s ease, opacity 0.3s ease;
+}
+
+.hint-r-indicator.hint-locked .hint-r-label {
+  color:   rgb(120, 155, 255);
+  opacity: 0.85;
+}
+
+.hint-click-note {
+  font-size:      9px;
+  color:          var(--text-dim);
+  opacity:        0.6;
+  margin-top:     6px;
+  display:        flex;
+  align-items:    center;
+  gap:            5px;
+}
+
+.hint-key-sm {
+  min-width:   20px;
+  height:      20px;
+  padding:     0 5px;
+  font-size:   10px;
+}
+
+/* Proceed button */
+.hint-btn {
+  margin-top:      10px;
+  padding:         7px 22px;
+  border-radius:   8px;
+  background:      rgba(255, 255, 255, 0.06);
+  border:          1px solid rgba(255, 255, 255, 0.16);
+  color:           var(--text-main);
+  font-family:     inherit;
+  font-size:       11px;
+  font-weight:     700;
+  letter-spacing:  0.08em;
+  cursor:          pointer;
+  opacity:         0;
+  transform:       translateY(4px);
+  transition:      opacity 0.35s ease, transform 0.35s ease, background 0.15s ease;
+  pointer-events:  none;
+}
+
+.hint-btn:not(.hidden) {
+  opacity:        1;
+  transform:      translateY(0);
+  pointer-events: auto;
+}
+
+.hint-btn.hidden {
+  display: none;
+}
+
+.hint-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--dan-primary);
+}
+
+.hint-btn:active {
+  transform: translateY(1px);
+}
+
+.hint-current {
+  font-size:      9px;
+  letter-spacing: 0.12em;
+  color:          var(--text-dim);
+  opacity:        0.45;
+  margin-top:     2px;
+  text-transform: uppercase;
+}
+
+.hint-current strong {
+  color: var(--text-main);
+  opacity: 1;
+}
+
+/* ── What's New screen ────────────────────────────────────── */
+.whats-new-list {
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  margin-top:     4px;
+  padding:        10px 14px;
+  border-radius:  8px;
+  background:     rgba(255, 255, 255, 0.03);
+  border:         1px solid rgba(255, 255, 255, 0.07);
+  max-width:      360px;
+}
+
+.whats-new-item {
+  display:     flex;
+  align-items: flex-start;
+  gap:         8px;
+  font-size:   10.5px;
+  color:       var(--text-dim);
+  line-height: 1.45;
+}
+
+.whats-new-item strong {
+  color:       var(--text-main);
+  font-weight: 700;
+}
+
+.whats-new-bullet {
+  font-size:   12px;
+  opacity:     0.5;
+  flex-shrink: 0;
+  margin-top:  1px;
+}
+
+/* ── Scoring modes hint overrides ─────────────────────────── */
+.hint-modes-scoring {
+  gap: 7px;
+}
+
+.hint-modes-scoring .hint-mode-item {
+  opacity:   0.35;
+  gap:       6px;
+  font-size: 11px;
+  color:     var(--text-main);
+  transition: opacity 0.25s ease, transform 0.15s ease;
+}
+
+.hint-modes-scoring .hint-mode-item.hint-mode-active {
+  opacity: 1;
+}
+
+/* Flash animation when a scoring key combo is pressed */
+.hint-mode-pressed {
+  animation: hint-mode-flash 0.35s ease both;
+}
+@keyframes hint-mode-flash {
+  0%   { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Pulsing for the key badges in hint2 when nothing pressed yet */
+.hint-modes-scoring .hint-mode-item:not(.hint-mode-active) .hint-key {
+  animation: hint-r-pulse 1.6s ease-in-out infinite;
+}
+.hint-modes-scoring .hint-mode-item.hint-mode-active .hint-key {
+  animation: none;
+}
+
+.hint-mode-tag {
+  font-size:      9px;
+  font-weight:    600;
+  color:          var(--text-dim);
+  opacity:        0.6;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hint-experimental {
+  margin-top: 8px;
+  font-size:  9.5px;
+  color:      rgb(255, 190, 80);
+  opacity:    0.8;
+}
+
+.hint-ln-auto {
+  font-size:  9.5px;
+  color:      rgb(130, 210, 185);
+  opacity:    0.85;
+}
+
+/* ── Layout modes hint (hint3) ────────────────────────── */
+.hint-modes-layout {
+  gap: 8px;
+}
+
+.hint-modes-layout .hint-mode-item {
+  opacity:    0.35;
+  font-size:  11px;
+  color:      var(--text-main);
+  gap:        8px;
+  transition: opacity 0.25s ease;
+}
+
+.hint-modes-layout .hint-mode-item.hint-mode-active {
+  opacity: 1;
+}
+
+.hint-note-subtle {
+  display:    block;
+  margin-top: 2px;
+  font-size:  9px;
+  opacity:    0.55;
+}
+
+/* ============================================================
+   Intro sequence: splash + tosu connection screens
+   ============================================================ */
+
+/* ── Tutorial prompt Yes/No buttons ──────────────────────── */
+.tut-prompt-question {
+  font-size:   12px;
+  color:       var(--text-dim);
+  text-align:  center;
+  line-height: 1.65;
+  margin:      6px 0 2px;
+}
+
+.tut-prompt-btns {
+  display:    flex;
+  gap:        10px;
+  margin-top: 6px;
+}
+
+/* Override base .hint-btn hide-by-default behavior — always show */
+.tut-prompt-btns .hint-btn {
+  opacity:        1 !important;
+  transform:      none !important;
+  pointer-events: auto !important;
+}
+
+.tut-btn-yes {
+  border-color: rgba(120, 155, 255, 0.55);
+  color:        rgba(180, 205, 255, 0.95);
+}
+
+.tut-btn-no {
+  opacity: 0.6 !important;
+}
+
+.tut-btn-no:hover {
+  opacity: 0.9 !important;
+}
+
+.tut-btn-never {
+  opacity:         0.35 !important;
+  font-size:       10px;
+  letter-spacing:  0.06em;
+  text-transform:  uppercase;
+}
+
+.tut-btn-never:hover {
+  opacity: 0.65 !important;
+}
+
+/* ── Paused overlay ────────────────────────────────────────── */
+.paused-overlay {
+  position:        absolute;
+  inset:           0;
+  z-index:         9;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(8, 10, 18, 0.62);
+  opacity:         0;
+  pointer-events:  none;
+  transition:      opacity 280ms ease;
+}
+
+.paused-overlay.is-visible {
+  opacity: 1;
+}
+
+.paused-overlay-text {
+  font-size:      20px;
+  font-weight:    800;
+  letter-spacing: 0.28em;
+  color:          rgba(200, 215, 255, 0.92);
+  text-shadow:    0 0 28px rgba(120, 155, 255, 0.65), 0 2px 8px rgba(0, 0, 0, 0.85);
+  animation:      none;
+}
+
+.paused-overlay.is-visible .paused-overlay-text {
+  animation: pausedPulse 2s ease-in-out infinite;
+}
+
+@keyframes pausedPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+
+
+/* ── Splash screen ────────────────────────────────────────── */
+.splash-screen {
+  position:        absolute;
+  inset:           0;
+  z-index:         20;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(8, 8, 10, 0.98);
+  pointer-events:  none;
+  opacity:         1;
+  transition:      opacity 700ms ease;
+}
+
+.splash-screen.fading {
+  opacity: 0;
+}
+
+.splash-screen.hidden {
+  display: none;
+}
+
+.splash-inner {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             5px;
+  animation:       splashEnter 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.splash-title {
+  font-size:         28px;
+  font-weight:       900;
+  letter-spacing:    0.1em;
+  text-transform:    uppercase;
+  background-image:  var(--dan-gradient-anim, var(--dan-gradient));
+  background-size:   200% 100%;
+  -webkit-background-clip: text;
+  background-clip:   text;
+  color:             transparent;
+  animation:
+    splashEnter      1s   cubic-bezier(0.16, 1, 0.3, 1) both,
+    danGradientFlow  3s   linear infinite;
+  text-shadow:       none;
+  filter:            drop-shadow(0 0 14px var(--dan-glow));
+}
+
+.splash-sub {
+  font-size:      11px;
+  font-weight:    500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color:          var(--text-dim);
+  animation:      splashEnter 1s 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Tosu connection status screen ───────────────────────── */
+.connect-screen {
+  position:        absolute;
+  inset:           0;
+  z-index:         15;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(6, 8, 16, 0.97);
+  opacity:         1;
+  transition:      opacity 600ms ease;
+  pointer-events:  auto;           /* allow clicks on download button */
+  backdrop-filter: blur(4px);
+}
+
+.connect-screen.fading {
+  opacity: 0;
+}
+
+.connect-screen.hidden {
+  display: none;
+}
+
+.connect-inner {
+  display:        flex;
+  flex-direction:  column;
+  align-items:     center;
+  gap:             20px;
+  text-align:      center;
+  animation:       splashEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.connect-row {
+  display:     flex;
+  align-items: center;
+  gap:         14px;
+}
+
+.connect-icon {
+  width:           22px;
+  height:          22px;
+  flex-shrink:     0;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+}
+
+.connect-text {
+  display:        flex;
+  flex-direction: column;
+  gap:            3px;
+}
+
+.connect-label {
+  font-size:      13px;
+  font-weight:    700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color:          var(--text-dim);
+  transition:     color 400ms ease;
+}
+
+.connect-screen.is-connected .connect-label {
+  color: rgb(55, 220, 130);
+  text-shadow: 0 0 18px rgba(55, 220, 130, 0.45);
+}
+
+.connect-sub {
+  font-size:      10.5px;
+  font-weight:    400;
+  letter-spacing: 0.06em;
+  color:          rgba(140, 160, 190, 0.55);
+  transition:     color 400ms ease;
+  text-align:      center;
+  max-width:       240px;
+  line-height:     1.5;
+}
+
+.connect-screen.is-connected .connect-sub {
+  color: rgba(55, 220, 130, 0.65);
+}
+
+.connect-download {
+  display:          inline-flex;
+  align-items:      center;
+  gap:              7px;
+  padding:          7px 18px;
+  border:           1px solid rgba(120, 155, 255, 0.3);
+  border-radius:    8px;
+  background:       rgba(120, 155, 255, 0.06);
+  color:            rgba(160, 185, 255, 0.9);
+  font-size:        10.5px;
+  font-weight:      600;
+  letter-spacing:   0.05em;
+  text-decoration:  none;
+  transition:       background 200ms ease, border-color 200ms ease, color 200ms ease, transform 150ms ease;
+  pointer-events:    auto;
+  cursor:           pointer;
+  margin-top:       4px;
+}
+
+.connect-download:hover {
+  background:     rgba(120, 155, 255, 0.16);
+  border-color:   rgba(120, 155, 255, 0.5);
+  color:          rgba(190, 210, 255, 1);
+  transform:      translateY(-1px);
+}
+
+.connect-download:active {
+  transform: translateY(0);
+}
+
+.connect-download-icon {
+  font-size:  11px;
+  opacity:    0.8;
+}
+
+.connect-download.hidden {
+  display: none;
+}
+
+.connect-osu {
+  display:         flex;
+  align-items:     center;
+  gap:              7px;
+  padding:          5px 14px;
+  border-radius:    20px;
+  background:       rgba(255, 90, 90, 0.07);
+  border:           1px solid rgba(255, 90, 90, 0.18);
+  transition:      background 400ms ease, border-color 400ms ease;
+}
+
+.connect-osu.hidden {
+  display: none;
+}
+
+.connect-osu.is-running {
+  background:     rgba(55, 220, 130, 0.07);
+  border-color:   rgba(55, 220, 130, 0.22);
+}
+
+.connect-osu-icon {
+  width:           8px;
+  height:          8px;
+  border-radius:   50%;
+  background:      rgba(255, 100, 100, 0.7);
+  flex-shrink:     0;
+  transition:      background 400ms ease, box-shadow 400ms ease;
+}
+
+.connect-osu.is-running .connect-osu-icon {
+  background:   rgb(55, 220, 130);
+  box-shadow:   0 0 6px rgba(55, 220, 130, 0.5);
+}
+
+.connect-osu-text {
+  font-size:      10px;
+  font-weight:    600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color:          rgba(255, 110, 110, 0.75);
+  transition:     color 400ms ease;
+}
+
+.connect-osu.is-running .connect-osu-text {
+  color: rgba(55, 220, 130, 0.85);
+}
+
+/* Spinner ring (shown while searching) */
+.conn-ring {
+  width:         22px;
+  height:        22px;
+  border-radius: 50%;
+  border:        2.5px solid rgba(120, 155, 255, 0.15);
+  border-top-color: var(--dan-primary);
+  animation:     spinnerTurn 0.85s linear infinite;
+  box-shadow:    0 0 10px rgba(120, 155, 255, 0.1);
+}
+
+/* Check icon (shown when connected) */
+.conn-check {
+  width:         26px;
+  height:        26px;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  background:    rgba(55, 220, 130, 0.1);
+  border-radius: 50%;
+  border:        1px solid rgba(55, 220, 130, 0.25);
+  animation:     connCheckPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.conn-check svg {
+  width:         16px;
+  height:        16px;
+}
+
+@keyframes connCheckPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Dot (fallback, kept for compatibility) */
+.conn-dot {
+  width:         10px;
+  height:        10px;
+  border-radius: 50%;
+  background:    rgb(55, 220, 130);
+  box-shadow:    0 0 10px rgba(55, 220, 130, 0.6);
+  animation:     dotPulse 1.2s ease-in-out infinite;
+}
+
+/* ── New @keyframes ───────────────────────────────────────── */
+
+@keyframes splashEnter {
+  from {
+    opacity:   0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spinnerTurn {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%      { transform: scale(1.3);  opacity: 0.7; }
+}
+
+
+/* ============================================================
+   Layout density modes  (L key cycles: Full → Simplified → Compact)
+   ============================================================ */
+
+/* Simplified: 140px base height — still stretches in free resize mode */
+.dan-panel.layout-simplified { min-height: 140px; }
+
+.dan-panel.layout-simplified .map-artist,
+.dan-panel.layout-simplified .map-meta    { display: none; }
+
+.dan-panel.layout-simplified .overlay-content { padding: 18px 36px; }
+.dan-panel.layout-simplified .dan-name         { font-size: 44px; }
+.dan-panel.layout-simplified .dan-metrics      { font-size: 36px; line-height: 1; }
+
+/* Compact: 56px base height — still stretches in free resize mode */
+.dan-panel.layout-compact { min-height: 56px; }
+
+.dan-panel.layout-compact .map-header,
+.dan-panel.layout-compact .intensity-bar,
+.dan-panel.layout-compact .chart-family,
+.dan-panel.layout-compact .dan-sub      { display: none; }
+
+.dan-panel.layout-compact .overlay-content {
+  flex-direction: row;
+  align-items:    center;
+  padding:        0 36px;
+}
+
+.dan-panel.layout-compact .dan-core {
+  align-items: center;
+  width:       100%;
+}
+
+.dan-panel.layout-compact .dan-main-stats { flex-direction: row; align-items: center; }
+
+.dan-panel.layout-compact .dan-name {
+  font-size:   30px;
+  font-weight: 400;
+}
+
+.dan-panel.layout-compact .dan-metrics {
+  font-size:   26px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.dan-panel.layout-compact .msd-unit {
+  display:    inline;
+  margin-top: 0;
+  margin-left: 5px;
+  font-size:   10px;
+  letter-spacing: 0.12em;
+}
+
+/* ============================================================
+   Settings / Config panel  (right-click to open)
+   ============================================================ */
+
+.cfg-overlay {
+  position:        fixed;
+  inset:           0;
+  z-index:         500;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background:      rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  opacity:         0;
+  pointer-events:  none;
+  transition:      opacity 180ms ease;
+}
+
+.cfg-overlay.is-open {
+  opacity:        1;
+  pointer-events: auto;
+}
+
+.cfg-panel {
+  width:           min(500px, 92vw);
+  max-height:      82vh;
+  display:         flex;
+  flex-direction:  column;
+  background:      rgba(8, 11, 22, 0.97);
+  border:          1px solid rgba(255, 255, 255, 0.13);
+  border-radius:   14px;
+  box-shadow:      0 28px 72px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow:        hidden;
+  transform:       scale(0.96) translateY(8px);
+  transition:      transform 180ms cubic-bezier(0.16,1,0.3,1);
+}
+
+.cfg-overlay.is-open .cfg-panel {
+  transform: scale(1) translateY(0);
+}
+
+.cfg-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         15px 18px 13px;
+  border-bottom:   1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink:     0;
+}
+
+.cfg-title {
+  margin:          0;
+  font-size:       12px;
+  font-weight:     700;
+  letter-spacing:  0.2em;
+  text-transform:  uppercase;
+  color:           var(--text-main);
+}
+
+.cfg-close {
+  width:      26px;
+  height:     26px;
+  display:    flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border:     none;
+  border-radius: 6px;
+  color:      var(--text-dim);
+  font-size:  16px;
+  cursor:     pointer;
+  font-family: inherit;
+  transition: background 140ms ease, color 140ms ease;
+  line-height: 1;
+}
+
+.cfg-close:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+
+.cfg-body {
+  overflow-y:    auto;
+  padding:       16px 18px;
+  display:       flex;
+  flex-direction: column;
+  gap:           22px;
+  flex:          1;
+}
+
+.cfg-section-title {
+  margin:         0 0 10px;
+  font-size:      9px;
+  font-weight:    700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color:          var(--text-dim);
+  opacity:        0.6;
+}
+
+.cfg-row {
+  display:     flex;
+  align-items: center;
+  gap:         12px;
+  margin-bottom: 10px;
+}
+.cfg-row:last-child { margin-bottom: 0; }
+
+.cfg-label {
+  font-size:  12px;
+  font-weight: 500;
+  color:      var(--text-soft);
+  min-width:  160px;
+  flex-shrink: 0;
+}
+
+.cfg-label-hint {
+  display:      block;
+  font-size:    10px;
+  font-weight:  400;
+  color:        var(--text-dim);
+  opacity:      0.6;
+  margin-top:   1px;
+  letter-spacing: 0.04em;
+}
+
+.cfg-slider-group {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex:        1;
+}
+
+.cfg-slider {
+  flex:           1;
+  height:         4px;
+  accent-color:   var(--dan-primary);
+  cursor:         pointer;
+}
+
+.cfg-num {
+  width:        62px;
+  padding:      4px 7px;
+  background:   rgba(255, 255, 255, 0.06);
+  border:       1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color:        var(--text-main);
+  font-family:  'Courier New', ui-monospace, monospace;
+  font-size:    12px;
+  text-align:   right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.cfg-num::-webkit-outer-spin-button,
+.cfg-num::-webkit-inner-spin-button { -webkit-appearance: none; }
+.cfg-num:focus { outline: none; border-color: var(--dan-primary); }
+
+.cfg-select {
+  background:    rgba(255, 255, 255, 0.06);
+  border:        1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color:         var(--text-main);
+  font-family:   inherit;
+  font-size:     12px;
+  padding:       5px 10px;
+  cursor:        pointer;
+  flex:          1;
+}
+.cfg-select:focus     { outline: none; border-color: var(--dan-primary); }
+.cfg-select option    { background: #1a1e2e; color: var(--text-main); }
+
+.cfg-section-hint {
+  font-size:  11px;
+  color:      var(--text-dim);
+  margin:     -4px 0 6px;
+  opacity:    0.7;
+  line-height: 1.4;
+}
+
+/* ── Keybinds table ─────────────────────────────────────── */
+.cfg-keybind-row {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  padding:       7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.cfg-keybind-row:last-child { border-bottom: none; }
+
+.cfg-keybind-label {
+  flex:       1;
+  font-size:  12px;
+  color:      var(--text-soft);
+  line-height: 1.3;
+}
+
+.cfg-key-badge {
+  font-size:   11px;
+  font-weight: 600;
+  font-family: 'Courier New', ui-monospace, monospace;
+  padding:     3px 10px;
+  border-radius: 5px;
+  background:  rgba(255, 255, 255, 0.07);
+  border:      1px solid rgba(255, 255, 255, 0.16);
+  color:       var(--text-main);
+  min-width:   70px;
+  text-align:  center;
+  white-space: nowrap;
+  transition:  background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.cfg-key-badge.listening {
+  border-color: var(--dan-primary);
+  color:        var(--dan-primary);
+  animation:    cfgKeyPulse 0.8s ease-in-out infinite;
+}
+
+@keyframes cfgKeyPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+
+.cfg-edit-btn {
+  font-size:   10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding:     3px 9px;
+  border-radius: 5px;
+  background:  none;
+  border:      1px solid rgba(255, 255, 255, 0.10);
+  color:       var(--text-dim);
+  cursor:      pointer;
+  font-family: inherit;
+  transition:  background 140ms ease, border-color 140ms ease, color 140ms ease;
+  white-space: nowrap;
+  min-width:   58px;
+}
+.cfg-edit-btn:hover       { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.22); color: var(--text-main); }
+.cfg-edit-btn.listening   { border-color: var(--dan-primary); color: var(--dan-primary); }
+
+/* ── Footer buttons ─────────────────────────────────────── */
+.cfg-footer {
+  display:         flex;
+  justify-content: flex-end;
+  gap:             8px;
+  padding:         13px 18px;
+  border-top:      1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink:     0;
+}
+
+/* ── Toggle switch (green screen) ──────────────────────── */
+.cfg-toggle {
+  position:    relative;
+  display:     inline-flex;
+  cursor:      pointer;
+  flex-shrink: 0;
+}
+.cfg-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity:  0;
+  width:    0;
+  height:   0;
+}
+.cfg-toggle-track {
+  display:       flex;
+  align-items:   center;
+  width:         38px;
+  height:        20px;
+  border-radius: 10px;
+  background:    rgba(255,255,255,0.12);
+  border:        1px solid rgba(255,255,255,0.15);
+  transition:    background 180ms ease, border-color 180ms ease;
+  padding:       2px;
+}
+.cfg-toggle-thumb {
+  width:         14px;
+  height:        14px;
+  border-radius: 50%;
+  background:    rgba(255,255,255,0.5);
+  transition:    transform 180ms ease, background 180ms ease;
+}
+.cfg-toggle input:checked ~ .cfg-toggle-track {
+  background:   #00cc44;
+  border-color: #00cc44;
+}
+.cfg-toggle input:checked ~ .cfg-toggle-track .cfg-toggle-thumb {
+  transform:  translateX(18px);
+  background: #fff;
+}
+.cfg-toggle:focus-within .cfg-toggle-track {
+  outline: 2px solid var(--dan-primary);
+  outline-offset: 2px;
+}
+
+/* ── Green screen mode ──────────────────────────────────── */
+#danPanel.green-screen {
+  background: #00ff00 !important;
+}
+#danPanel.green-screen .dan-scrim,
+#danPanel.green-screen .dan-line,
+#danPanel.green-screen .dan-gradient {
+  display: none !important;
+}
+
+/* ── Green screen Chroma-Key Optimizations ──────────────── */
+/* 1. Remove all shadows (they blend with green and leave halos) */
+#danPanel.green-screen * {
+  text-shadow: none !important;
+  box-shadow: none !important;
+}
+
+/* 2. Hide blurred glow layers entirely (cannot be cleanly keyed) */
+#danPanel.green-screen .c2-dan-name::before,
+#danPanel.green-screen .c2-dan-name::after,
+#danPanel.green-screen .dan-name::before,
+#danPanel.green-screen .dan-name::after,
+#danPanel.green-screen .splash-title::before,
+#danPanel.green-screen .splash-title::after {
+  display: none !important;
+}
+
+/* 3. Force small, translucent text to be solid and opaque */
+#danPanel.green-screen .c2-artist,
+#danPanel.green-screen .c2-map-meta,
+#danPanel.green-screen .c2-duration,
+#danPanel.green-screen .c2-chart-family,
+#danPanel.green-screen .c2-sep,
+#danPanel.green-screen .map-artist,
+#danPanel.green-screen .map-stats,
+#danPanel.green-screen .msd-label,
+#danPanel.green-screen .mode-announce-label {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* 4. Force semi-transparent backgrounds to solid colors */
+#danPanel.green-screen .c2-dan-sub,
+#danPanel.green-screen .dan-sub,
+#danPanel.green-screen .mod-badge,
+#danPanel.green-screen .scoring-mode-badge {
+  background: #111111 !important;
+  border-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+.cfg-btn {
+  padding:     7px 20px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size:   12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor:      pointer;
+  transition:  background 140ms ease, filter 140ms ease;
+}
+
+.cfg-cancel {
+  background: none;
+  border:     1px solid rgba(255, 255, 255, 0.12);
+  color:      var(--text-dim);
+}
+.cfg-cancel:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+
+.cfg-save {
+  background: var(--dan-primary);
+  border:     1px solid transparent;
+  color:      #fff;
+}
+.cfg-save:hover { filter: brightness(1.12); }

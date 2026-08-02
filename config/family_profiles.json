@@ -1,0 +1,94 @@
+{
+  "_comment": "Per-family profile weights y correction bounds. Empirical: jack bpm=2.20 p90=4.0, tech bpm=0.50 p90=1.80",
+  "families": {
+    "stream": {
+      "description": "Singles-dominant, high stream purity, low chord density",
+      "signals": {
+        "sr_weight": 1.0,
+        "jack_ratio_ceil": 0.25,
+        "stream_purity_floor": 0.15,
+        "density_cv_ceil": 0.50
+      },
+      "correction": {
+        "enabled": false,
+        "max_dp_shift": 0.0
+      }
+    },
+    "jack": {
+      "description": "Jack-dominant charts. Biggest correction source per empirical evidence.",
+      "signals": {
+        "sr_weight": 0.70,
+        "jack_ratio_floor": 0.40,
+        "bpm_weight": 2.20,
+        "nps_p90_weight": 4.00,
+        "jbar_max_weight": 1.50
+      },
+      "correction": {
+        "enabled": true,
+        "max_dp_shift": 2.5,
+        "min_jack_ratio": 0.40,
+        "min_confidence": 0.60
+      }
+    },
+    "tech": {
+      "description": "High pattern variety, density variation, transition complexity",
+      "signals": {
+        "sr_weight": 0.85,
+        "bpm_weight": 0.50,
+        "nps_p90_weight": 1.80,
+        "density_cv_weight": 2.00,
+        "transition_var_weight": 1.50
+      },
+      "correction": {
+        "enabled": true,
+        "max_dp_shift": 1.5,
+        "min_density_cv": 0.30,
+        "min_confidence": 0.50
+      }
+    },
+    "speed": {
+      "description": "High BPM stream/rice patterns",
+      "signals": {
+        "sr_weight": 0.90,
+        "bpm_weight": 1.20,
+        "nps_p90_weight": 2.00
+      },
+      "correction": {
+        "enabled": true,
+        "max_dp_shift": 1.5,
+        "min_bpm": 155,
+        "min_confidence": 0.50
+      }
+    },
+    "stamina": {
+      "description": "Long maps with sustained density",
+      "signals": {
+        "sr_weight": 0.90,
+        "drain_time_weight": 1.50,
+        "nps_sustained_weight": 2.00,
+        "active_ratio_weight": 1.00
+      },
+      "correction": {
+        "enabled": true,
+        "max_dp_shift": 1.0,
+        "min_drain_s": 120,
+        "min_confidence": 0.50
+      }
+    },
+    "hybrid": {
+      "description": "No dominant family — fallback, SR-only mapping",
+      "signals": {
+        "sr_weight": 1.0
+      },
+      "correction": {
+        "enabled": false,
+        "max_dp_shift": 0.0
+      }
+    }
+  },
+  "tech_subtypes": {
+    "chaos_transition_floor": 0.38,
+    "control_hand_floor": 0.10,
+    "control_chord_floor": 0.18
+  }
+}

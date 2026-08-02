@@ -1,0 +1,290 @@
+{
+  "I": {
+    "sr_mean": 2.684,
+    "sr_lower": 1.922,
+    "sr_upper": 3.091,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 14.404,
+    "lower": 13.731,
+    "upper": 14.535,
+    "map_count": 4
+  },
+  "II": {
+    "sr_mean": 2.917,
+    "sr_lower": 2.440,
+    "sr_upper": 3.253,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 14.634,
+    "lower": 13.678,
+    "upper": 15.45,
+    "map_count": 4
+  },
+  "III": {
+    "sr_mean": 3.374,
+    "sr_lower": 2.740,
+    "sr_upper": 3.768,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 16.159,
+    "lower": 15.027,
+    "upper": 17.477,
+    "map_count": 4
+  },
+  "IV": {
+    "sr_mean": 3.975,
+    "sr_lower": 3.618,
+    "sr_upper": 4.356,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 18.523,
+    "lower": 17.477,
+    "upper": 19.353,
+    "map_count": 4
+  },
+  "V": {
+    "sr_mean": 4.341,
+    "sr_lower": 3.923,
+    "sr_upper": 4.747,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 19.55,
+    "lower": 18.871,
+    "upper": 20.695,
+    "map_count": 4
+  },
+  "VI": {
+    "sr_mean": 4.661,
+    "sr_lower": 4.442,
+    "sr_upper": 5.065,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 20.236,
+    "lower": 19.953,
+    "upper": 21.669,
+    "map_count": 4
+  },
+  "VII": {
+    "sr_mean": 5.006,
+    "sr_lower": 4.806,
+    "sr_upper": 5.296,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 21.598,
+    "lower": 20.973,
+    "upper": 21.885,
+    "map_count": 4
+  },
+  "VIII": {
+    "sr_mean": 5.302,
+    "sr_lower": 5.072,
+    "sr_upper": 5.683,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 22.884,
+    "lower": 21.648,
+    "upper": 24.218,
+    "map_count": 4
+  },
+  "IX": {
+    "sr_mean": 5.605,
+    "sr_lower": 5.330,
+    "sr_upper": 5.844,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 23.868,
+    "lower": 22.838,
+    "upper": 25.081,
+    "map_count": 4
+  },
+  "X": {
+    "sr_mean": 5.978,
+    "sr_lower": 5.735,
+    "sr_upper": 6.222,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 24.588,
+    "lower": 22.626,
+    "upper": 25.75,
+    "map_count": 4
+  },
+  "XI": {
+    "sr_mean": 6.302,
+    "sr_lower": 6.230,
+    "sr_upper": 6.442,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 26.333,
+    "lower": 23.804,
+    "upper": 28.134,
+    "map_count": 4
+  },
+  "XII": {
+    "sr_mean": 6.644,
+    "sr_lower": 6.464,
+    "sr_upper": 6.957,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 26.764,
+    "lower": 26.137,
+    "upper": 30.27,
+    "map_count": 4
+  },
+  "XIII": {
+    "sr_mean": 7.242,
+    "sr_lower": 6.719,
+    "sr_upper": 7.637,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 29.674,
+    "lower": 26.17,
+    "upper": 30.88,
+    "map_count": 4
+  },
+  "XIV": {
+    "sr_mean": 7.965,
+    "sr_lower": 7.901,
+    "sr_upper": 8.048,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 31.628,
+    "lower": 29.772,
+    "upper": 32.236,
+    "map_count": 4
+  },
+  "LastStage": {
+    "sr_mean": 8.928,
+    "sr_lower": 8.734,
+    "sr_upper": 9.251,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": null,
+      "tech": null,
+      "speed": null,
+      "stamina": null
+    },
+    "overall_msd": 32.716,
+    "lower": 32.095,
+    "upper": 34.938,
+    "map_count": 4
+  },
+  "ExtraStageI": {
+    "sr_mean": 9.5163,
+    "sr_lower": 8.9814,
+    "sr_upper": 9.7821,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": 9.5938,
+      "tech": 9.7821,
+      "speed": 9.4388,
+      "stamina": 8.9814
+    },
+    "overall_msd": 37.58,
+    "lower": 35.642,
+    "upper": 39.575,
+    "map_count": 4
+  },
+  "ExtraStageII": {
+    "sr_mean": 9.9816,
+    "sr_lower": 9.3905,
+    "sr_upper": 10.3899,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": 10.3899,
+      "tech": 9.8224,
+      "speed": 10.3236,
+      "stamina": 9.3905
+    },
+    "overall_msd": 41.0,
+    "lower": 38.5,
+    "upper": 43.5,
+    "map_count": 4
+  },
+  "ExtraStageIII": {
+    "sr_mean": 10.80,
+    "sr_lower": 10.47,
+    "sr_upper": 11.13,
+    "sr_count": 4,
+    "sr_by_type": {
+      "jack": 10.85,
+      "tech": 10.95,
+      "speed": 11.00,
+      "stamina": 10.80
+    },
+    "overall_msd": 45.0,
+    "lower": 43.0,
+    "upper": 47.0,
+    "map_count": 4
+  }
+}
