@@ -178,7 +178,6 @@ graph LR
   - `ln_course_profiles.json` — 16 LN Course stages + OLS regression
   - `family_profiles.json` — Per-family classifier parameters
   - `role_scales.json` — Role weighting for MinaCalc path
-  - `gates.json` — Domain validation & correction gates
 
 
 ### Data flow
@@ -686,7 +685,6 @@ for saving.
 | `ln_course_profiles.json` | SR means for 16 LN Course stages + OLS regression model for feature correction |
 | `family_profiles.json` | Per-family classifier parameters (signal weights, correction bounds) |
 | `role_scales.json` | Role aggregation weights for the MinaCalc path |
-| `gates.json` | Domain validation thresholds, LN confidence bands, correction caps, sublevel labels |
 
 ---
 
