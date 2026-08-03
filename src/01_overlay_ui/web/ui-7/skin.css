@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,700;0,800;0,900;1,900&family=Space+Mono:ital,wght@0,400;0,700;1,700&display=swap');
+
+:root {
+  --star-bg: #f94d79;     /* SR background color */
+  --star-text: #000000;   /* SR text color */
+  --star-accent: #f94d79; /* Dynamic neon accent */
+  --bg-base: #07080d;
+  --text-muted: rgba(255, 255, 255, 0.45);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: #000;
+  background-image: radial-gradient(circle at 50% 50%, #12141d 0%, #020203 100%);
+  font-family: 'Montserrat', sans-serif;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 0; margin: 0; overflow: hidden; color: white;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes starPulse {
+  0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 4px var(--star-text)); }
+  50% { transform: scale(1.18) rotate(12deg); filter: drop-shadow(0 0 12px var(--star-text)); }
+}
+
+@keyframes cyberGlitch {
+  0% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  20% { clip-path: inset(10% 0 80% 0); transform: translate(-3px, 3px); }
+  40% { clip-path: inset(80% 0 5% 0); transform: translate(3px, -3px); }
+  60% { clip-path: inset(30% 0 40% 0); transform: translate(-3px, -3px); }
+  80% { clip-path: inset(50% 0 30% 0); transform: translate(3px, 3px); }
+  100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+}
+
+.glitch-active { animation: cyberGlitch 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+/* Laser scanner line for calculation state */
+@keyframes scanMove {
+  0% { top: 0%; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* =========================================
+   SUNNY LAZER HUD
+   ========================================= */
+.sunny-lazer-hud {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-base);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 20px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.9);
+  display: flex; flex-direction: column;
+}
+
+/* Top RGB accent line */
+.sunny-lazer-hud::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--star-accent), #ffffff, var(--star-accent));
+  background-size: 200% 100%; animation: gradientShift 3s linear infinite;
+  z-index: 10;
+}
+
+/* Top ambient glow aura */
+.top-glow-aura {
+  position: absolute; top: 0; left: 0; right: 0; height: 110px;
+  background: linear-gradient(180deg, var(--star-accent) 0%, transparent 100%);
+  opacity: 0.34; pointer-events: none; z-index: 1;
+  transition: background 0.5s ease;
+}
+
+/* Laser scanner line */
+.laser-scanner {
+  position: absolute; left: 0; right: 0; height: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 15px #ffffff, 0 0 25px var(--star-accent);
+  z-index: 9; opacity: 0; pointer-events: none;
+}
+.computing-mode .laser-scanner {
+  animation: scanMove 1.5s ease-in-out infinite;
+}
+
+canvas#bg-canvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+}
+
+/* Sunny skin is SR-only — never show mode announcement screens */
+.sunny-lazer-hud .mode-announce {
+  display: none !important;
+}
+
+.hud-inner {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 18px 24px; height: 100%; justify-content: space-between;
+}
+
+/* HEADER */
+.map-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+}
+
+.map-info-block { display: flex; flex-direction: column; gap: 2px; }
+
+.map-label {
+  font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700;
+  color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase;
+}
+
+.map-title {
+  font-size: 16px; font-weight: 800; color: #ffffff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 580px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.sunny-lazer-hud .map-title-wrap { max-width: 580px; }
+.sunny-lazer-hud .map-title-track.is-marquee .map-title {
+  max-width: none; overflow: visible;
+}
+.map-title .diff-tag {
+  color: var(--star-accent); font-weight: 900; transition: color 0.5s ease;
+}
+
+.mode-badge {
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 10px; border-radius: 6px;
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  color: var(--star-accent); transition: color 0.5s ease, border-color 0.5s ease;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* BODY: SUNNY SR BADGE + BARS */
+.body-grid {
+  display: grid; grid-template-columns: 200px 1fr; gap: 24px;
+  align-items: center;
+}
+
+/* SR Card */
+.sr-card {
+  background: var(--star-bg);
+  color: var(--star-text);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6), 0 0 25px var(--star-accent);
+  transition: background 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+  min-height: 105px; position: relative; overflow: hidden;
+}
+
+.sr-value {
+  font-family: 'Montserrat', sans-serif; font-size: 40px; font-weight: 900;
+  line-height: 1; display: flex; align-items: center; gap: 6px;
+  letter-spacing: -1px; z-index: 2;
+}
+
+.sr-value .star-icon {
+  font-size: 26px; display: inline-block;
+  animation: starPulse 3s ease-in-out infinite;
+}
+
+.sr-label {
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 2px; margin-top: 6px; opacity: 0.95; text-transform: uppercase; z-index: 2;
+}
+
+/* Metric Bars */
+.bars-container {
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.bar-row {
+  display: grid; grid-template-columns: 44px 44px 1fr;
+  align-items: center; gap: 10px;
+}
+
+.bar-name {
+  font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 800;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;
+}
+
+.bar-num {
+  font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
+  color: #ffffff; text-align: right;
+}
+
+.bar-track {
+  height: 9px; background: rgba(255, 255, 255, 0.06);
+  border-radius: 5px; overflow: hidden; position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(255,255,255,0.2), var(--star-accent));
+  border-radius: 5px; position: relative;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.5s ease;
+  box-shadow: 0 0 10px var(--star-accent);
+}
+
+.bar-fill::after {
+  content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px;
+  background: #ffffff; border-radius: 2px;
+  box-shadow: 0 0 8px #ffffff, 0 0 12px var(--star-accent);
+}
+
+/* FOOTER */
+.footer-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  font-size: 11px;
+}
+
+.foot-left { display: flex; align-items: center; gap: 14px; }
+.foot-item { display: flex; align-items: center; gap: 6px; }
+
+.foot-label {
+  font-size: 9px; font-weight: 800; color: var(--text-muted);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+.foot-val { font-family: 'Space Mono', monospace; font-weight: 700; color: #ffffff; }
+
+.foot-tag {
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.08);
+  padding: 3px 10px; border-radius: 5px; color: var(--star-accent);
+  font-family: 'Space Mono', monospace; font-weight: 700; transition: color 0.5s ease;
+}
+
+.divider-dot { color: rgba(255,255,255,0.2); font-size: 10px; }

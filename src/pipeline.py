@@ -52,6 +52,24 @@ def _error_payload(error, *, warnings=None):
     }
 
 
+def _inject_sunny_components(debug, sr_result):
+    """Attach Sunny SR component strains to the debug dict for the ui-7 skin.
+
+    ``contracts.to_dict()`` exposes ``jbar_max``/``pbar_max``/``xbar_max``/
+    ``abar_mean`` from ``debug["sr_result"]``; rank_engine's own debug dict
+    does not carry them, so they are injected here from the raw SR output.
+    """
+    _debug = dict(debug or {})
+    _raw = sr_result or {}
+    _debug["sr_result"] = {
+        "jbar_max":  float(_raw.get("jbar_max", 0.0) or 0.0),
+        "pbar_max":  float(_raw.get("pbar_max", 0.0) or 0.0),
+        "xbar_max":  float(_raw.get("xbar_max", 0.0) or 0.0),
+        "abar_mean": float(_raw.get("abar_mean", 0.0) or 0.0),
+    }
+    return _debug
+
+
 def _augment_features_with_msd(features, mina_result):
     """Inject MSD ratios into the feature dict for rank_engine consumption."""
     enriched = dict(features or {})
@@ -160,17 +178,6 @@ def _compute_primary_rank_result(osu_path, mod="NM", strict_domain=False, mina_r
     else:
         classification = classify_family(sr_result, features, domain)
     rank = compute_rank(sr_result, features, classification, domain, msd=(mina_result or {}).get("skillsets") or {})
-    import logging as _logging
-    _log_sig = (mod, rate, round(rank.get("dp", 0.0), 2))
-    if getattr(_compute_primary_rank_result, "_last_log_sig", None) != _log_sig:
-        _compute_primary_rank_result._last_log_sig = _log_sig
-        _logging.getLogger("danoverlay").warning(
-            "pipeline DIAG: mod=%s rate=%s sr=%.4f dp=%.2f dan=%s sub=%s fam=%s conf=%.2f corr=%s",
-            mod, rate, sr_result.get("sr", 0.0), rank.get("dp", 0.0),
-            rank.get("dan_short", "?"), rank.get("sublevel", "?"),
-            classification.get("family", "?"), classification.get("confidence", 0.0),
-            rank.get("corrections", []),
-        )
 
     return {
         "dp":             rank["dp"],
@@ -185,7 +192,7 @@ def _compute_primary_rank_result(osu_path, mod="NM", strict_domain=False, mina_r
         "features":       features,
         "primary_sr":     sr_result,
         "classification": classification,
-        "debug":          rank.get("debug", {}),
+        "debug":          _inject_sunny_components(rank.get("debug", {}), sr_result),
         "error":          error,
         "warnings":       parsed.get("warnings", []) + domain.get("warnings", []),
         "duration_s":     float(domain.get("drain_time_s", 0.0) or 0.0),
@@ -527,6 +534,7 @@ def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None):
             "note_count": int(domain.get("note_count", 0)),
             "duration_s": float(domain.get("drain_time_s", 0.0)),
             "warnings": [],
+            "debug": _inject_sunny_components({}, algo_res),
             "error": None
         }
 
@@ -616,19 +624,6 @@ def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None):
     
     if primary_ok:
         merged = _merge_primary_and_mina(primary_core, mina)
-        import logging as _logging
-        _m_sig = (mod, rate, round(merged.get("dp", 0.0), 2))
-        if getattr(analyze_map, "_last_merge_log", None) != _m_sig:
-            analyze_map._last_merge_log = _m_sig
-            _logging.getLogger("danoverlay").warning(
-                "pipeline MERGE-DIAG: mod=%s rate=%s primary_dp=%.2f primary_dan=%s -> merged_dp=%.2f merged_dan=%s sub=%s fam=%s corr=%s msd_override=%s",
-                mod, rate,
-                primary_core.get("dp", 0.0), primary_core.get("dan_short", "?"),
-                merged.get("dp", 0.0), merged.get("dan_short", "?"),
-                merged.get("sublevel", "?"), merged.get("family", "?"),
-                merged.get("corrections", []),
-                (merged.get("debug") or {}).get("msd_family_override"),
-            )
         _primary_sr = float(primary_core.get("sr", 0.0) or 0.0) or None
         _family = str(primary_core.get("family", "") or "")
         merged["celestial"]  = _safe_celestial(mina, primary_sr=_primary_sr, family_hint=_family)

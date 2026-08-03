@@ -203,6 +203,11 @@ class AnalysisResult:
             "bpm_common": self.bpm_common,
             "osu_sr": round(self.osu_sr, 2),
             "od": round(self.od, 1),
+            "debug": self.debug,
+            "jbar_max": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("jbar_max", 0.0) or 0.0), 2),
+            "pbar_max": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("pbar_max", 0.0) or 0.0), 2),
+            "xbar_max": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("xbar_max", 0.0) or 0.0), 2),
+            "abar_mean": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("abar_mean", 0.0) or 0.0), 2),
         }
 
     @staticmethod

@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DanOverlay - Hero-Dan Lazer</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="skin.css" />
+</head>
+
+<body>
+
+  <!-- Off-screen elements required for overlay.js compatibility -->
+  <div class="js-offscreen" aria-hidden="true" style="position:absolute;left:-9999px">
+    <div id="danLine"></div>
+    <div id="drainBar"></div>
+    <div id="danDpRow"></div>
+    <div id="mapTicker">
+      <div class="marquee-track"><span></span><span></span></div>
+    </div>
+    <div id="statsTicker">
+      <div class="marquee-track"><span></span><span></span></div>
+    </div>
+    <canvas id="vizCanvas"></canvas>
+    <span id="badgeLeft"></span>
+    <span id="badgeCenter"></span>
+    <span id="badgeRight"></span>
+    <p id="danDetails"></p>
+    <p id="danBands"></p>
+    <div id="danDensity"></div>
+    <div id="progressTrack">
+      <div id="progressBar"></div>
+    </div>
+    <span id="progressTime"></span>
+    <span id="chartBtn"></span>
+    <span id="mapArtist"></span>
+    <div id="mapTitleWrap">
+      <div id="mapTitleTrack">
+        <span id="mapTitle"></span>
+        <span id="mapTitleGhost" aria-hidden="true"></span>
+      </div>
+    </div>
+    <span class="chart-family" id="chartFamily" style="display:none;"></span>
+    <span class="scoring-mode-badge" id="scoringModeBadge" data-mode="reform" style="display:none;"></span>
+    <span class="mod-badge" id="modBadge" style="display:none;"></span>
+    <span class="dp-tooltip" id="dpTooltip" style="display:none;"></span>
+    <img class="c2-greek-bg" id="danGreekBg" src="" alt="" aria-hidden="true" style="display:none;">
+    <img id="danImage" class="signicial-icon" style="display:none;" src="" alt="" />
+    <span id="mapOd" style="display:none;"></span>
+    <div id="intensityBar" style="display:none;">
+      <div id="intensityFill"></div>
+      <div id="intensityThumb"></div>
+    </div>
+    <span id="danName" style="display:none;">—</span>
+    <span id="danSub" style="display:none;">—</span>
+    <span id="danDpValue" style="display:none;">--</span>
+    <div id="danBg" style="display:none;"></div>
+  </div>
+
+  <!-- HERO-DAN LAZER OVERLAY -->
+  <main class="dan-hud expanded" id="overlay">
+    <div class="pillar-left"></div>
+    <div class="pillar-right"></div>
+
+    <div class="side-glow-left"></div>
+    <div class="side-glow-right"></div>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Standard loading / tutorial / hint / connect overlays -->
+    <div class="loading-wrap" id="loadingWrap" style="display:none;">
+      <span class="loading-text" id="loadingText">Waiting for tosu</span>
+      <span class="loading-bar" aria-hidden="true"></span>
+    </div>
+
+    <!-- Tutorial / hint screens -->
+    <div class="hint-screen hidden" id="tutorialPromptScreen">
+      <div class="hint-inner">
+        <div class="hint-title">DANOVERLAY — QUICK SETUP</div>
+        <p class="tut-prompt-question">Would you like to see a quick tutorial<br>on resize modes and scoring modes?</p>
+        <div class="tut-prompt-btns">
+          <button class="hint-btn tut-btn-yes" id="tutYesBtn" type="button">Yes</button>
+          <button class="hint-btn tut-btn-no" id="tutNoBtn" type="button">Skip</button>
+          <button class="hint-btn tut-btn-never" id="tutNeverBtn" type="button">Don't show again</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-screen hidden" id="whatsNewScreen">
+      <div class="hint-inner">
+        <div class="hint-title">WHAT'S NEW — v2.3</div>
+        <div class="whats-new-list">
+          <div class="whats-new-item">
+            <span class="whats-new-bullet">✦</span>
+            <span><strong>Hero-Dan Lazer Skin</strong> — Giant Dan rank title with DP sublevel pills and expandable map
+              bar (press L).</span>
+          </div>
+        </div>
+        <button class="hint-btn hidden" id="whatsNewBtn" type="button">Got it</button>
+      </div>
+    </div>
+
+    <div class="hint-screen hidden" id="hintScreen">
+      <div class="hint-inner">
+        <div class="hint-title">RESIZE MODE</div>
+        <div class="hint-r-indicator" id="hintRIndicator">
+          <kbd class="hint-key hint-key-lg">R</kbd>
+          <span class="hint-r-label" id="hintRLabel">press to try</span>
+        </div>
+        <div class="hint-modes">
+          <span class="hint-mode-item hint-mode-active" id="hintModeFree">
+            <span class="hint-mode-icon hint-free">◱</span> Free — drag each edge independently
+          </span>
+          <span class="hint-mode-item" id="hintModeLocked">
+            <span class="hint-mode-icon hint-locked">◈</span> Locked — scales everything up proportionally
+          </span>
+        </div>
+        <button class="hint-btn hidden" id="hintBtn" type="button">Next</button>
+        <div class="hint-current">Current: <strong id="hintCurrentMode">Free</strong></div>
+      </div>
+    </div>
+
+    <div class="hint-screen hidden" id="hintScreen2">
+      <div class="hint-inner">
+        <div class="hint-title">SCORING MODES</div>
+        <div class="hint-modes hint-modes-scoring">
+          <span class="hint-mode-item" id="smItem1"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
+              class="hint-key hint-key-sm">1</kbd><span class="hint-mode-icon"
+              style="color:#c5d5f4">◇</span><span>Reform <span class="hint-mode-tag">default</span></span></span>
+          <span class="hint-mode-item" id="smItem2"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
+              class="hint-key hint-key-sm">2</kbd><span class="hint-mode-icon"
+              style="color:#b48cff">✦</span><span>Celestial</span></span>
+          <span class="hint-mode-item" id="smItem3"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
+              class="hint-key hint-key-sm">3</kbd><span class="hint-mode-icon"
+              style="color:#ff9e6b">◆</span><span>Signicial</span></span>
+          <span class="hint-mode-item" id="smItem4"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
+              class="hint-key hint-key-sm">4</kbd><span class="hint-mode-icon"
+              style="color:#5ddfb0">♫</span><span>Shoegazer</span></span>
+        </div>
+        <button class="hint-btn hidden" id="hintBtn2" type="button">Next</button>
+      </div>
+    </div>
+
+    <div class="hint-screen hidden" id="hintScreen3">
+      <div class="hint-inner">
+        <div class="hint-title">LAYOUT MODES</div>
+        <button class="hint-btn hidden" id="hintBtn3" type="button">Next</button>
+      </div>
+    </div>
+
+    <div class="hint-screen hidden" id="hintScreen4">
+      <div class="hint-inner">
+        <div class="hint-title">QUICK REFERENCE</div>
+        <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">L</kbd><span>Expand / Collapse
+              map details</span></span>
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
+              class="hint-key hint-key-sm">,</kbd><span>Open settings panel</span></span>
+        </div>
+        <button class="hint-btn hidden" id="hintBtn4" type="button">Let's go!</button>
+      </div>
+    </div>
+
+    <div class="hint-screen hidden" id="hintScreenSettings">
+      <div class="hint-inner hint-inner-sm">
+        <div class="hint-title" style="font-size:13px;letter-spacing:.18em;opacity:.55;margin-bottom:10px">TIP</div>
+        <div class="hint-modes hint-modes-scoring" style="gap:10px;margin-top:0">
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
+              class="hint-key hint-key-sm">,</kbd><span>Open settings panel anywhere</span></span>
+          <span class="hint-mode-item hint-mode-active" style="margin-top:2px"><kbd
+              class="hint-key hint-key-sm">Right-click</kbd><span>Also opens settings</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Splash & Connect Screens -->
+    <div class="splash-screen hidden" id="splashScreen">
+      <div class="splash-inner">
+        <span class="splash-title">DAN OVERLAY</span>
+        <span class="splash-sub">by 8doul &nbsp;·&nbsp; discord: agent_ale</span>
+      </div>
+    </div>
+
+    <div class="connect-screen hidden" id="connectScreen">
+      <div class="connect-inner">
+        <div class="connect-row">
+          <div class="connect-icon" id="connectIcon"></div>
+          <div class="connect-text">
+            <span class="connect-label" id="connectLabel">WAITING FOR TOSU</span>
+            <span class="connect-sub" id="connectSub">Starting up...</span>
+          </div>
+        </div>
+        <a class="connect-download hidden" id="connectDownload" href="https://github.com/tosuapp/tosu" target="_blank"
+          rel="noopener noreferrer">
+          <span class="connect-download-icon">⬇</span> Download tosu
+        </a>
+        <div class="connect-osu hidden" id="connectOsu">
+          <span class="connect-osu-icon" id="connectOsuIcon"></span>
+          <span class="connect-osu-text" id="connectOsuText">osu!</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-transition-screen" id="mapTransitionScreen" aria-hidden="true"></div>
+    <div class="paused-overlay" id="pausedOverlay"><span class="paused-overlay-text">PAUSED</span></div>
+    <div class="map-progress-wrap" id="progressWrap">
+      <div class="map-progress-result" id="progressResult"></div>
+    </div>
+    <div class="mode-announce" id="modeAnnounce">
+      <span class="mode-announce-label">Mode</span>
+      <span class="mode-announce-name" id="modeAnnounceName">Reform</span>
+      <div class="mode-announce-divider"></div>
+    </div>
+
+    <!-- MAIN HUD CONTENT -->
+    <div class="hud-content" id="ui-content">
+
+      <!-- COMPACT ROW -->
+      <div class="compact-row" id="btn-toggle">
+
+        <!-- HERO DAN BLOCK -->
+        <div class="hero-dan-block">
+          <div class="dan-category" id="ui-category">REFORM 4K</div>
+          <div class="dan-name" id="ui-dan-name">WAITING...</div>
+
+          <div class="tier-sub-group">
+            <div class="tier-pills" id="ui-pills"></div>
+            <div class="tier-label" id="ui-tier">--</div>
+          </div>
+        </div>
+
+        <!-- DP BLOCK -->
+        <div class="dp-block">
+          <div class="dp-label">DP</div>
+          <div class="dp-int" id="ui-dp-int">--</div>
+          <div class="dp-dec" id="ui-dp-dec">.--</div>
+        </div>
+      </div>
+
+      <!-- EXPANDED SECTION -->
+      <div class="expanded-section">
+        <div class="expanded-inner">
+          <div class="map-divider"></div>
+          <div class="map-header">
+            <div class="map-title" id="skinMapTitle">Waiting for beatmap...</div>
+          </div>
+
+          <div class="map-stats-row">
+            <div class="stat-pill"><span class="lbl">MSD</span><span class="val" id="danMetrics">--.-</span></div>
+            <div class="stat-pill"><span class="lbl">STAR RATE</span><span class="val" id="ui-sr">--.-★</span></div>
+            <div class="stat-pill"><span class="lbl">BPM</span><span class="val" id="ui-bpm">--</span></div>
+            <div class="stat-pill"><span class="lbl">LENGTH</span><span class="val" id="ui-len">--:--</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Settings / Config panel -->
+  <div class="cfg-overlay" id="cfgOverlay" aria-hidden="true">
+    <div class="cfg-panel" role="dialog" aria-labelledby="cfgTitleLabel">
+      <header class="cfg-header">
+        <span class="cfg-title" id="cfgTitleLabel">Overlay Settings</span>
+        <button class="cfg-close" id="cfgClose" aria-label="Close settings">✕</button>
+      </header>
+
+      <div class="cfg-body">
+
+        <section>
+          <p class="cfg-section-title">Visual</p>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgBlurSlider">Blur Strength</label>
+            <div class="cfg-slider-group">
+              <input type="range" class="cfg-slider" id="cfgBlurSlider" min="0" max="100" step="0.01">
+              <input type="number" class="cfg-num" id="cfgBlurNum" min="0" max="100" step="0.01">
+            </div>
+          </div>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgBrightSlider">Background Brightness</label>
+            <div class="cfg-slider-group">
+              <input type="range" class="cfg-slider" id="cfgBrightSlider" min="0" max="100" step="0.01">
+              <input type="number" class="cfg-num" id="cfgBrightNum" min="0" max="100" step="0.01">
+            </div>
+          </div>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgDanScaleSlider">Dan Display Scale</label>
+            <div class="cfg-slider-group">
+              <input type="range" class="cfg-slider" id="cfgDanScaleSlider" min="0" max="100" step="1">
+              <input type="number" class="cfg-num" id="cfgDanScaleNum" min="0" max="100" step="1">
+            </div>
+          </div>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgFramelessChk">Frameless Window</label>
+            <label class="cfg-toggle">
+              <input type="checkbox" id="cfgFramelessChk">
+              <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+            </label>
+          </div>
+        </section>
+
+        <section>
+          <p class="cfg-section-title">Window Size</p>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgWinWidth">Width (px)</label>
+            <input type="number" class="cfg-num cfg-win-size" id="cfgWinWidth" min="300" max="8000" step="1"
+              placeholder="Width">
+          </div>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgWinHeight">Height (px)</label>
+            <input type="number" class="cfg-num cfg-win-size" id="cfgWinHeight" min="80" max="8000" step="1"
+              placeholder="Height">
+          </div>
+          <div class="cfg-row">
+            <label class="cfg-label"></label>
+            <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (594×234)</button>
+          </div>
+        </section>
+
+        <section>
+          <p class="cfg-section-title">Skin</p>
+          <div class="cfg-row">
+            <label class="cfg-label" for="cfgSkinSelect">Design</label>
+            <select class="cfg-select" id="cfgSkinSelect">
+              <option value="1">Modern</option>
+              <option value="2">Classic</option>
+              <option value="3">Graph</option>
+              <option value="4">Vertical Monolith</option>
+              <option value="5">Broadcast Bar</option>
+              <option value="6">Dark Vignette</option>
+              <option value="7">Sunny Rebirth</option>
+              <option value="8" selected>Hero-Dan Lazer</option>
+            </select>
+          </div>
+        </section>
+
+        <section>
+          <p class="cfg-section-title">Keyboard Shortcuts</p>
+          <div id="cfgKeybinds"></div>
+        </section>
+
+      </div>
+
+      <footer class="cfg-footer">
+        <button class="cfg-btn cfg-cancel" id="cfgCancel" type="button">Cancel</button>
+        <button class="cfg-btn cfg-save" id="cfgSave" type="button">Save</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="../overlay.js"></script>
+
+  <!-- Canvas animation script for background triangles -->
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const overlay = document.getElementById('overlay');
+      const canvas = document.getElementById('bg-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const resizeCanvas = () => {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      };
+      new ResizeObserver(resizeCanvas).observe(canvas.parentElement);
+      resizeCanvas();
+
+      function colorToRgba(colorStr, alpha) {
+        if (colorStr.startsWith('rgb')) {
+          return colorStr.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+        }
+        return `rgba(255, 255, 255, ${alpha})`;
+      }
+
+      const numTriangles = 65;
+      const particles = [];
+      for (let i = 0; i < numTriangles; i++) {
+        const depth = Math.random();
+        particles.push({
+          x: Math.random() * 800,
+          y: Math.random() * 300,
+          size: depth * 42 + 10,
+          speed: depth * 0.5 + 0.08,
+          currentSpeedMult: 1,
+          phase: Math.random() * Math.PI * 2,
+          depth: depth,
+          colorIndex: Math.floor(Math.random() * 2)
+        });
+      }
+
+      function render(time) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const isComputing = overlay.classList.contains('computing-mode');
+        const targetSpeedMult = isComputing ? 20 : 1;
+        const c1 = getComputedStyle(root).getPropertyValue('--c1').trim() || '#f94d79';
+        const c2 = getComputedStyle(root).getPropertyValue('--c2').trim() || '#3080f0';
+
+        particles.forEach((p) => {
+          p.currentSpeedMult += (targetSpeedMult - p.currentSpeedMult) * 0.05;
+          p.y -= (p.speed * p.currentSpeedMult);
+
+          if (p.y < -p.size) {
+            p.y = canvas.height + p.size;
+            p.x = Math.random() * canvas.width;
+          }
+
+          const baseColorStr = isComputing
+            ? "rgb(140, 140, 140)"
+            : (p.colorIndex % 2 === 0 ? c1 : c2);
+
+          const fillAlpha = 0.05 + p.depth * 0.09;
+          const fillColor = colorToRgba(baseColorStr, fillAlpha);
+          const strokeAlpha = (0.24 + Math.sin(time * 0.002 + p.phase) * 0.14) * (p.depth * 0.8 + 0.2);
+          const strokeColor = colorToRgba(baseColorStr, Math.max(0.08, strokeAlpha));
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+
+          const h = (p.size * Math.sqrt(3)) / 2;
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2);
+          ctx.lineTo(-p.size / 2, h / 2);
+          ctx.lineTo(p.size / 2, h / 2);
+          ctx.closePath();
+
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+
+          ctx.lineWidth = p.depth > 0.6 ? 1.5 : 1;
+          ctx.strokeStyle = strokeColor;
+          ctx.stroke();
+
+          ctx.restore();
+        });
+
+        requestAnimationFrame(render);
+      }
+
+      requestAnimationFrame(render);
+    })();
+  </script>
+
+  <div id="exportChartContainer" style="display:none;position:absolute;left:-9999px;top:-9999px;">
+    <canvas id="exportCanvas" width="1800" height="980"></canvas>
+  </div>
+
+</body>
+
+</html>

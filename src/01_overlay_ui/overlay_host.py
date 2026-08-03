@@ -343,6 +343,10 @@ def _build_overlay_url() -> str:
         html_file = _WEB_DIR / "ui-5" / "index.html"
     elif skin == "6":
         html_file = _WEB_DIR / "ui-6" / "index.html"
+    elif skin == "7":
+        html_file = _WEB_DIR / "ui-7" / "index.html"
+    elif skin == "8":
+        html_file = _WEB_DIR / "ui-8" / "index.html"
     else:
         html_file = _WEB_DIR / "index.html"
 
@@ -416,7 +420,7 @@ def _run_overlay_session(cfg, overlay_url):
                 # Intelligent migration: if saved dimensions are legacy/other skin defaults,
                 # override them with the active skin's defaults to prevent ugly layout stretching.
                 _is_legacy_default = (_saved_w == 700 and _saved_h == 320) or (_saved_w == 860 and _saved_h == 320)
-                if _is_legacy_default and _skin in ("4", "5", "6"):
+                if _is_legacy_default and _skin in ("4", "5", "6", "7"):
                     if _skin == "4":
                         _start_w = 284
                         _start_h = 335
@@ -426,6 +430,9 @@ def _run_overlay_session(cfg, overlay_url):
                     elif _skin == "6":
                         _start_w = 645
                         _start_h = 211
+                    elif _skin == "7":
+                        _start_w = 800
+                        _start_h = 340
                 else:
                     _start_w = _saved_w
                     _start_h = _saved_h
@@ -440,6 +447,9 @@ def _run_overlay_session(cfg, overlay_url):
                 elif _skin == "6":
                     _start_w = 645
                     _start_h = 211
+                elif _skin == "7":
+                    _start_w = 800
+                    _start_h = 340
                 elif _skin == "3":
                     _layout = _saved.get("layout", "complete")
                     _start_w = 700
@@ -624,6 +634,10 @@ def _run_overlay_session(cfg, overlay_url):
                     html_file = _WEB_DIR / "ui-5" / "index.html"
                 elif skin_id == "6":
                     html_file = _WEB_DIR / "ui-6" / "index.html"
+                elif skin_id == "7":
+                    html_file = _WEB_DIR / "ui-7" / "index.html"
+                elif skin_id == "8":
+                    html_file = _WEB_DIR / "ui-8" / "index.html"
                 else:
                     html_file = _WEB_DIR / "index.html"
                 new_url = "file:///" + str(html_file).replace("\\", "/")

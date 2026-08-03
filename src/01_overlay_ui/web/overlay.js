@@ -176,7 +176,7 @@ const LN_COURSE_PALETTES = {
 };
 
 const ui = {
-  panel: document.getElementById("danPanel"),
+  panel: document.getElementById("danPanel") || document.getElementById("overlay"),
   line: document.getElementById("danLine"),
   bg: document.getElementById("danBg"),
   badgeLeft: document.getElementById("badgeLeft"),
@@ -452,12 +452,14 @@ const _KEYBIND_LABELS = {
 const _DEF_BLUR = 40;
 const _DEF_BRIGHT = 82.35;
 
-const _CURRENT_SKIN = window.location.href.includes("/ui-6/") ? "6"
-  : window.location.href.includes("/ui-5/") ? "5"
-    : window.location.href.includes("/ui-4/") ? "4"
-      : window.location.href.includes("/ui-3/") ? "3"
-        : window.location.href.includes("/ui-2/") ? "2"
-          : "1";
+const _CURRENT_SKIN = window.location.href.includes("/ui-8/") ? "8"
+  : window.location.href.includes("/ui-7/") ? "7"
+    : window.location.href.includes("/ui-6/") ? "6"
+      : window.location.href.includes("/ui-5/") ? "5"
+        : window.location.href.includes("/ui-4/") ? "4"
+          : window.location.href.includes("/ui-3/") ? "3"
+            : window.location.href.includes("/ui-2/") ? "2"
+              : "1";
 
 let _settings = {
   blur: _DEF_BLUR,
@@ -607,8 +609,8 @@ const _LAYOUT_HEIGHTS = { complete: 320, simplified: 220, compact: 76 };
 let _layoutMode = "complete";
 
 function _applyLayoutMode(skipResize) {
-  // Classic skin and new skins (4-6) have fixed layouts; JS layout modes are not applicable.
-  if (_CURRENT_SKIN === "2" || _CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6") return;
+  // Classic skin and new skins (4-8) have fixed layouts; JS layout modes are not applicable.
+  if (_CURRENT_SKIN === "2" || _CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "7" || _CURRENT_SKIN === "8") return;
   const panel = document.getElementById("danPanel");
   if (!panel) return;
   panel.classList.remove("layout-simplified", "layout-compact");
@@ -630,11 +632,16 @@ function _cycleLayout() {
     return;
   }
 
-  if (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6") {
-    const panel = document.getElementById("danPanel");
+  if (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "8") {
+    const panel = document.getElementById("overlay") || document.getElementById("danPanel");
     if (!panel) return;
-    panel.classList.toggle("is-expanded");
-    const isExp = panel.classList.contains("is-expanded");
+    // Single source of truth: both classes stay in sync. The ui-8 HTML starts
+    // with only "expanded", so independent toggles would desync and the OR
+    // check below would report expanded forever (never collapsing).
+    const willExpand = !(panel.classList.contains("is-expanded") || panel.classList.contains("expanded"));
+    panel.classList.toggle("expanded", willExpand);
+    panel.classList.toggle("is-expanded", willExpand);
+    const isExp = willExpand;
     if (typeof showToast === "function") showToast(isExp ? "Map info: Expanded" : "Map info: Hidden", 1600);
     
     // Ignore the programmatic resize to prevent double-stretching the UI
@@ -653,6 +660,9 @@ function _cycleLayout() {
     } else if (_CURRENT_SKIN === "6" && window.pywebview?.api?.set_window_size) {
       window.pywebview.api.set_window_size(currentOuterW, isExp ? 297 : 211);
       document.documentElement.style.zoom = isExp ? 0.73 : 0.73;
+    } else if (_CURRENT_SKIN === "8" && window.pywebview?.api?.set_window_size) {
+      window.pywebview.api.set_window_size(594, isExp ? 234 : 138);
+      document.documentElement.style.zoom = 0.94;
     }
     return;
   }
@@ -1226,6 +1236,30 @@ function _renderAnalysisPayload(payload) {
     ui.modBadge.classList.remove("recalculating");
   }
 
+  // ── Sunny Rebirth skin (ui-7) ──────────────────────────────────
+  // Runs before the LN/7K/mode-specific early returns so the SR badge,
+  // strain bars, map title and MANIA 4K/7K badge always update for
+  // every map type (4K, 7K, LN) and every scoring mode.
+  _updateSunnyRebirthSkin(payload);
+  _updateHeroDanLazerSkin(payload);
+
+  // ── Sunny Rebirth skin is SR-only ──────────────────────────────
+  // No mode result screens (LN Course, Celestial, Signicial,
+  // Shoegazer, 7K tier card) — the skin shows the map's Sunny SR and
+  // nothing else.  Keep only the pieces the skin needs: metrics value,
+  // chart readiness and map-transition cleanup.
+  if (_CURRENT_SKIN === "7") {
+    finishMapTransition();
+    const metricsEl = document.getElementById("danMetrics");
+    if (metricsEl) {
+      const msd = Number(payload.overall_msd || 0);
+      metricsEl.textContent = msd > 0 ? msd.toFixed(2) : "--.-";
+    }
+    setChartButtonReady(true);
+    if (ui.density) { ui.density.innerHTML = ""; ui.density.classList.remove("has-data"); }
+    return;
+  }
+
   // ── LN Course auto-override ─────────────────────────────────────
   // When the pipeline detects an LN map, ln_course takes priority over
   // whatever rice mode the user has selected.
@@ -1429,6 +1463,297 @@ function _renderAnalysisPayload(payload) {
   });
   setChartButtonReady(true);
   if (ui.density) { ui.density.innerHTML = ""; ui.density.classList.remove("has-data"); }
+}
+
+let _sunnyAnimReqs = {};
+let _sunnyDotsInterval = null;
+
+function _startSunnyDotsAnimation() {
+  _stopSunnyDotsAnimation();
+  let count = 1;
+  const updateDots = () => {
+    const dots = ".".repeat(count);
+    const srEl = document.getElementById("ui-sr-num");
+    if (srEl) srEl.textContent = dots;
+    ["jbar", "pbar", "xbar", "abar"].forEach(bar => {
+      const valEl = document.getElementById("val-" + bar);
+      if (valEl) valEl.textContent = dots;
+      const fillEl = document.getElementById("fill-" + bar);
+      if (fillEl) fillEl.style.width = "0%";
+    });
+    const skillsetEl = document.getElementById("ui-skillset");
+    if (skillsetEl) skillsetEl.textContent = dots;
+    const msdEl = document.getElementById("danMetrics");
+    if (msdEl) msdEl.textContent = dots;
+    const statusEl = document.getElementById("ui-status");
+    if (statusEl) {
+      statusEl.textContent = "SCANNING" + dots;
+      statusEl.style.color = "#aaaaaa";
+    }
+    count = (count % 3) + 1;
+  };
+  updateDots();
+  _sunnyDotsInterval = setInterval(updateDots, 400);
+}
+
+function _stopSunnyDotsAnimation() {
+  if (_sunnyDotsInterval) {
+    clearInterval(_sunnyDotsInterval);
+    _sunnyDotsInterval = null;
+  }
+}
+
+function _animateSunnyMetric(id, start, end, duration = 800, decimals = 1, isWidth = false) {
+  if (_sunnyAnimReqs[id]) window.cancelAnimationFrame(_sunnyAnimReqs[id]);
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = start + (end - start) * ease;
+    const el = document.getElementById(id);
+    if (el) {
+      if (isWidth) {
+        el.style.width = `${Math.min(100, Math.max(0, current))}%`;
+      } else {
+        el.textContent = current.toFixed(decimals);
+      }
+    }
+    if (progress < 1) {
+      _sunnyAnimReqs[id] = window.requestAnimationFrame(step);
+    }
+  };
+  _sunnyAnimReqs[id] = window.requestAnimationFrame(step);
+}
+
+function _updateSunnyRebirthSkin(payload) {
+  _stopSunnyDotsAnimation();
+  const srNumEl = document.getElementById("ui-sr-num");
+  const overlay = document.getElementById("overlay");
+  if (overlay) overlay.classList.remove("computing-mode");
+  if (!srNumEl || !payload) return;
+
+  const srVal = Number(payload.sunny_sr || payload.sr || payload.overall_msd || 0);
+  const prevSR = parseFloat(srNumEl.textContent) || 0;
+
+  if (typeof window.__applySunnyPalette === "function") {
+    window.__applySunnyPalette(srVal);
+  }
+
+  _animateSunnyMetric("ui-sr-num", prevSR, srVal, 800, 2);
+
+  const debugData = payload.debug?.sr_result || payload.debug || {};
+  const jbar = Number(payload.jbar_max ?? debugData.jbar_max ?? debugData.jbar ?? 0);
+  const pbar = Number(payload.pbar_max ?? debugData.pbar_max ?? debugData.pbar ?? 0);
+  const xbar = Number(payload.xbar_max ?? debugData.xbar_max ?? debugData.xbar ?? 0);
+  const abar = Number(payload.abar_mean ?? debugData.abar_mean ?? debugData.abar ?? 0);
+
+  const curJ = parseFloat(document.getElementById("val-jbar")?.textContent) || 0;
+  const curP = parseFloat(document.getElementById("val-pbar")?.textContent) || 0;
+  const curX = parseFloat(document.getElementById("val-xbar")?.textContent) || 0;
+  const curA = parseFloat(document.getElementById("val-abar")?.textContent) || 0;
+
+  _animateSunnyMetric("val-jbar", curJ, jbar, 800, 1);
+  _animateSunnyMetric("fill-jbar", curJ, jbar, 800, 1, true);
+
+  _animateSunnyMetric("val-pbar", curP, pbar, 800, 1);
+  _animateSunnyMetric("fill-pbar", curP, pbar, 800, 1, true);
+
+  _animateSunnyMetric("val-xbar", curX, xbar, 800, 1);
+  _animateSunnyMetric("fill-xbar", curX, xbar, 800, 1, true);
+
+  _animateSunnyMetric("val-abar", curA, abar, 800, 1);
+  _animateSunnyMetric("fill-abar", curA, abar, 800, 1, true);
+
+  const msdVal = Number(payload.overall_msd || 0);
+  const curMsd = parseFloat(document.getElementById("danMetrics")?.textContent) || 0;
+  _animateSunnyMetric("danMetrics", curMsd, msdVal, 800, 1);
+
+  const skillsetEl = document.getElementById("ui-skillset");
+  if (skillsetEl) {
+    const role = (payload.primary_role || payload.family || "RICE / GENERALIST").toUpperCase();
+    skillsetEl.textContent = role;
+  }
+
+  const statusEl = document.getElementById("ui-status");
+  if (statusEl) {
+    statusEl.textContent = "READY";
+    statusEl.style.color = "var(--star-accent)";
+  }
+
+  const mapTitleEl = document.getElementById("skinMapTitle");
+  const mapGhostEl = document.getElementById("skinMapTitleGhost");
+  if (mapTitleEl && payload) {
+    const title = payload.title || payload.artist || "";
+    const ver = payload.version ? ` [${payload.version}]` : "";
+    if (title) {
+      mapTitleEl.textContent = title + ver;
+      if (mapGhostEl) mapGhostEl.textContent = title + ver;
+      syncMapTitleMarquee();
+    }
+  }
+
+  const keyModeEl = document.getElementById("ui-key-mode");
+  if (keyModeEl && payload) {
+    keyModeEl.textContent = payload.mode === "7k" ? "MANIA 7K" : "MANIA 4K";
+  }
+}
+
+let _skin8DotsInterval = null;
+
+function _startSkin8DotsAnimation() {
+  _stopSkin8DotsAnimation();
+  let count = 1;
+  const updateDots = () => {
+    const dots = ".".repeat(count);
+    const danEl = document.getElementById("ui-dan-name");
+    if (danEl) danEl.textContent = dots;
+    const intEl = document.getElementById("ui-dp-int");
+    if (intEl) intEl.textContent = dots;
+    const decEl = document.getElementById("ui-dp-dec");
+    if (decEl) decEl.textContent = ".";
+    const tierEl = document.getElementById("ui-tier");
+    if (tierEl) tierEl.textContent = "SYS_PROC";
+    const pillsContainer = document.getElementById("ui-pills");
+    if (pillsContainer) {
+      pillsContainer.innerHTML = "";
+      for (let i = 1; i <= 5; i++) {
+        const p = document.createElement("div");
+        p.className = "pill";
+        pillsContainer.appendChild(p);
+      }
+    }
+    const msdEl = document.getElementById("danMetrics");
+    if (msdEl) msdEl.textContent = dots;
+    const srEl = document.getElementById("ui-sr");
+    if (srEl) srEl.textContent = dots;
+    const bpmEl = document.getElementById("ui-bpm");
+    if (bpmEl) bpmEl.textContent = dots;
+    const lenEl = document.getElementById("ui-len");
+    if (lenEl) lenEl.textContent = dots;
+
+    count = (count % 3) + 1;
+  };
+  updateDots();
+  _skin8DotsInterval = setInterval(updateDots, 400);
+}
+
+function _stopSkin8DotsAnimation() {
+  if (_skin8DotsInterval) {
+    clearInterval(_skin8DotsInterval);
+    _skin8DotsInterval = null;
+  }
+}
+
+function _animateHeroDP(startDP, endDP, duration = 800) {
+  if (_sunnyAnimReqs["hero_dp"]) window.cancelAnimationFrame(_sunnyAnimReqs["hero_dp"]);
+  let startTimestamp = null;
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = startDP + (endDP - startDP) * ease;
+    const splitStr = current.toFixed(2).split(".");
+    const intEl = document.getElementById("ui-dp-int");
+    const decEl = document.getElementById("ui-dp-dec");
+    if (intEl) intEl.textContent = splitStr[0];
+    if (decEl) decEl.textContent = "." + (splitStr[1] || "00");
+    if (progress < 1) {
+      _sunnyAnimReqs["hero_dp"] = window.requestAnimationFrame(step);
+    }
+  };
+  _sunnyAnimReqs["hero_dp"] = window.requestAnimationFrame(step);
+}
+
+function _updateHeroDanLazerSkin(payload) {
+  _stopSkin8DotsAnimation();
+  _stopSunnyDotsAnimation();
+  const overlay = document.getElementById("overlay");
+  if (overlay) overlay.classList.remove("computing-mode");
+  const danNameEl = document.getElementById("ui-dan-name");
+  if (!danNameEl || !payload) return;
+
+  const category = payload.mode === "7k"
+    ? "7K"
+    : (_lnOverrideActive ? "LN COURSE"
+      : (_scoringMode === "celestial" ? "CELESTIAL 4K"
+        : (_scoringMode === "signicial" ? "SIGNICIAL 4K"
+          : (_scoringMode === "shoegazer" ? "SHOEGAZER 4K"
+            : "REFORM 4K"))));
+
+  let danName = String(payload.dan_label || "1st Dan").toUpperCase();
+  if (payload.mode === "7k" && payload.tier_7k) {
+    danName = String(payload.tier_7k).toUpperCase();
+  } else if (_lnOverrideActive && payload.ln_course?.label) {
+    danName = String(payload.ln_course.label).toUpperCase();
+  } else if (_scoringMode === "celestial" && payload.celestial?.label) {
+    danName = String(payload.celestial.label).toUpperCase();
+  } else if (_scoringMode === "signicial" && payload.signicial?.label) {
+    danName = String(payload.signicial.label).toUpperCase();
+  } else if (_scoringMode === "shoegazer" && payload.shoegazer?.label) {
+    danName = String(payload.shoegazer.label).toUpperCase();
+  }
+
+  const dpVal = Number(payload.dp_7k || payload.dp || 0);
+
+  const catEl = document.getElementById("ui-category");
+  if (catEl) catEl.textContent = category;
+
+  danNameEl.textContent = danName;
+
+  const decPart = Math.abs(dpVal % 1);
+  let tierName = "LOW";
+  let pillCount = 1;
+  if (decPart > 0.80) { tierName = "HIGH"; pillCount = 5; }
+  else if (decPart > 0.60) { tierName = "MID-HIGH"; pillCount = 4; }
+  else if (decPart > 0.40) { tierName = "MID"; pillCount = 3; }
+  else if (decPart > 0.20) { tierName = "MID-LOW"; pillCount = 2; }
+
+  const tierEl = document.getElementById("ui-tier");
+  if (tierEl) tierEl.textContent = tierName;
+
+  const pillsContainer = document.getElementById("ui-pills");
+  if (pillsContainer) {
+    pillsContainer.innerHTML = "";
+    for (let i = 1; i <= 5; i++) {
+      const p = document.createElement("div");
+      p.className = `pill ${i <= pillCount ? "active" : ""}`;
+      pillsContainer.appendChild(p);
+    }
+  }
+
+  const curInt = parseInt(document.getElementById("ui-dp-int")?.textContent) || 0;
+  const curDecStr = (document.getElementById("ui-dp-dec")?.textContent || ".00").replace(".", "");
+  const curDec = parseFloat("0." + curDecStr) || 0;
+  const prevDP = curInt + curDec;
+  _animateHeroDP(prevDP, dpVal, 800);
+
+  const palette = paletteForDan(payload.dan_label || danName);
+  const c1 = palette ? palette[0] : "#f94d79";
+  const c2 = palette ? (palette[1] || palette[0]) : "#3080f0";
+  document.documentElement.style.setProperty("--c1", c1);
+  document.documentElement.style.setProperty("--c2", c2);
+
+  const mapTitleEl = document.getElementById("skinMapTitle");
+  if (mapTitleEl && payload) {
+    const title = payload.title || payload.artist || "";
+    const ver = payload.version ? ` [${payload.version}]` : "";
+    if (title) mapTitleEl.textContent = title + ver;
+  }
+
+  const msdVal = Number(payload.overall_msd || 0);
+  const curMsd = parseFloat(document.getElementById("danMetrics")?.textContent) || 0;
+  _animateSunnyMetric("danMetrics", curMsd, msdVal, 800, 1);
+
+  const srVal = Number(payload.osu_sr || payload.sr || 0);
+  const curSr = parseFloat(document.getElementById("ui-sr")?.textContent) || 0;
+  _animateSunnyMetric("ui-sr", curSr, srVal, 800, 2);
+
+  const bpmEl = document.getElementById("ui-bpm");
+  if (bpmEl) bpmEl.textContent = payload.bpm ? Math.round(Number(payload.bpm)) : "--";
+
+  const lenEl = document.getElementById("ui-len");
+  if (lenEl) lenEl.textContent = payload.duration_s ? msToClock(payload.duration_s * 1000) : "--:--";
 }
 
 function applyDanResult(result) {
@@ -1685,6 +2010,24 @@ function applyLoading(message = "Computing") {
     ui.panel.classList.add("is-loading");
   } else {
     ui.panel.classList.remove("is-loading");
+  }
+  const overlayEl = document.getElementById("overlay");
+  if (overlayEl) {
+    overlayEl.classList.add("computing-mode");
+    const root = document.documentElement;
+    root.style.setProperty("--star-bg", "rgb(45, 45, 45)");
+    root.style.setProperty("--star-text", "#ffffff");
+    root.style.setProperty("--star-accent", "rgb(140, 140, 140)");
+    root.style.setProperty("--c1", "#555555");
+    root.style.setProperty("--c2", "#333333");
+    _startSunnyDotsAnimation();
+    _startSkin8DotsAnimation();
+    const uiContent = document.getElementById("ui-content");
+    if (uiContent) {
+      uiContent.classList.remove("glitch-active");
+      void uiContent.offsetWidth;
+      uiContent.classList.add("glitch-active");
+    }
   }
   setChartButtonReady(false);
   setAnimatedText(ui.badgeLeft, "SYNC");
@@ -2054,7 +2397,7 @@ function applyBeatmapData(payload) {
     // Compare against mapKey (not bgUrl) because the tosu endpoint URL is
     // always the same; append a cache-busting timestamp so the browser
     // actually fetches the new image when the map changes.
-    if (ui.bg.dataset.mapKey !== mapKey) {
+    if (ui.bg && ui.bg.dataset && ui.bg.dataset.mapKey !== mapKey) {
       ui.bg.dataset.mapKey = mapKey;
       const cacheBust = `${bgUrl}?t=${Date.now()}`;
       crossfadeBackground(cacheBust);
@@ -2102,7 +2445,7 @@ function applyFromPythonBridge(payload) {
           let w = _settings.windowWidth;
           let h = _settings.windowHeight;
           const isLegacyDefault = (w === 700 && h === 320) || (w === 860 && h === 320);
-          if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6")) {
+          if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "8")) {
             w = null;
             h = null;
           }
@@ -2112,6 +2455,8 @@ function applyFromPythonBridge(payload) {
             document.documentElement.style.zoom = 0.75;
           } else if (_CURRENT_SKIN === "6") {
             document.documentElement.style.zoom = 0.73;
+          } else if (_CURRENT_SKIN === "8") {
+            document.documentElement.style.zoom = 0.94;
           }
           if (w && h && window.pywebview?.api?.set_window_size) {
             window.pywebview.api.set_window_size(w, h);
@@ -2122,6 +2467,8 @@ function applyFromPythonBridge(payload) {
               window.pywebview.api.set_window_size(589, 170);
             } else if (_CURRENT_SKIN === "6") {
               window.pywebview.api.set_window_size(645, 211);
+            } else if (_CURRENT_SKIN === "8") {
+              window.pywebview.api.set_window_size(594, 234);
             } else {
               window.pywebview.api.set_window_size(700, 320);
             }
@@ -3119,8 +3466,8 @@ document.addEventListener("keydown", (e) => {
     _resizeMode = "free";
     _resetZoom();
     _updateHintLabel();
-    const panel = document.getElementById("danPanel");
-    const isExpanded = panel?.classList.contains("is-expanded");
+    const panel = document.getElementById("danPanel") || document.getElementById("overlay");
+    const isExpanded = panel && (panel.classList.contains("is-expanded") || panel.classList.contains("expanded"));
     if (_CURRENT_SKIN === "4") {
       if (window.pywebview?.api?.set_window_size) {
         window.pywebview.api.set_window_size(284, isExpanded ? 466 : 335);
@@ -3142,6 +3489,12 @@ document.addEventListener("keydown", (e) => {
       }
       document.documentElement.style.zoom = 0.73;
       if (typeof showToast === "function") showToast(isExpanded ? "Reset: 645×297 ◱" : "Reset: 645×211 ◱");
+    } else if (_CURRENT_SKIN === "8") {
+      if (window.pywebview?.api?.set_window_size) {
+        window.pywebview.api.set_window_size(594, isExpanded ? 234 : 138);
+      }
+      document.documentElement.style.zoom = 0.94;
+      if (typeof showToast === "function") showToast(isExpanded ? "Reset: 594×234 ◱" : "Reset: 594×138 ◱");
     } else {
       if (window.pywebview?.api?.reset_window_size) {
         window.pywebview.api.reset_window_size();
@@ -3359,11 +3712,12 @@ function _updateResolutionIndicator() {
       const outerW = isFrameless ? innerW : (innerW + 16);
       const outerH = isFrameless ? innerH : (innerH + 39);
       const zoomPct = Math.round(_currentZoomFactor() * 100);
-      const isExpanded = document.getElementById("danPanel")?.classList.contains("is-expanded");
+      const panel = document.getElementById("danPanel") || document.getElementById("overlay");
+      const isExpanded = panel && (panel.classList.contains("is-expanded") || panel.classList.contains("expanded"));
       const layout = isExpanded ? "Expanded" : "Collapsed";
 
       const copyText = `[DanOverlay Dimensions]
-Skin: ${_CURRENT_SKIN} (${_CURRENT_SKIN === "5" ? "Broadcast Bar" : _CURRENT_SKIN === "4" ? "Vertical Monolith" : _CURRENT_SKIN === "3" ? "Graph" : _CURRENT_SKIN === "2" ? "Classic" : "Modern"})
+Skin: ${_CURRENT_SKIN} (${_CURRENT_SKIN === "8" ? "Hero-Dan Lazer" : _CURRENT_SKIN === "7" ? "Sunny Rebirth" : _CURRENT_SKIN === "5" ? "Broadcast Bar" : _CURRENT_SKIN === "4" ? "Vertical Monolith" : _CURRENT_SKIN === "3" ? "Graph" : _CURRENT_SKIN === "2" ? "Classic" : "Modern"})
 Inner (Viewport): ${innerW} × ${innerH}
 Outer (Window): ${outerW} × ${outerH}
 Zoom: ${zoomPct}%
@@ -3999,6 +4353,12 @@ function _initCfgListeners() {
       const isExp = document.getElementById("danPanel")?.classList.contains("is-expanded");
       defaultW = 645;
       defaultH = isExp ? 297 : 211;
+    } else if (_CURRENT_SKIN === "8") {
+      const overlayEl = document.getElementById("overlay");
+      const isExp = overlayEl && (overlayEl.classList.contains("expanded") || overlayEl.classList.contains("is-expanded"));
+      defaultW = 594;
+      defaultH = isExp ? 234 : 138;
+      document.documentElement.style.zoom = 0.94;
     }
     if (winW) winW.value = defaultW;
     if (winH) winH.value = defaultH;
@@ -4247,7 +4607,7 @@ function _updateDensityProgress(currentMs) {
   let w = _settings.windowWidth;
   let h = _settings.windowHeight;
   const isLegacyDefault = (w === 700 && h === 320) || (w === 860 && h === 320);
-  if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6")) {
+  if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "8")) {
     w = null;
     h = null;
   }
@@ -4257,6 +4617,8 @@ function _updateDensityProgress(currentMs) {
     document.documentElement.style.zoom = 0.75;
   } else if (_CURRENT_SKIN === "6") {
     document.documentElement.style.zoom = 0.73;
+  } else if (_CURRENT_SKIN === "8") {
+    document.documentElement.style.zoom = 0.94;
   }
   if (w && h && window.pywebview?.api?.set_window_size) {
     window.pywebview.api.set_window_size(w, h);
@@ -4267,6 +4629,8 @@ function _updateDensityProgress(currentMs) {
       window.pywebview.api.set_window_size(589, 170);
     } else if (_CURRENT_SKIN === "6") {
       window.pywebview.api.set_window_size(645, 211);
+    } else if (_CURRENT_SKIN === "8") {
+      window.pywebview.api.set_window_size(594, 234);
     } else {
       window.pywebview.api.set_window_size(700, 320);
     }

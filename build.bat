@@ -14,7 +14,7 @@ setlocal
 :: ══════════════════════════════════════════════════════════════
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=2.2.0"
+set "APP_VERSION=2.3.0"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
 set "ENTRY=src\01_overlay_ui\main.py"
 
@@ -70,6 +70,14 @@ if not exist "src\01_overlay_ui\web\ui-5\index.html" (
 )
 if not exist "src\01_overlay_ui\web\ui-6\index.html" (
     echo [ERROR] Missing web\ui-6\index.html
+    exit /b 1
+)
+if not exist "src\01_overlay_ui\web\ui-7\index.html" (
+    echo [ERROR] Missing web\ui-7\index.html
+    exit /b 1
+)
+if not exist "src\01_overlay_ui\web\ui-8\index.html" (
+    echo [ERROR] Missing web\ui-8\index.html
     exit /b 1
 )
 if not exist "src\01_overlay_ui\web\graph.ico" (

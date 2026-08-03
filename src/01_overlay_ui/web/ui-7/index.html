@@ -3,13 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DanOverlay - Dark Vignette</title>
+  <title>DanOverlay - Sunny Rebirth</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="skin.css" />
 </head>
 <body>
 
-  <div class="js-offscreen" aria-hidden="true">
+  <!-- Off-screen elements required for overlay.js compatibility -->
+  <div class="js-offscreen" aria-hidden="true" style="position:absolute;left:-9999px">
+    <div id="danLine"></div>
+    <div id="drainBar"></div>
+    <div id="danDpRow"></div>
     <div id="mapTicker"><div class="marquee-track"><span></span><span></span></div></div>
     <div id="statsTicker"><div class="marquee-track"><span></span><span></span></div></div>
     <canvas id="vizCanvas"></canvas>
@@ -27,25 +31,34 @@
       <span id="mapTitle"></span>
       <span id="mapTitleGhost" aria-hidden="true"></span>
     </div></div>
-    <!-- Intensity bar: JS references these — kept off-screen, sub-bars handle display -->
-    <div id="intensityBar" style="display:none;">
-      <div id="intensityFill"></div>
-      <div id="intensityThumb"></div>
-    </div>
+    <span class="chart-family" id="chartFamily" style="display:none;"></span>
+    <span class="scoring-mode-badge" id="scoringModeBadge" data-mode="reform" style="display:none;"></span>
+    <span class="mod-badge" id="modBadge" style="display:none;"></span>
+    <span class="dp-tooltip" id="dpTooltip" style="display:none;"></span>
+    <img class="c2-greek-bg" id="danGreekBg" src="" alt="" aria-hidden="true" style="display:none;">
+    <img id="danImage" class="signicial-icon" style="display:none;" src="" alt="" />
+    <span id="mapOd" style="display:none;"></span>
+    <div id="intensityBar" style="display:none;"><div id="intensityFill"></div><div id="intensityThumb"></div></div>
+    <span id="danName" style="display:none;">—</span>
+    <span id="danSub" style="display:none;">—</span>
+    <span id="danDpValue" style="display:none;">--</span>
+    <div id="danBg" style="display:none;"></div>
   </div>
 
   <main id="overlay">
 
-    <!-- ── Main skin panel ───────────────────────────────────────── -->
-    <section class="dan-panel is-loading" id="danPanel">
+    <section class="sunny-lazer-hud is-loading" id="danPanel">
+      <canvas id="bg-canvas"></canvas>
+      <div class="top-glow-aura" id="top-aura"></div>
+      <div class="laser-scanner" id="laser-scanner"></div>
 
-      <!-- Loading / connecting state overlay -->
-      <div class="loading-wrap" id="loadingWrap">
+      <!-- Loading / connecting overlay -->
+      <div class="loading-wrap" id="loadingWrap" style="display:none;">
         <span class="loading-text" id="loadingText">Waiting for tosu</span>
         <span class="loading-bar" aria-hidden="true"></span>
       </div>
 
-      <!-- ── Tutorial / hint screens (shared infrastructure) ────── -->
+      <!-- Tutorial / hint screens -->
       <div class="hint-screen hidden" id="tutorialPromptScreen">
         <div class="hint-inner">
           <div class="hint-title">DANOVERLAY — QUICK SETUP</div>
@@ -60,11 +73,11 @@
 
       <div class="hint-screen hidden" id="whatsNewScreen">
         <div class="hint-inner">
-          <div class="hint-title">WHAT'S NEW — v1.6</div>
+          <div class="hint-title">WHAT'S NEW — v2.3</div>
           <div class="whats-new-list">
             <div class="whats-new-item">
-              <span class="whats-new-bullet">▦</span>
-              <span><strong>Dark Vignette</strong> — Floating big-type skin with dark anchor.</span>
+              <span class="whats-new-bullet">✦</span>
+              <span><strong>Sunny Rebirth Skin</strong> — Live Sunny SR &amp; strain component bars (Jbar, Pbar, Xbar, Abar).</span>
             </div>
           </div>
           <button class="hint-btn hidden" id="whatsNewBtn" type="button">Got it</button>
@@ -86,7 +99,6 @@
               <span class="hint-mode-icon hint-locked">◈</span> Locked — scales everything up proportionally
             </span>
           </div>
-          <div class="hint-click-note">Click the overlay window first if the key doesn't respond.</div>
           <button class="hint-btn hidden" id="hintBtn" type="button">Next</button>
           <div class="hint-current">Current: <strong id="hintCurrentMode">Free</strong></div>
         </div>
@@ -108,17 +120,6 @@
       <div class="hint-screen hidden" id="hintScreen3">
         <div class="hint-inner">
           <div class="hint-title">LAYOUT MODES</div>
-          <div class="hint-click-note" style="margin-bottom:6px;opacity:0.55">press <kbd class="hint-key hint-key-sm">L</kbd> to toggle map info</div>
-          <div class="hint-modes hint-modes-layout">
-            <span class="hint-mode-item hint-mode-active" id="lmItem1">
-              <span class="hint-mode-icon" style="color:#c5d5f4">◱</span>
-              <span><strong>Collapsed</strong> — big-type rank only</span>
-            </span>
-            <span class="hint-mode-item" id="lmItem2">
-              <span class="hint-mode-icon" style="color:#c5d5f4">◇</span>
-              <span><strong>Expanded</strong> — shows map info drawer</span>
-            </span>
-          </div>
           <button class="hint-btn hidden" id="hintBtn3" type="button">Next</button>
         </div>
       </div>
@@ -127,10 +128,8 @@
         <div class="hint-inner">
           <div class="hint-title">QUICK REFERENCE</div>
           <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
-            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">L</kbd><span>Toggle map info drawer</span></span>
             <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">R</kbd><span>Toggle resize mode</span></span>
             <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd><span>Open settings panel</span></span>
-            <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1–4</kbd><span>Switch scoring mode</span></span>
           </div>
           <button class="hint-btn hidden" id="hintBtn4" type="button">Let's go!</button>
         </div>
@@ -146,7 +145,7 @@
         </div>
       </div>
 
-      <!-- Splash screen -->
+      <!-- Splash & Connect Screens -->
       <div class="splash-screen hidden" id="splashScreen">
         <div class="splash-inner">
           <span class="splash-title">DAN OVERLAY</span>
@@ -154,7 +153,6 @@
         </div>
       </div>
 
-      <!-- Connection screen -->
       <div class="connect-screen hidden" id="connectScreen">
         <div class="connect-inner">
           <div class="connect-row">
@@ -183,99 +181,84 @@
         <div class="mode-announce-divider"></div>
       </div>
 
-      <!-- Hidden elements JS still references -->
-      <span class="chart-family" id="chartFamily" style="display:none;"></span>
-      <span class="scoring-mode-badge" id="scoringModeBadge" data-mode="reform" style="display:none;"></span>
-      <span class="mod-badge" id="modBadge" style="display:none;"></span>
-      <span class="dp-tooltip" id="dpTooltip" style="display:none;"></span>
-      <img class="c2-greek-bg" id="danGreekBg" src="" alt="" aria-hidden="true" style="display:none;">
-      <img id="danImage" class="signicial-icon" style="display:none;" src="" alt="" />
-      <span id="mapOd" style="display:none;position:absolute;left:-9999px;"></span>
-
-      <!-- ══════════════════════════════════════════════════════════
-           DARK VIGNETTE — Main visual container
-           "El Ancla Oscura": degrades from near-black to transparent.
-           overlay.js toggles .is-expanded on #danPanel (L key).
-           ══════════════════════════════════════════════════════════ -->
-      <div class="p3-container">
-        <!-- Map background image (only inside the shape of the skin) -->
-        <div id="danBg"></div>
-        <!-- Scrim to darken/blur background for excellent text readability -->
-        <div class="p3-scrim"></div>
-
-        <!-- TOP ROW: "DP" vertical label + titanic number -->
-        <div class="p3-top">
-          <!-- Vertical DP label: writing-mode prevents layout collision -->
-          <div class="p3-lbl">DP</div>
-
-          <!-- DP split: integer + decimal
-               overlay.js writes: danDpValue = "9", danDpDec = ".02" -->
-          <div class="p3-dp-stage">
-            <span class="p3-dp-int" id="danDpValue">--</span>
-            <span class="p3-dp-dec" id="danDpDec"></span>
-          </div>
-        </div>
-
-        <!-- Dan name — huge gradient text, indented from left edge -->
-        <div class="p3-rank-name" id="danName">—</div>
-
-        <!-- Signicial mode icon (hidden by default, JS toggles) -->
-        <img id="danImage2" class="p3-signicial-icon" style="display:none;" src="" alt="" />
-
-        <!-- Sublevel: 5 rounded pill bars + text label
-             overlay.js colors .p3-sbar elements based on DP fraction -->
-        <div class="p3-sublevel-row">
-          <div class="p3-pill p3-sbar"></div>
-          <div class="p3-pill p3-sbar"></div>
-          <div class="p3-pill p3-sbar"></div>
-          <div class="p3-pill p3-sbar"></div>
-          <div class="p3-pill p3-sbar"></div>
-          <span class="p3-sub-text" id="danSub">—</span>
-        </div>
-
-        <!-- ── Expandable Stats Drawer ─────────────────────────────
-             Slides open when danPanel gets .is-expanded class (L key).
-             No extra glassmorphism — already sits on the dark vignette.
-             ───────────────────────────────────────────────────────── -->
-        <div class="p3-expanded-drawer">
-          <div class="p3-glass-stats">
-            <div class="map-title-wrap" id="skinMapTitleWrap" style="margin-bottom: clamp(15px, 3vmin, 20px);">
+      <!-- MAIN HUD CONTENT -->
+      <div class="hud-inner" id="ui-content">
+        
+        <!-- HEADER -->
+        <div class="map-header">
+          <div class="map-info-block">
+            <span class="map-label">SELECTED BEATMAP</span>
+            <div class="map-title-wrap" id="skinMapTitleWrap">
               <div class="map-title-track" id="skinMapTitleTrack">
-                <span class="map-title p3-map-title" id="skinMapTitle" style="margin-bottom: 0 !important;">Loading...</span>
-                <span class="map-title p3-map-title map-title-ghost" id="skinMapTitleGhost" aria-hidden="true" style="margin-bottom: 0 !important;">Loading...</span>
+                <span class="map-title" id="skinMapTitle">Waiting for beatmap...</span>
+                <span class="map-title map-title-ghost" id="skinMapTitleGhost" aria-hidden="true">Waiting for beatmap...</span>
               </div>
             </div>
+          </div>
+          <div class="mode-badge" id="ui-key-mode">MANIA 4K</div>
+        </div>
 
-            <!-- Horizontal stats row -->
-            <div class="p3-stats-row">
-              <div class="p3-stat-box">
-                <div class="p3-stat-lbl">Etterna MSD</div>
-                <div class="p3-stat-val" id="danMetrics">--.-</div>
-              </div>
-              <div class="p3-stat-box">
-                <div class="p3-stat-lbl">Star Rate</div>
-                <div class="p3-stat-val" id="mapSr">--<span class="p3-stat-unit">★</span></div>
-              </div>
-              <div class="p3-stat-box">
-                <div class="p3-stat-lbl">BPM</div>
-                <div class="p3-stat-val" id="mapBpm">-- BPM</div>
-              </div>
-              <div class="p3-stat-box">
-                <div class="p3-stat-lbl">Length</div>
-                <div class="p3-stat-val" id="mapDuration">--:--</div>
-              </div>
+        <!-- BODY: SUNNY SR + BARS -->
+        <div class="body-grid">
+          
+          <!-- SUNNY SR BADGE -->
+          <div class="sr-card" id="ui-sr-card">
+            <div class="sr-value"><span id="ui-sr-num">--.--</span> <span class="star-icon">★</span></div>
+            <div class="sr-label">SUNNY SR</div>
+          </div>
+
+          <!-- METRIC STRAIN BARS -->
+          <div class="bars-container" id="ui-bars">
+            <div class="bar-row">
+              <span class="bar-name">Jbar</span>
+              <span class="bar-num" id="val-jbar">--.-</span>
+              <div class="bar-track"><div class="bar-fill" id="fill-jbar" style="width: 0%;"></div></div>
             </div>
+            <div class="bar-row">
+              <span class="bar-name">Pbar</span>
+              <span class="bar-num" id="val-pbar">--.-</span>
+              <div class="bar-track"><div class="bar-fill" id="fill-pbar" style="width: 0%;"></div></div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-name">Xbar</span>
+              <span class="bar-num" id="val-xbar">--.-</span>
+              <div class="bar-track"><div class="bar-fill" id="fill-xbar" style="width: 0%;"></div></div>
+            </div>
+            <div class="bar-row">
+              <span class="bar-name">Abar</span>
+              <span class="bar-num" id="val-abar">--.-</span>
+              <div class="bar-track"><div class="bar-fill" id="fill-abar" style="width: 0%;"></div></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer-row" id="ui-footer">
+          <div class="foot-left">
+            <div class="foot-item">
+              <span class="foot-label">SKILLSET</span>
+              <span class="foot-tag" id="ui-skillset">—</span>
+            </div>
+            <div class="divider-dot">•</div>
+            <div class="foot-item">
+              <span class="foot-label">MINACALC MSD</span>
+              <span class="foot-val" id="danMetrics">--.-</span>
+            </div>
+          </div>
+
+          <div class="foot-item">
+            <span class="foot-label">STATUS</span>
+            <span class="foot-val" id="ui-status" style="color:var(--star-accent);">READY</span>
           </div>
         </div>
 
       </div>
-      <!-- end .p3-container -->
-
     </section>
 
     <div class="toast" id="toast"></div>
 
-    <!-- ── Settings / Config panel ─────────────────────────────── -->
+    <!-- Settings / Config panel -->
     <div class="cfg-overlay" id="cfgOverlay" aria-hidden="true">
       <div class="cfg-panel" role="dialog" aria-labelledby="cfgTitleLabel">
         <header class="cfg-header">
@@ -302,20 +285,6 @@
               </div>
             </div>
             <div class="cfg-row">
-              <label class="cfg-label" for="cfgLogoSizeSlider">Logo Size</label>
-              <div class="cfg-slider-group">
-                <input type="range" class="cfg-slider" id="cfgLogoSizeSlider" min="0" max="100" step="1">
-                <input type="number" class="cfg-num" id="cfgLogoSizeNum" min="0" max="100" step="1">
-              </div>
-            </div>
-            <div class="cfg-row">
-              <label class="cfg-label" for="cfgLogoOpacitySlider">Logo Opacity</label>
-              <div class="cfg-slider-group">
-                <input type="range" class="cfg-slider" id="cfgLogoOpacitySlider" min="0" max="100" step="1">
-                <input type="number" class="cfg-num" id="cfgLogoOpacityNum" min="0" max="100" step="1">
-              </div>
-            </div>
-            <div class="cfg-row">
               <label class="cfg-label" for="cfgDanScaleSlider">Dan Display Scale</label>
               <div class="cfg-slider-group">
                 <input type="range" class="cfg-slider" id="cfgDanScaleSlider" min="0" max="100" step="1">
@@ -323,16 +292,7 @@
               </div>
             </div>
             <div class="cfg-row">
-              <label class="cfg-label" for="cfgGreenScreenChk">Green Screen Mode</label>
-              <label class="cfg-toggle">
-                <input type="checkbox" id="cfgGreenScreenChk">
-                <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
-              </label>
-            </div>
-            <div class="cfg-row">
-              <label class="cfg-label" for="cfgFramelessChk">Frameless Window
-                <span class="cfg-label-hint">(restart to apply)</span>
-              </label>
+              <label class="cfg-label" for="cfgFramelessChk">Frameless Window</label>
               <label class="cfg-toggle">
                 <input type="checkbox" id="cfgFramelessChk">
                 <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
@@ -352,7 +312,7 @@
             </div>
             <div class="cfg-row">
               <label class="cfg-label"></label>
-              <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (645×211)</button>
+              <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (800×340)</button>
             </div>
           </section>
 
@@ -366,47 +326,16 @@
                 <option value="3">Graph</option>
                 <option value="4">Vertical Monolith</option>
                 <option value="5">Broadcast Bar</option>
-                <option value="6" selected>Dark Vignette</option>
-                <option value="7">Sunny Rebirth</option>
+                <option value="6">Dark Vignette</option>
+                <option value="7" selected>Sunny Rebirth</option>
                 <option value="8">Hero-Dan Lazer</option>
               </select>
-            </div>
-            <div id="cfgUi6Settings">
-              <div class="cfg-row">
-                <label class="cfg-label" for="cfgUi6NoVignetteChk">Hide Vignette Background</label>
-                <label class="cfg-toggle">
-                  <input type="checkbox" id="cfgUi6NoVignetteChk">
-                  <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
-                </label>
-              </div>
-              <div class="cfg-row">
-                <label class="cfg-label" for="cfgUi6SimpleModeChk">Solid Colors</label>
-                <label class="cfg-toggle">
-                  <input type="checkbox" id="cfgUi6SimpleModeChk">
-                  <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
-                </label>
-              </div>
-              <div class="cfg-row">
-                <label class="cfg-label" for="cfgUi6OutlinesChk">Show Outlines</label>
-                <label class="cfg-toggle">
-                  <input type="checkbox" id="cfgUi6OutlinesChk">
-                  <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
-                </label>
-              </div>
             </div>
           </section>
 
           <section>
             <p class="cfg-section-title">Keyboard Shortcuts</p>
             <div id="cfgKeybinds"></div>
-          </section>
-
-          <section>
-            <p class="cfg-section-title">Help</p>
-            <div class="cfg-row">
-              <label class="cfg-label">Quick tutorial</label>
-              <button class="cfg-btn cfg-cancel" id="cfgTutorialBtn" type="button">Start</button>
-            </div>
           </section>
 
         </div>
@@ -420,10 +349,139 @@
 
   </main>
 
-  <!-- overlay.js handles all logic: data binding, key events, palette injection -->
   <script src="../overlay.js"></script>
 
-  <!-- Export Chart Hidden Canvas (JS compatibility) -->
+  <!-- Canvas animation script for background triangles -->
+  <script>
+    (function () {
+      const STAR_BG_STOPS = [
+        { sr: 0.0, color: [170, 170, 170] }, 
+        { sr: 0.9, color: [75, 179, 253] },  
+        { sr: 2.0, color: [79, 255, 213] },  
+        { sr: 3.0, color: [211, 245, 87] },  
+        { sr: 4.0, color: [253, 162, 101] }, 
+        { sr: 5.0, color: [249, 77, 121] },  
+        { sr: 6.0, color: [182, 76, 193] },  
+        { sr: 7.0, color: [86, 84, 202] },   
+        { sr: 8.0, color: [20, 17, 125] },   
+        { sr: 9.0, color: [0, 0, 0] },       
+        { sr: 15.0, color: [0, 0, 0] }
+      ];
+
+      function getStarBgColor(sr) {
+        if (sr <= 0) return 'rgb(170, 170, 170)';
+        if (sr >= 9) return 'rgb(0, 0, 0)';
+        for (let i = 0; i < STAR_BG_STOPS.length - 1; i++) {
+          const s1 = STAR_BG_STOPS[i];
+          const s2 = STAR_BG_STOPS[i + 1];
+          if (sr >= s1.sr && sr <= s2.sr) {
+            const t = (sr - s1.sr) / (s2.sr - s1.sr);
+            const r = Math.round(s1.color[0] + t * (s2.color[0] - s1.color[0]));
+            const g = Math.round(s1.color[1] + t * (s2.color[1] - s1.color[1]));
+            const b = Math.round(s1.color[2] + t * (s2.color[2] - s1.color[2]));
+            return `rgb(${r}, ${g}, ${b})`;
+          }
+        }
+        return 'rgb(0, 0, 0)';
+      }
+
+      function getStarTextColor(sr) {
+        if (sr < 6.5) return '#000000';
+        if (sr < 9.0) return '#ffd966';
+        if (sr < 10.0) return '#f6f05c';
+        if (sr < 11.0) return '#ff7a69';
+        if (sr < 12.0) return '#e74a95';
+        return '#6563de';
+      }
+
+      function colorToRgba(colorStr, alpha) {
+        if (colorStr.startsWith('#')) {
+          let hex = colorStr.replace('#', '');
+          if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+          const num = parseInt(hex, 16);
+          return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+        } else if (colorStr.startsWith('rgb')) {
+          return colorStr.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
+        }
+        return `rgba(255, 255, 255, ${alpha})`;
+      }
+
+      window.__applySunnyPalette = function(sr) {
+        const root = document.documentElement;
+        const bgRGB = getStarBgColor(sr);
+        const textHex = getStarTextColor(sr);
+        const accentHex = (sr >= 8.0) ? textHex : bgRGB;
+        root.style.setProperty('--star-bg', bgRGB);
+        root.style.setProperty('--star-text', textHex);
+        root.style.setProperty('--star-accent', accentHex);
+      };
+
+      const canvas = document.getElementById('bg-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const resizeCanvas = () => {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      };
+      new ResizeObserver(resizeCanvas).observe(canvas.parentElement);
+      resizeCanvas();
+
+      const numTriangles = 55;
+      const particles = [];
+      for (let i = 0; i < numTriangles; i++) {
+        const depth = Math.random();
+        particles.push({
+          x: Math.random() * 800,
+          y: Math.random() * 340,
+          size: depth * 28 + 8,
+          speed: depth * 0.5 + 0.08,
+          currentSpeedMult: 1,
+          phase: Math.random() * Math.PI * 2,
+          depth: depth
+        });
+      }
+
+      function render(time) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const isComputing = document.getElementById('overlay').classList.contains('computing-mode');
+        const targetSpeedMult = isComputing ? 15 : 1;
+        const currentAccentColor = getComputedStyle(document.documentElement).getPropertyValue('--star-accent').trim() || '#f94d79';
+
+        particles.forEach((p) => {
+          p.currentSpeedMult += (targetSpeedMult - p.currentSpeedMult) * 0.05;
+          p.y -= (p.speed * p.currentSpeedMult);
+          if (p.y < -p.size) {
+            p.y = canvas.height + p.size;
+            p.x = Math.random() * canvas.width;
+          }
+          const baseColorStr = isComputing ? "rgb(120, 120, 120)" : currentAccentColor;
+          const fillAlpha = 0.06 + p.depth * 0.09;
+          const fillColor = colorToRgba(baseColorStr, fillAlpha);
+          const strokeAlpha = (0.3 + Math.sin(time * 0.002 + p.phase) * 0.15) * (p.depth * 0.8 + 0.2);
+          const strokeColor = colorToRgba(baseColorStr, Math.max(0.12, strokeAlpha));
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          const h = (p.size * Math.sqrt(3)) / 2;
+          ctx.beginPath();
+          ctx.moveTo(0, -h / 2);
+          ctx.lineTo(-p.size / 2, h / 2);
+          ctx.lineTo(p.size / 2, h / 2);
+          ctx.closePath();
+          ctx.fillStyle = fillColor;
+          ctx.fill();
+          ctx.lineWidth = p.depth > 0.6 ? 1.5 : 1;
+          ctx.strokeStyle = strokeColor;
+          ctx.stroke();
+          ctx.restore();
+        });
+        requestAnimationFrame(render);
+      }
+      requestAnimationFrame(render);
+    })();
+  </script>
+
   <div id="exportChartContainer" style="display:none;position:absolute;left:-9999px;top:-9999px;">
     <canvas id="exportCanvas" width="1800" height="980"></canvas>
   </div>
