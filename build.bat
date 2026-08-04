@@ -14,7 +14,7 @@ setlocal
 :: ══════════════════════════════════════════════════════════════
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=2.3.0"
+set "APP_VERSION=2.3.1"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
 set "ENTRY=src\01_overlay_ui\main.py"
 

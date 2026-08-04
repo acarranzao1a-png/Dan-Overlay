@@ -76,7 +76,7 @@ def _validate_startup():
 # ── Window modes ────────────────────────────────────────────────────────
 
 # Opened on first launch; user picks resize behavior in the UI.
-_APP_VERSION = "2.2.0"
+_APP_VERSION = "2.3.1"
 _APP_TITLE = f"DanOverlay {_APP_VERSION} — by 8DOUL (discord: agent_ale)"
 _DEFAULT_MODE = {
     "label":    f"DanOverlay {_APP_VERSION}",
