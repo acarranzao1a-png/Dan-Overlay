@@ -954,7 +954,11 @@ function updateStableMapDuration(rawMs, force = false) {
 }
 
 function renderMapDuration(currentMs = 0, fullMs = 0, hasPlayback = false) {
-  if (!ui.mapDuration) return;
+  // Bail only when there is nothing to update: skins without #mapDuration
+  // (e.g. ui-8) still mirror the timer into #ui-len, and the playback
+  // globals (currentPlaybackMs/currentTotalMs) must keep advancing.
+  const uiLenEl = document.getElementById("ui-len");
+  if (!ui.mapDuration && !uiLenEl) return;
 
   const newMs = Number(currentMs) || 0;
   const stableTotalMs = updateStableMapDuration(fullMs);
@@ -979,8 +983,12 @@ function renderMapDuration(currentMs = 0, fullMs = 0, hasPlayback = false) {
   }
 
   if (!stableTotalMs) {
-    if (ui.mapDuration.textContent !== "--:--") {
+    if (ui.mapDuration && ui.mapDuration.textContent !== "--:--") {
       ui.mapDuration.textContent = "--:--";
+    }
+    const lenEl = document.getElementById("ui-len");
+    if (lenEl && lenEl.textContent !== "--:--") {
+      lenEl.textContent = "--:--";
     }
     return;
   }
@@ -989,8 +997,12 @@ function renderMapDuration(currentMs = 0, fullMs = 0, hasPlayback = false) {
     ? (currentPlaybackMs > 0 ? msToClock(currentPlaybackMs) : "0:00")
     : "0:00";
   const text = left + " / " + msToClock(stableTotalMs);
-  if (ui.mapDuration.textContent !== text) {
+  if (ui.mapDuration && ui.mapDuration.textContent !== text) {
     ui.mapDuration.textContent = text;
+  }
+  const lenEl = document.getElementById("ui-len");
+  if (lenEl && lenEl.textContent !== text) {
+    lenEl.textContent = text;
   }
 }
 
@@ -1016,6 +1028,7 @@ function syncSingleMarquee(wrap, track, title, ghost) {
   const titleWidth = title.scrollWidth;
   const gap = 40;
 
+  wrap.classList.remove("has-marquee");
   track.classList.remove("is-marquee");
   track.style.removeProperty("--title-shift");
   track.style.removeProperty("--title-duration");
@@ -1029,6 +1042,7 @@ function syncSingleMarquee(wrap, track, title, ghost) {
   track.style.setProperty("--title-shift", `${shift}px`);
   track.style.setProperty("--title-duration", `${duration.toFixed(2)}s`);
   track.classList.add("is-marquee");
+  wrap.classList.add("has-marquee");
 }
 
 function setMapTitleText(text) {
@@ -1587,8 +1601,9 @@ function _updateSunnyRebirthSkin(payload) {
     const title = payload.title || payload.artist || "";
     const ver = payload.version ? ` [${payload.version}]` : "";
     if (title) {
-      mapTitleEl.textContent = title + ver;
-      if (mapGhostEl) mapGhostEl.textContent = title + ver;
+      const fullTitle = title + ver;
+      mapTitleEl.textContent = fullTitle;
+      if (mapGhostEl) mapGhostEl.textContent = fullTitle;
       syncMapTitleMarquee();
     }
   }
@@ -1673,28 +1688,49 @@ function _updateHeroDanLazerSkin(payload) {
   const danNameEl = document.getElementById("ui-dan-name");
   if (!danNameEl || !payload) return;
 
-  const category = payload.mode === "7k"
-    ? "7K"
-    : (_lnOverrideActive ? "LN COURSE"
-      : (_scoringMode === "celestial" ? "CELESTIAL 4K"
-        : (_scoringMode === "signicial" ? "SIGNICIAL 4K"
-          : (_scoringMode === "shoegazer" ? "SHOEGAZER 4K"
-            : "REFORM 4K"))));
-
+  let category = "REFORM 4K";
   let danName = String(payload.dan_label || "1st Dan").toUpperCase();
+  let dpVal = Number(payload.dp || 0);
+  let palette = null;
+
   if (payload.mode === "7k" && payload.tier_7k) {
+    category = "7K";
     danName = String(payload.tier_7k).toUpperCase();
-  } else if (_lnOverrideActive && payload.ln_course?.label) {
+    dpVal = Number(payload.dp_7k || 0);
+    const tier7k = payload.tier_7k;
+    palette = PALETTES_7K[tier7k] || PALETTES_7K[payload.dan_label] || paletteForDan(payload.dan_label) || PALETTES_7K["Gamma"];
+  } else if (_lnOverrideActive && payload.ln_course && payload.ln_course.label) {
+    category = "LN COURSE";
     danName = String(payload.ln_course.label).toUpperCase();
-  } else if (_scoringMode === "celestial" && payload.celestial?.label) {
+    dpVal = Number(payload.ln_course.dp_ln || payload.ln_course.dp || 0);
+    const stageKey = String(payload.ln_course.stage_key || "1st");
+    palette = LN_COURSE_PALETTES[stageKey] || LN_COURSE_PALETTES["1st"];
+  } else if (_scoringMode === "celestial" && payload.celestial && payload.celestial.label) {
+    category = "CELESTIAL 4K";
     danName = String(payload.celestial.label).toUpperCase();
-  } else if (_scoringMode === "signicial" && payload.signicial?.label) {
+    dpVal = Number(payload.celestial.dp_celestial || payload.celestial.dp || 0);
+    const tierKey = String(payload.celestial.tier || "Beginner");
+    palette = CELESTIAL_PALETTES[tierKey] || CELESTIAL_PALETTES["Beginner"];
+  } else if (_scoringMode === "signicial" && payload.signicial && payload.signicial.label) {
+    category = "SIGNICIAL 4K";
     danName = String(payload.signicial.label).toUpperCase();
-  } else if (_scoringMode === "shoegazer" && payload.shoegazer?.label) {
+    dpVal = Number(payload.signicial.dp_signicial || payload.signicial.dp || 0);
+    const stageKey = String(payload.signicial.stage_key || "I");
+    palette = SIGNICIAL_PALETTES[stageKey] || SIGNICIAL_PALETTES["I"];
+  } else if (_scoringMode === "shoegazer" && payload.shoegazer && payload.shoegazer.label) {
+    category = "SHOEGAZER 4K";
     danName = String(payload.shoegazer.label).toUpperCase();
+    dpVal = Number(payload.shoegazer.dp_shoegazer || payload.shoegazer.dp || 0);
+    const stageKey = String(payload.shoegazer.stage_key || "1st");
+    palette = SHOEGAZER_PALETTES[stageKey] || SHOEGAZER_PALETTES["1st"];
+  } else {
+    category = "REFORM 4K";
+    danName = String(payload.dan_label || "1st Dan").toUpperCase();
+    dpVal = Number(payload.dp || 0);
+    palette = paletteForDan(payload.dan_label || danName) || DAN_PALETTES["1st Dan"];
   }
 
-  const dpVal = Number(payload.dp_7k || payload.dp || 0);
+  window.__currentPalette = palette;
 
   const catEl = document.getElementById("ui-category");
   if (catEl) catEl.textContent = category;
@@ -1717,7 +1753,20 @@ function _updateHeroDanLazerSkin(payload) {
     pillsContainer.innerHTML = "";
     for (let i = 1; i <= 5; i++) {
       const p = document.createElement("div");
-      p.className = `pill ${i <= pillCount ? "active" : ""}`;
+      const isAct = i <= pillCount;
+      p.className = `pill ${isAct ? "active" : ""}`;
+      if (isAct) {
+        const t = pillCount > 1 ? (i - 1) / (pillCount - 1) : 1.0;
+        const pColor = palette
+          ? (palette.length > 1
+              ? palette[Math.min(palette.length - 1, Math.floor(t * (palette.length - 1)))]
+              : palette[0])
+          : c1;
+        const alpha = (0.5 + t * 0.5).toFixed(2);
+        p.style.backgroundColor = pColor;
+        p.style.opacity = alpha;
+        p.style.boxShadow = `0 0 ${Math.round(3 + t * 9)}px ${pColor}`;
+      }
       pillsContainer.appendChild(p);
     }
   }
@@ -1728,17 +1777,26 @@ function _updateHeroDanLazerSkin(payload) {
   const prevDP = curInt + curDec;
   _animateHeroDP(prevDP, dpVal, 800);
 
-  const palette = paletteForDan(payload.dan_label || danName);
   const c1 = palette ? palette[0] : "#f94d79";
-  const c2 = palette ? (palette[1] || palette[0]) : "#3080f0";
+  const c2 = palette ? (palette[palette.length - 1] || palette[0]) : "#3080f0";
+  const pillarGrad = palette
+    ? `linear-gradient(180deg, ${[...palette, palette[0]].join(", ")})`
+    : "linear-gradient(180deg, var(--c1), var(--c2), var(--c1))";
   document.documentElement.style.setProperty("--c1", c1);
   document.documentElement.style.setProperty("--c2", c2);
+  document.documentElement.style.setProperty("--c-pillar-grad", pillarGrad);
 
   const mapTitleEl = document.getElementById("skinMapTitle");
+  const mapGhostEl = document.getElementById("skinMapTitleGhost");
   if (mapTitleEl && payload) {
     const title = payload.title || payload.artist || "";
     const ver = payload.version ? ` [${payload.version}]` : "";
-    if (title) mapTitleEl.textContent = title + ver;
+    if (title) {
+      const fullTitle = title + ver;
+      mapTitleEl.textContent = fullTitle;
+      if (mapGhostEl) mapGhostEl.textContent = fullTitle;
+      syncMapTitleMarquee();
+    }
   }
 
   const msdVal = Number(payload.overall_msd || 0);
@@ -1753,7 +1811,17 @@ function _updateHeroDanLazerSkin(payload) {
   if (bpmEl) bpmEl.textContent = payload.bpm ? Math.round(Number(payload.bpm)) : "--";
 
   const lenEl = document.getElementById("ui-len");
-  if (lenEl) lenEl.textContent = payload.duration_s ? msToClock(payload.duration_s * 1000) : "--:--";
+  if (lenEl) {
+    const totalMs = payload.duration_s ? payload.duration_s * 1000 : (stableTotalMs || 0);
+    const leftMs = (currentPlaybackMs > 0) ? currentPlaybackMs : 0;
+    if (totalMs > 0) {
+      const leftStr = msToClock(leftMs);
+      const totalStr = msToClock(totalMs);
+      lenEl.textContent = `${leftStr} / ${totalStr}`;
+    } else {
+      lenEl.textContent = "--:--";
+    }
+  }
 }
 
 function applyDanResult(result) {

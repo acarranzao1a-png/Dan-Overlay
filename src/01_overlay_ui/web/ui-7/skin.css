@@ -128,7 +128,15 @@ canvas#bg-canvas {
   max-width: 580px;
   text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
-.sunny-lazer-hud .map-title-wrap { max-width: 580px; }
+.sunny-lazer-hud .map-title-wrap {
+  max-width: 580px;
+  position: relative;
+  overflow: hidden;
+}
+.sunny-lazer-hud .map-title-wrap.has-marquee {
+  -webkit-mask-image: linear-gradient(to right, transparent 0px, #000 16px, #000 calc(100% - 16px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0px, #000 16px, #000 calc(100% - 16px), transparent 100%);
+}
 .sunny-lazer-hud .map-title-track.is-marquee .map-title {
   max-width: none; overflow: visible;
 }

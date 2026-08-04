@@ -243,7 +243,12 @@
         <div class="expanded-inner">
           <div class="map-divider"></div>
           <div class="map-header">
-            <div class="map-title" id="skinMapTitle">Waiting for beatmap...</div>
+            <div class="map-title-wrap" id="skinMapTitleWrap">
+              <div class="map-title-track" id="skinMapTitleTrack">
+                <span class="map-title" id="skinMapTitle">Waiting for beatmap...</span>
+                <span class="map-title map-title-ghost" id="skinMapTitleGhost" aria-hidden="true">Waiting for beatmap...</span>
+              </div>
+            </div>
           </div>
 
           <div class="map-stats-row">
@@ -388,7 +393,7 @@
           currentSpeedMult: 1,
           phase: Math.random() * Math.PI * 2,
           depth: depth,
-          colorIndex: Math.floor(Math.random() * 2)
+          colorIndex: Math.floor(Math.random() * 8)
         });
       }
 
@@ -398,6 +403,9 @@
         const targetSpeedMult = isComputing ? 20 : 1;
         const c1 = getComputedStyle(root).getPropertyValue('--c1').trim() || '#f94d79';
         const c2 = getComputedStyle(root).getPropertyValue('--c2').trim() || '#3080f0';
+        const activePalette = (window.__currentPalette && window.__currentPalette.length > 0)
+          ? window.__currentPalette
+          : [c1, c2];
 
         particles.forEach((p) => {
           p.currentSpeedMult += (targetSpeedMult - p.currentSpeedMult) * 0.05;
@@ -410,7 +418,7 @@
 
           const baseColorStr = isComputing
             ? "rgb(140, 140, 140)"
-            : (p.colorIndex % 2 === 0 ? c1 : c2);
+            : activePalette[p.colorIndex % activePalette.length];
 
           const fillAlpha = 0.05 + p.depth * 0.09;
           const fillColor = colorToRgba(baseColorStr, fillAlpha);

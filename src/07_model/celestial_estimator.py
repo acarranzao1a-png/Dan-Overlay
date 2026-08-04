@@ -330,6 +330,29 @@ class CelestialResult:
 
 # ── Main estimate function ──────────────────────────────────────────────────────
 
+def fields_from_dp(dp: float) -> dict:
+    """Re-derive Celestial result fields from a ``dp_celestial`` value.
+
+    Used by the pipeline's custom-rate interpolation: after the DP is
+    interpolated between native rates, the tier/category/label fields
+    must be refreshed — they would otherwise keep the NM-rate values.
+    """
+    beyond = dp > 35.99
+    dp_clamped = max(0.5, min(35.99, dp))
+    slot = _dp_to_slot(dp_clamped)
+    if slot is None:
+        return {}
+    tier, cat = slot
+    return {
+        "tier":         tier,
+        "category":     cat,
+        "short":        f"{_TIER_SHORT[tier]}-{cat}",
+        "label":        f"{tier} {cat}",
+        "dp_celestial": round(dp_clamped, 3),
+        "beyond":       beyond,
+    }
+
+
 def estimate(skillsets: dict, sr: float | None = None,
              family_hint: str | None = None) -> "CelestialResult | None":
     """Estimate Dan Celestial tier + category.

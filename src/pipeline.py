@@ -19,9 +19,13 @@ sys.path.insert(0, os.path.join(_ROOT, "03_engine_reference", "sr_core"))
 
 from minacalc_estimator import estimate as _minacalc_estimate
 from celestial_estimator import estimate as _celestial_estimate
+from celestial_estimator import fields_from_dp as _celestial_fields_from_dp
 from signicial_estimator import estimate as _signicial_estimate
+from signicial_estimator import fields_from_dp as _signicial_fields_from_dp
 from shoegazer_estimator import estimate as _shoegazer_estimate
+from shoegazer_estimator import fields_from_dp as _shoegazer_fields_from_dp
 from ln_course_estimator import estimate as _ln_course_estimate
+from ln_course_estimator import fields_from_dp as _ln_course_fields_from_dp
 
 
 def _error_payload(error, *, warnings=None):
@@ -356,7 +360,10 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
         if _r not in _NATIVE:
             _lo, _hi = None, None
             if _r < _NATIVE[0]:
-                _lo, _hi, _t = _NATIVE[0], _NATIVE[1], 0.0
+                # Extrapolate below HT (0.75x) against the 0.75-1.0 segment so
+                # lazer rates like 0.5x keep following the rate (t goes negative).
+                _lo, _hi = _NATIVE[0], _NATIVE[1]
+                _t = (_r - _lo) / max(_hi - _lo, 1e-9)
             elif _r > _NATIVE[-1]:
                 _lo, _hi = _NATIVE[-2], _NATIVE[-1]
                 _t = 1.0 + (_r - _hi) / max(_hi - _lo, 1e-9)
@@ -391,6 +398,18 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
                 _interp_result["sublevel"] = dp_to_sublevel(_interp_result["dp"])
 
                 # Interpolate alternative-mode estimates (celestial etc.)
+                _fields_fns = {
+                    "celestial": _celestial_fields_from_dp,
+                    "signicial": _signicial_fields_from_dp,
+                    "shoegazer": _shoegazer_fields_from_dp,
+                    "ln_course": _ln_course_fields_from_dp,
+                }
+                _dp_key = {
+                    "celestial": "dp_celestial",
+                    "signicial": "dp_signicial",
+                    "shoegazer": "dp_shoegazer",
+                    "ln_course": "dp_ln",
+                }
                 for _mk in ("celestial", "signicial", "shoegazer", "ln_course"):
                     _m_lo = _res_lo.get(_mk)
                     _m_hi = _res_hi.get(_mk)
@@ -401,6 +420,13 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
                                 _a = float(_m_lo.get(_mf, 0.0) or 0.0)
                                 _b = float(_m_hi.get(_mf, 0.0) or 0.0)
                                 _interp_result[_mk][_mf] = round(_a + _t * (_b - _a), 2)
+                        # Re-derive dp-dependent display fields (stage/label/short/
+                        # subtitle/tier/beyond).  The dict was copied from the NM
+                        # result, so without this the stage would revert to the NM
+                        # value on every custom rate (e.g. Signicial Alpha → DT 1.4×).
+                        _dpf = _interp_result[_mk].get(_dp_key[_mk])
+                        if _dpf is not None:
+                            _interp_result[_mk].update(_fields_fns[_mk](float(_dpf)))
 
                 _interp_result["custom_rate_interpolated"] = True
                 return _interp_result

@@ -360,6 +360,25 @@ class LnCourseResult:
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 
+def fields_from_dp(dp: float) -> dict:
+    """Re-derive LN Course result fields from a ``dp_ln`` value.
+
+    Used by the pipeline's custom-rate interpolation: after the DP is
+    interpolated between native rates, the stage/label fields must be
+    refreshed — they would otherwise keep the NM-rate values.
+    """
+    beyond = dp > 16.99
+    dp = max(1.0, dp)
+    stage_key = _dp_to_stage_key(dp)
+    return {
+        "stage_key": stage_key,
+        "label":     _STAGE_DISPLAY[stage_key],
+        "short":     _STAGE_SHORT[stage_key],
+        "dp_ln":     round(dp, 3),
+        "beyond":    beyond,
+    }
+
+
 def estimate(
     skillsets: dict,
     sr: float | None = None,
