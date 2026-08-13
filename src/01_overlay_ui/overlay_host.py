@@ -76,7 +76,7 @@ def _validate_startup():
 # ── Window modes ────────────────────────────────────────────────────────
 
 # Opened on first launch; user picks resize behavior in the UI.
-_APP_VERSION = "2.3.1"
+_APP_VERSION = "2.3.5"
 _APP_TITLE = f"DanOverlay {_APP_VERSION} — by 8DOUL (discord: agent_ale)"
 _DEFAULT_MODE = {
     "label":    f"DanOverlay {_APP_VERSION}",
@@ -347,6 +347,8 @@ def _build_overlay_url() -> str:
         html_file = _WEB_DIR / "ui-7" / "index.html"
     elif skin == "8":
         html_file = _WEB_DIR / "ui-8" / "index.html"
+    elif skin == "9":
+        html_file = _WEB_DIR / "ui-9" / "index.html"
     else:
         html_file = _WEB_DIR / "index.html"
 
@@ -420,7 +422,7 @@ def _run_overlay_session(cfg, overlay_url):
                 # Intelligent migration: if saved dimensions are legacy/other skin defaults,
                 # override them with the active skin's defaults to prevent ugly layout stretching.
                 _is_legacy_default = (_saved_w == 700 and _saved_h == 320) or (_saved_w == 860 and _saved_h == 320)
-                if _is_legacy_default and _skin in ("4", "5", "6", "7"):
+                if _is_legacy_default and _skin in ("4", "5", "6", "7", "8", "9"):
                     if _skin == "4":
                         _start_w = 284
                         _start_h = 335
@@ -433,6 +435,13 @@ def _run_overlay_session(cfg, overlay_url):
                     elif _skin == "7":
                         _start_w = 800
                         _start_h = 340
+                    elif _skin == "8":
+                        _start_w = 594
+                        _start_h = 234
+                    elif _skin == "9":
+                        _layout = _saved.get("layout", "complete")
+                        _start_w = 540 if _layout == "complete" else (480 if _layout == "simplified" else 360)
+                        _start_h = 175 if _layout == "complete" else (130 if _layout == "simplified" else 90)
                 else:
                     _start_w = _saved_w
                     _start_h = _saved_h
@@ -450,6 +459,13 @@ def _run_overlay_session(cfg, overlay_url):
                 elif _skin == "7":
                     _start_w = 800
                     _start_h = 340
+                elif _skin == "8":
+                    _start_w = 594
+                    _start_h = 234
+                elif _skin == "9":
+                    _layout = _saved.get("layout", "complete")
+                    _start_w = 540 if _layout == "complete" else (480 if _layout == "simplified" else 360)
+                    _start_h = 175 if _layout == "complete" else (130 if _layout == "simplified" else 90)
                 elif _skin == "3":
                     _layout = _saved.get("layout", "complete")
                     _start_w = 700
@@ -638,6 +654,8 @@ def _run_overlay_session(cfg, overlay_url):
                     html_file = _WEB_DIR / "ui-7" / "index.html"
                 elif skin_id == "8":
                     html_file = _WEB_DIR / "ui-8" / "index.html"
+                elif skin_id == "9":
+                    html_file = _WEB_DIR / "ui-9" / "index.html"
                 else:
                     html_file = _WEB_DIR / "index.html"
                 new_url = "file:///" + str(html_file).replace("\\", "/")
@@ -730,9 +748,36 @@ def _run_overlay_session(cfg, overlay_url):
         # Resize the window to an explicit (width, height) — used by layout mode changes.
         # Pass w=-1 to keep the current width unchanged (only adjust height).
         def set_window_size(w: int, h: int):
+            target_w = int(w)
+            target_h = int(h)
+            if sys.platform == "win32":
+                import ctypes
+                import ctypes.wintypes as W
+                try:
+                    hwnd_val = ctypes.windll.user32.FindWindowW(None, _APP_TITLE)
+                    if hwnd_val:
+                        class _RECT(ctypes.Structure):
+                            _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long),
+                                        ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+                        _r = _RECT()
+                        ctypes.windll.user32.GetWindowRect(W.HWND(hwnd_val), ctypes.byref(_r))
+                        cur_w = _r.right - _r.left
+                        cur_h = _r.bottom - _r.top
+                        final_w = cur_w if target_w < 0 else target_w
+                        final_h = cur_h if target_h < 0 else target_h
+                        SWP_NOMOVE = 0x0002
+                        SWP_NOZORDER = 0x0004
+                        SWP_NOACTIVATE = 0x0010
+                        ctypes.windll.user32.SetWindowPos(
+                            W.HWND(hwnd_val), 0, 0, 0,
+                            int(final_w), int(final_h),
+                            SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
+                        )
+                except Exception as exc:
+                    logger.warning("set_window_size (win32) failed: %s", exc)
             try:
-                actual_w = _window.width if int(w) < 0 else int(w)
-                actual_h = _window.height if int(h) < 0 else int(h)
+                actual_w = _window.width if target_w < 0 else target_w
+                actual_h = _window.height if target_h < 0 else target_h
                 _window.resize(int(actual_w), int(actual_h))
             except Exception as exc:
                 logger.warning("set_window_size failed: %s", exc)

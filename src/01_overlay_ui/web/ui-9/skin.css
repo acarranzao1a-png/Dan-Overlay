@@ -1,0 +1,326 @@
+/* ==========================================================================
+   SKIN 9: JOSH TYPE SHIT (Streamer HUD)
+   ========================================================================== */
+
+:root {
+  --dan-color: #F74080;
+  --chroma-bg: #00ff00;
+  --stream-font-main: 'Montserrat', sans-serif;
+  --stream-font-mono: 'Space Mono', monospace;
+  --cfg-blur: 8px;
+  --cfg-brightness: 0.55;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: transparent;
+  font-family: var(--stream-font-main);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ==========================================================================
+   MAIN OVERLAY CONTAINER
+   ========================================================================== */
+main#overlay.stream-hud {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 16px 20px;
+  gap: 4px;
+  background-color: transparent;
+  user-select: none;
+  cursor: default;
+  transform-origin: left top;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   GREEN SCREEN CHROMA BACKGROUND FOR OBS / STREAMS
+   ========================================================================== */
+body.green-screen,
+body.green-screen main#overlay,
+main#overlay.green-screen {
+  background-color: #00ff00 !important;
+  background-image: none !important;
+  background: #00ff00 !important;
+}
+
+/* When green screen is enabled, hide map background and scrim */
+body.green-screen #danBg,
+body.green-screen .hud-scrim,
+main#overlay.green-screen #danBg,
+main#overlay.green-screen .hud-scrim {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+/* Green screen keeps the text outlines (black stroke via text-shadow) so the
+   HUD stays readable over the chroma background.  No text-shadow removal. */
+
+/* ==========================================================================
+   BEATMAP BACKGROUND & SCRIM OVERLAY
+   ========================================================================== */
+#danBg {
+  display: block !important;
+  position: absolute;
+  inset: -20px; /* Bleed for blur edges */
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--cfg-blur)) brightness(var(--cfg-brightness));
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease, filter 0.3s ease;
+}
+
+.hud-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(7, 10, 18, 0.72) 0%,
+    rgba(7, 10, 18, 0.48) 55%,
+    rgba(7, 10, 18, 0.28) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+/* ==========================================================================
+   ANIMATIONS: CYBER GLITCH & COMPUTING JITTER
+   ========================================================================== */
+@keyframes cyberGlitch {
+  0% {
+    transform: translate(0, 0);
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
+  }
+  20% {
+    transform: translate(3px, 1px);
+    text-shadow: -2px 0 #00ffff, 2px 0 #ff0055;
+  }
+  40% {
+    transform: translate(1px, -1px);
+    text-shadow: 2px 0 #00ffff, -2px 0 #ff0055;
+  }
+  60% {
+    transform: translate(4px, 1px);
+    text-shadow: -1px 0 #00ffff, 1px 0 #ff0055;
+  }
+  100% {
+    transform: translate(0, 0);
+    text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 15px rgba(0, 0, 0, 0.9);
+  }
+}
+
+.glitch {
+  animation: cyberGlitch 0.35s ease forwards;
+}
+
+@keyframes computingJitter {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-2px);
+  }
+  75% {
+    transform: translateY(2px);
+  }
+}
+
+.computing-jitter {
+  animation: computingJitter 0.1s infinite;
+}
+
+/* ==========================================================================
+   HUD MAIN (ALINEADO A LA IZQUIERDA)
+   ========================================================================== */
+.hud-main {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
+    0 4px 15px rgba(0, 0, 0, 0.9);
+  transform-origin: left top;
+}
+
+/* ── FILA 1: IDENTIDAD DEL DAN Y SÍMBOLO ────────────────────────────────── */
+.dan-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.symbol-badge {
+  font-size: 42px;
+  font-weight: 900;
+  color: var(--dan-color);
+  line-height: 0.9;
+  display: inline-block;
+  width: auto;
+  transition: color 0.2s ease;
+}
+
+.dan-title {
+  font-size: 38px;
+  font-weight: 900;
+  color: var(--dan-color);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  line-height: 0.9;
+  transition: color 0.2s ease;
+}
+
+.tier-tag {
+  font-size: 14px;
+  font-weight: 900;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1.5px solid var(--dan-color);
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: border-color 0.2s ease;
+}
+
+/* ── FILA 2: METRICA MSD ────────────────────────────────────────────────── */
+.msd-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.msd-label {
+  font-family: var(--stream-font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+}
+
+.msd-val {
+  font-family: var(--stream-font-mono);
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--dan-color);
+  line-height: 0.9;
+  transition: color 0.2s ease;
+}
+
+/* ── FILA 3: MAPA (SUBTÍTULO CON MARQUESINA) ────────────────────────────── */
+.map-row {
+  position: relative;
+  z-index: 2;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-top: 4px;
+  max-width: 500px;
+  text-align: left;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.map-title-wrap {
+  position: relative;
+  overflow: hidden;
+  max-width: 480px;
+  white-space: nowrap;
+}
+
+.map-title-track {
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+.map-title,
+.map-title-ghost {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+.map-title-ghost {
+  display: none;
+  padding-left: 40px;
+}
+
+.map-title-wrap.has-marquee .map-title-ghost {
+  display: inline-block;
+}
+
+.map-title-track.is-marquee {
+  animation: skinMapMarquee var(--title-duration, 12s) linear infinite;
+}
+
+@keyframes skinMapMarquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-1 * var(--title-shift, 200px))); }
+}
+
+/* ==========================================================================
+   MODOS DE VISTA / DENSIDAD (L)
+   ========================================================================== */
+
+/* 1. VIEW FULL (Completo) */
+main#overlay.view-full .dan-title,
+main#overlay.view-full .tier-tag {
+  display: inline-block;
+}
+main#overlay.view-full .map-row {
+  display: block;
+}
+
+/* 2. VIEW COMPACT (Sin mapa) */
+main#overlay.view-compact .map-row {
+  display: none !important;
+}
+
+/* 3. VIEW SYMBOL (Fila horizontal minimalista) */
+main#overlay.view-symbol .dan-title,
+main#overlay.view-symbol .tier-tag,
+main#overlay.view-symbol .map-row {
+  display: none !important;
+}
+
+main#overlay.view-symbol .hud-main {
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+main#overlay.view-symbol .dan-row {
+  display: flex;
+}
+
+main#overlay.view-symbol .msd-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+}

@@ -4,7 +4,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DanOverlay - Hero-Dan Lazer</title>
+  <title>DanOverlay - Josh type shit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;0,900;1,900&family=Space+Mono:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="skin.css" />
 </head>
@@ -55,18 +58,14 @@
     <span id="danName" style="display:none;">—</span>
     <span id="danSub" style="display:none;">—</span>
     <span id="danDpValue" style="display:none;">--</span>
-    <div id="danBg" style="display:none;"></div>
   </div>
 
-  <!-- HERO-DAN LAZER OVERLAY -->
-  <main class="dan-hud expanded" id="overlay">
-    <div class="pillar-left"></div>
-    <div class="pillar-right"></div>
+  <!-- JOSH TYPE SHIT / STREAM HUD -->
+  <main class="stream-hud view-full" id="overlay">
 
-    <div class="side-glow-left"></div>
-    <div class="side-glow-right"></div>
-
-    <canvas id="bg-canvas"></canvas>
+    <!-- Beatmap Background & Scrim -->
+    <div id="danBg"></div>
+    <div class="hud-scrim"></div>
 
     <!-- Standard loading / tutorial / hint / connect overlays -->
     <div class="loading-wrap" id="loadingWrap" style="display:none;">
@@ -93,8 +92,7 @@
         <div class="whats-new-list">
           <div class="whats-new-item">
             <span class="whats-new-bullet">✦</span>
-            <span><strong>Hero-Dan Lazer Skin</strong> — Giant Dan rank title with DP sublevel pills and expandable map
-              bar (press L).</span>
+            <span><strong>Josh type shit</strong> — Clean minimalist stream HUD with smart dynamic Dan symbols, sublevel modifiers, and live MSD counter.</span>
           </div>
         </div>
         <button class="hint-btn hidden" id="whatsNewBtn" type="button">Got it</button>
@@ -125,18 +123,10 @@
       <div class="hint-inner">
         <div class="hint-title">SCORING MODES</div>
         <div class="hint-modes hint-modes-scoring">
-          <span class="hint-mode-item" id="smItem1"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
-              class="hint-key hint-key-sm">1</kbd><span class="hint-mode-icon"
-              style="color:#c5d5f4">◇</span><span>Reform <span class="hint-mode-tag">default</span></span></span>
-          <span class="hint-mode-item" id="smItem2"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
-              class="hint-key hint-key-sm">2</kbd><span class="hint-mode-icon"
-              style="color:#b48cff">✦</span><span>Celestial</span></span>
-          <span class="hint-mode-item" id="smItem3"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
-              class="hint-key hint-key-sm">3</kbd><span class="hint-mode-icon"
-              style="color:#ff9e6b">◆</span><span>Signicial</span></span>
-          <span class="hint-mode-item" id="smItem4"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
-              class="hint-key hint-key-sm">4</kbd><span class="hint-mode-icon"
-              style="color:#5ddfb0">♫</span><span>Shoegazer</span></span>
+          <span class="hint-mode-item" id="smItem1"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">1</kbd><span class="hint-mode-icon" style="color:#c5d5f4">◇</span><span>Reform <span class="hint-mode-tag">default</span></span></span>
+          <span class="hint-mode-item" id="smItem2"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">2</kbd><span class="hint-mode-icon" style="color:#b48cff">✦</span><span>Celestial</span></span>
+          <span class="hint-mode-item" id="smItem3"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">3</kbd><span class="hint-mode-icon" style="color:#ff9e6b">◆</span><span>Signicial</span></span>
+          <span class="hint-mode-item" id="smItem4"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">4</kbd><span class="hint-mode-icon" style="color:#5ddfb0">♫</span><span>Shoegazer</span></span>
         </div>
         <button class="hint-btn hidden" id="hintBtn2" type="button">Next</button>
       </div>
@@ -145,6 +135,9 @@
     <div class="hint-screen hidden" id="hintScreen3">
       <div class="hint-inner">
         <div class="hint-title">LAYOUT MODES</div>
+        <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">L</kbd><span>Cycle Full, Compact &amp; Symbol views</span></span>
+        </div>
         <button class="hint-btn hidden" id="hintBtn3" type="button">Next</button>
       </div>
     </div>
@@ -153,10 +146,8 @@
       <div class="hint-inner">
         <div class="hint-title">QUICK REFERENCE</div>
         <div class="hint-modes hint-modes-scoring" style="gap:8px;margin-top:4px">
-          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">L</kbd><span>Expand / Collapse
-              map details</span></span>
-          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
-              class="hint-key hint-key-sm">,</kbd><span>Open settings panel</span></span>
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">L</kbd><span>Cycle display density</span></span>
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd><span>Open settings panel</span></span>
         </div>
         <button class="hint-btn hidden" id="hintBtn4" type="button">Let's go!</button>
       </div>
@@ -166,10 +157,8 @@
       <div class="hint-inner hint-inner-sm">
         <div class="hint-title" style="font-size:13px;letter-spacing:.18em;opacity:.55;margin-bottom:10px">TIP</div>
         <div class="hint-modes hint-modes-scoring" style="gap:10px;margin-top:0">
-          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd
-              class="hint-key hint-key-sm">,</kbd><span>Open settings panel anywhere</span></span>
-          <span class="hint-mode-item hint-mode-active" style="margin-top:2px"><kbd
-              class="hint-key hint-key-sm">Right-click</kbd><span>Also opens settings</span></span>
+          <span class="hint-mode-item hint-mode-active"><kbd class="hint-key hint-key-sm">Ctrl</kbd><kbd class="hint-key hint-key-sm">,</kbd><span>Open settings panel anywhere</span></span>
+          <span class="hint-mode-item hint-mode-active" style="margin-top:2px"><kbd class="hint-key hint-key-sm">Right-click</kbd><span>Also opens settings</span></span>
         </div>
       </div>
     </div>
@@ -191,8 +180,7 @@
             <span class="connect-sub" id="connectSub">Starting up...</span>
           </div>
         </div>
-        <a class="connect-download hidden" id="connectDownload" href="https://github.com/tosuapp/tosu" target="_blank"
-          rel="noopener noreferrer">
+        <a class="connect-download hidden" id="connectDownload" href="https://github.com/tosuapp/tosu" target="_blank" rel="noopener noreferrer">
           <span class="connect-download-icon">⬇</span> Download tosu
         </a>
         <div class="connect-osu hidden" id="connectOsu">
@@ -202,6 +190,7 @@
       </div>
     </div>
 
+    <!-- Map Transition Screen -->
     <div class="map-transition-screen" id="mapTransitionScreen" aria-hidden="true"></div>
     <div class="paused-overlay" id="pausedOverlay"><span class="paused-overlay-text">PAUSED</span></div>
     <div class="map-progress-wrap" id="progressWrap">
@@ -214,53 +203,30 @@
     </div>
 
     <!-- MAIN HUD CONTENT -->
-    <div class="hud-content" id="ui-content">
-
-      <!-- COMPACT ROW -->
-      <div class="compact-row" id="btn-toggle">
-
-        <!-- HERO DAN BLOCK -->
-        <div class="hero-dan-block">
-          <div class="dan-category" id="ui-category">REFORM 4K</div>
-          <div class="dan-name" id="ui-dan-name">WAITING...</div>
-
-          <div class="tier-sub-group">
-            <div class="tier-pills" id="ui-pills"></div>
-            <div class="tier-label" id="ui-tier">--</div>
-          </div>
-        </div>
-
-        <!-- DP BLOCK -->
-        <div class="dp-block">
-          <div class="dp-label">DP</div>
-          <div class="dp-int" id="ui-dp-int">--</div>
-          <div class="dp-dec" id="ui-dp-dec">.--</div>
-        </div>
+    <div class="hud-main" id="hud-main">
+      <!-- Row 1: Symbol badge, Dan Title, Tier Tag -->
+      <div class="dan-row">
+        <span class="symbol-badge" id="ui-symbol">10TH-</span>
+        <span class="dan-title" id="ui-dan-name">DAN</span>
+        <span class="tier-tag" id="ui-tier-tag">MID-LOW</span>
       </div>
-
-      <!-- EXPANDED SECTION -->
-      <div class="expanded-section">
-        <div class="expanded-inner">
-          <div class="map-divider"></div>
-          <div class="map-header">
-            <div class="map-title-wrap" id="skinMapTitleWrap">
-              <div class="map-title-track" id="skinMapTitleTrack">
-                <span class="map-title" id="skinMapTitle">Waiting for beatmap...</span>
-                <span class="map-title map-title-ghost" id="skinMapTitleGhost" aria-hidden="true">Waiting for beatmap...</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="map-stats-row">
-            <div class="stat-pill"><span class="lbl">MSD</span><span class="val" id="danMetrics">--.-</span></div>
-            <div class="stat-pill"><span class="lbl">STAR RATE</span><span class="val" id="ui-sr">--.-★</span></div>
-            <div class="stat-pill"><span class="lbl">BPM</span><span class="val" id="ui-bpm">--</span></div>
-            <div class="stat-pill"><span class="lbl">LENGTH</span><span class="val" id="ui-len">--:--</span></div>
-          </div>
-        </div>
+      <!-- Row 2: MSD Row -->
+      <div class="msd-row">
+        <span class="msd-val" id="danMetrics">23.31</span>
+        <span class="msd-label">MSD</span>
       </div>
-
     </div>
+
+    <!-- Row 3: Map Row -->
+    <div class="map-row" id="ui-map-row">
+      <div class="map-title-wrap" id="skinMapTitleWrap">
+        <div class="map-title-track" id="skinMapTitleTrack">
+          <span class="map-title" id="skinMapTitle">Waiting for beatmap...</span>
+          <span class="map-title map-title-ghost" id="skinMapTitleGhost" aria-hidden="true">Waiting for beatmap...</span>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <div class="toast" id="toast"></div>
@@ -299,6 +265,13 @@
             </div>
           </div>
           <div class="cfg-row">
+            <label class="cfg-label" for="cfgGreenScreenChk">Green Screen (Chroma Key)</label>
+            <label class="cfg-toggle">
+              <input type="checkbox" id="cfgGreenScreenChk">
+              <span class="cfg-toggle-track"><span class="cfg-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="cfg-row">
             <label class="cfg-label" for="cfgFramelessChk">Frameless Window</label>
             <label class="cfg-toggle">
               <input type="checkbox" id="cfgFramelessChk">
@@ -321,7 +294,7 @@
           </div>
           <div class="cfg-row">
             <label class="cfg-label"></label>
-            <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (594×234)</button>
+            <button class="cfg-btn cfg-cancel" id="cfgResetWinSize" type="button">Reset to Default (540×175)</button>
           </div>
         </section>
 
@@ -337,8 +310,8 @@
               <option value="5">Broadcast Bar</option>
               <option value="6">Dark Vignette</option>
               <option value="7">Sunny Rebirth</option>
-              <option value="8" selected>Hero-Dan Lazer</option>
-              <option value="9">Josh type shit</option>
+              <option value="8">Hero-Dan Lazer</option>
+              <option value="9" selected>Josh type shit</option>
             </select>
           </div>
         </section>
@@ -358,100 +331,6 @@
   </div>
 
   <script src="../overlay.js"></script>
-
-  <!-- Canvas animation script for background triangles -->
-  <script>
-    (function () {
-      const root = document.documentElement;
-      const overlay = document.getElementById('overlay');
-      const canvas = document.getElementById('bg-canvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-
-      const resizeCanvas = () => {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
-      };
-      new ResizeObserver(resizeCanvas).observe(canvas.parentElement);
-      resizeCanvas();
-
-      function colorToRgba(colorStr, alpha) {
-        if (colorStr.startsWith('rgb')) {
-          return colorStr.replace('rgb', 'rgba').replace(')', `, ${alpha})`);
-        }
-        return `rgba(255, 255, 255, ${alpha})`;
-      }
-
-      const numTriangles = 65;
-      const particles = [];
-      for (let i = 0; i < numTriangles; i++) {
-        const depth = Math.random();
-        particles.push({
-          x: Math.random() * 800,
-          y: Math.random() * 300,
-          size: depth * 42 + 10,
-          speed: depth * 0.5 + 0.08,
-          currentSpeedMult: 1,
-          phase: Math.random() * Math.PI * 2,
-          depth: depth,
-          colorIndex: Math.floor(Math.random() * 8)
-        });
-      }
-
-      function render(time) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const isComputing = overlay.classList.contains('computing-mode');
-        const targetSpeedMult = isComputing ? 20 : 1;
-        const c1 = getComputedStyle(root).getPropertyValue('--c1').trim() || '#f94d79';
-        const c2 = getComputedStyle(root).getPropertyValue('--c2').trim() || '#3080f0';
-        const activePalette = (window.__currentPalette && window.__currentPalette.length > 0)
-          ? window.__currentPalette
-          : [c1, c2];
-
-        particles.forEach((p) => {
-          p.currentSpeedMult += (targetSpeedMult - p.currentSpeedMult) * 0.05;
-          p.y -= (p.speed * p.currentSpeedMult);
-
-          if (p.y < -p.size) {
-            p.y = canvas.height + p.size;
-            p.x = Math.random() * canvas.width;
-          }
-
-          const baseColorStr = isComputing
-            ? "rgb(140, 140, 140)"
-            : activePalette[p.colorIndex % activePalette.length];
-
-          const fillAlpha = 0.05 + p.depth * 0.09;
-          const fillColor = colorToRgba(baseColorStr, fillAlpha);
-          const strokeAlpha = (0.24 + Math.sin(time * 0.002 + p.phase) * 0.14) * (p.depth * 0.8 + 0.2);
-          const strokeColor = colorToRgba(baseColorStr, Math.max(0.08, strokeAlpha));
-
-          ctx.save();
-          ctx.translate(p.x, p.y);
-
-          const h = (p.size * Math.sqrt(3)) / 2;
-          ctx.beginPath();
-          ctx.moveTo(0, -h / 2);
-          ctx.lineTo(-p.size / 2, h / 2);
-          ctx.lineTo(p.size / 2, h / 2);
-          ctx.closePath();
-
-          ctx.fillStyle = fillColor;
-          ctx.fill();
-
-          ctx.lineWidth = p.depth > 0.6 ? 1.5 : 1;
-          ctx.strokeStyle = strokeColor;
-          ctx.stroke();
-
-          ctx.restore();
-        });
-
-        requestAnimationFrame(render);
-      }
-
-      requestAnimationFrame(render);
-    })();
-  </script>
 
   <div id="exportChartContainer" style="display:none;position:absolute;left:-9999px;top:-9999px;">
     <canvas id="exportCanvas" width="1800" height="980"></canvas>

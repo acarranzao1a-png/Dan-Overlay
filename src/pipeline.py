@@ -9,6 +9,7 @@
 # a direct skillset-calibrated boundary interpolation.
 
 import concurrent.futures
+import copy
 import os
 import sys
 
@@ -328,6 +329,45 @@ def _classify_ln_family(features: dict) -> str:
     return "allround"
 
 
+def _monotonic_floor(lo_res, hi_res, dp_to_label, dp_to_sublevel, fields_fns, dp_key):
+    """Floor *hi_res* against *lo_res* so results never decrease with rate.
+
+    The Sunny formula is intrinsically non-monotonic in rate (W-shape), so
+    native anchors can be inverted (e.g. SR at DT 1.5 < SR at NM).  Flooring
+    the hi anchor keeps the interpolated/extrapolated curve monotonic across
+    the native boundary instead of dipping; labels are re-derived from the
+    floored DP.
+    """
+    hi = dict(hi_res)
+    dp_floored = False
+    for _f in ("dp", "sr"):
+        _v_lo = float(lo_res.get(_f, 0.0) or 0.0)
+        _v_hi = float(hi.get(_f, 0.0) or 0.0)
+        if _v_hi < _v_lo:
+            hi[_f] = _v_lo
+            if _f == "dp":
+                dp_floored = True
+    if dp_floored:
+        _dp = float(hi.get("dp", 0.0) or 0.0)
+        if _dp > 0:
+            _label, _short = dp_to_label(_dp)
+            hi["dan_label"] = _label
+            hi["dan_short"] = _short
+            hi["sublevel"] = dp_to_sublevel(_dp)
+    for _mk in ("celestial", "signicial", "shoegazer", "ln_course"):
+        _m_lo = lo_res.get(_mk)
+        _m_hi = hi.get(_mk)
+        if isinstance(_m_lo, dict) and isinstance(_m_hi, dict):
+            _dpk = dp_key[_mk]
+            _a = float(_m_lo.get(_dpk, 0.0) or 0.0)
+            _b = float(_m_hi.get(_dpk, 0.0) or 0.0)
+            if _b < _a:
+                hi[_mk] = dict(_m_hi)
+                hi[_mk][_dpk] = round(_a, 3)
+                hi[_mk].update(fields_fns[_mk](_a))
+    return hi
+
+
 def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
     """Estimate the Dan rank using the core pipeline runtime logic.
 
@@ -347,94 +387,94 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
     dict
         Structured analysis payload for the overlay.
     """
-    # ── Custom-rate interpolation of the FINAL result ──────────────
-    # The Sunny SR and MinaCalc MSD are interpolated natively, but the
-    # final DP can still be non-monotonic because the MSD family override
-    # re-routes the DP through a per-skillset ruler whose family flips
-    # with the rate.  Computing the full result at the nearest native
-    # rates and interpolating the final fields is monotonic by
-    # construction and universal (4K, 7K, LN, all alternative modes).
+    # ── Custom lazer clock rates ───────────────────────────────────
+    # The primary SR bridge scales the .osu hit times by 1/rate and runs
+    # the Sunny engine directly (same approach as ManiaMapAnalyser /
+    # huismetbenen), so custom rates get the TRUE engine SR — not a linear
+    # interpolation between native anchors, which underrates mid rates.
+    # The engine's raw response can dip on some maps ("W" shape), so the
+    # final DP is floored against the nearest lower native anchor below to
+    # keep the dan non-decreasing with the rate.  Native rates (0.75/1.0/1.5)
+    # always show the engine's own values untouched.
     if rate is not None:
         _r = round(float(rate), 4)
         _NATIVE = (0.75, 1.0, 1.5)
+
+        from rank_engine import dp_to_label, dp_to_sublevel
+
+        _fields_fns = {
+            "celestial": _celestial_fields_from_dp,
+            "signicial": _signicial_fields_from_dp,
+            "shoegazer": _shoegazer_fields_from_dp,
+            "ln_course": _ln_course_fields_from_dp,
+        }
+        _dp_key = {
+            "celestial": "dp_celestial",
+            "signicial": "dp_signicial",
+            "shoegazer": "dp_shoegazer",
+            "ln_course": "dp_ln",
+        }
+
         if _r not in _NATIVE:
-            _lo, _hi = None, None
-            if _r < _NATIVE[0]:
-                # Extrapolate below HT (0.75x) against the 0.75-1.0 segment so
-                # lazer rates like 0.5x keep following the rate (t goes negative).
-                _lo, _hi = _NATIVE[0], _NATIVE[1]
-                _t = (_r - _lo) / max(_hi - _lo, 1e-9)
-            elif _r > _NATIVE[-1]:
-                _lo, _hi = _NATIVE[-2], _NATIVE[-1]
-                _t = 1.0 + (_r - _hi) / max(_hi - _lo, 1e-9)
-            else:
-                for i in range(len(_NATIVE) - 1):
-                    if _NATIVE[i] <= _r <= _NATIVE[i + 1]:
-                        _lo, _hi = _NATIVE[i], _NATIVE[i + 1]
-                        break
-                _t = (_r - _lo) / max(_hi - _lo, 1e-9)
-
-            _res_lo = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_lo)
-            _res_hi = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_hi)
-            if isinstance(_res_lo, dict) and isinstance(_res_hi, dict) \
-                    and _res_lo.get("dp") is not None and _res_hi.get("dp") is not None:
-                from rank_engine import dp_to_label, dp_to_sublevel
-
-                _interp_result = dict(_res_lo)
-                _NUMERIC = [
-                    "dp", "sr", "overall_msd", "confidence",
-                    "bpm", "bpm_min", "bpm_max", "bpm_common", "od",
-                ]
-                for _f in _NUMERIC:
-                    _v_lo = float(_res_lo.get(_f, 0.0) or 0.0)
-                    _v_hi = float(_res_hi.get(_f, 0.0) or 0.0)
-                    _interp_result[_f] = round(_v_lo + _t * (_v_hi - _v_lo), 2)
-
-                # Dan label/sublevel derived from interpolated DP
-                _interp_result["dp"] = round(_res_lo.get("dp", 0.0) + _t * (_res_hi.get("dp", 0.0) - _res_lo.get("dp", 0.0)), 2)
-                _label, _short = dp_to_label(_interp_result["dp"])
-                _interp_result["dan_label"] = _label
-                _interp_result["dan_short"] = _short
-                _interp_result["sublevel"] = dp_to_sublevel(_interp_result["dp"])
-
-                # Interpolate alternative-mode estimates (celestial etc.)
-                _fields_fns = {
-                    "celestial": _celestial_fields_from_dp,
-                    "signicial": _signicial_fields_from_dp,
-                    "shoegazer": _shoegazer_fields_from_dp,
-                    "ln_course": _ln_course_fields_from_dp,
-                }
-                _dp_key = {
-                    "celestial": "dp_celestial",
-                    "signicial": "dp_signicial",
-                    "shoegazer": "dp_shoegazer",
-                    "ln_course": "dp_ln",
-                }
-                for _mk in ("celestial", "signicial", "shoegazer", "ln_course"):
-                    _m_lo = _res_lo.get(_mk)
-                    _m_hi = _res_hi.get(_mk)
-                    if isinstance(_m_lo, dict) and isinstance(_m_hi, dict):
-                        _interp_result[_mk] = dict(_m_lo)
-                        for _mf in ("dp_celestial", "dp_signicial", "dp_shoegazer", "dp_ln", "confidence"):
-                            if _mf in _m_lo and _mf in _m_hi:
-                                _a = float(_m_lo.get(_mf, 0.0) or 0.0)
-                                _b = float(_m_hi.get(_mf, 0.0) or 0.0)
-                                _interp_result[_mk][_mf] = round(_a + _t * (_b - _a), 2)
-                        # Re-derive dp-dependent display fields (stage/label/short/
-                        # subtitle/tier/beyond).  The dict was copied from the NM
-                        # result, so without this the stage would revert to the NM
-                        # value on every custom rate (e.g. Signicial Alpha → DT 1.4×).
-                        _dpf = _interp_result[_mk].get(_dp_key[_mk])
-                        if _dpf is not None:
-                            _interp_result[_mk].update(_fields_fns[_mk](float(_dpf)))
-
-                _interp_result["custom_rate_interpolated"] = True
-                return _interp_result
+            # ── Custom lazer rate: run the engine directly ───────────
+            # The primary SR bridge scales the .osu hit times by 1/rate and
+            # runs the Sunny engine (same approach as ManiaMapAnalyser /
+            # huismetbenen), so the result carries the TRUE SR/DP at the
+            # custom rate — a linear interpolation between native anchors
+            # would underrate mid rates (the SR-vs-rate curve is not linear).
+            # The engine's raw response can still dip on some maps ("W"), so
+            # the result is floored against the nearest lower native anchor
+            # to keep the dan non-decreasing with the rate.
+            _res = _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=_r)
+            if isinstance(_res, dict) and _res.get("dp") is not None:
+                _floor_anchor = _NATIVE[0] if _r < _NATIVE[1] else _NATIVE[1]
+                _res_floor = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_floor_anchor)
+                if isinstance(_res_floor, dict) and _res_floor.get("dp") is not None:
+                    _res = _monotonic_floor(_res_floor, _res, dp_to_label, dp_to_sublevel, _fields_fns, _dp_key)
+                _res["custom_rate_direct"] = True
+                return _res
+            return _res
 
     return _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
 
 
+# ── Full-result cache for _analyze_map_impl ────────────────────────
+# The Sunny engine (~300 ms on dense maps) is the dominant cost.  Internal
+# calls (e.g. the monotonicity-floor anchor of a custom rate, or mod toggles)
+# re-ran the whole impl — parse + features + Sunny + msd.exe — every time.
+# Keyed by (path, mtime, mod, strict_domain, rate) like the other caches;
+# results are deep-copied on read/write so callers can safely mutate them.
+_impl_cache: dict[tuple, dict] = {}
+_IMPL_CACHE_MAX = 96
+
+
 def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None):
+    try:
+        _mtime = os.stat(osu_path).st_mtime_ns
+    except OSError:
+        _mtime = 0
+    _key = (
+        os.path.abspath(osu_path),
+        _mtime,
+        mod,
+        bool(strict_domain),
+        round(float(rate) if rate is not None else 1.0, 4),
+    )
+    _hit = _impl_cache.get(_key)
+    if _hit is not None:
+        return copy.deepcopy(_hit)
+
+    _result = _analyze_map_impl_inner(osu_path, mod, strict_domain, rate)
+
+    if isinstance(_result, dict):
+        _impl_cache[_key] = copy.deepcopy(_result)
+        if len(_impl_cache) > _IMPL_CACHE_MAX:
+            _impl_cache.pop(next(iter(_impl_cache)))
+
+    return _result
+
+
+def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None):
     """Core pipeline implementation (no custom-rate interpolation)."""
     from parser import parsear_osu_v2
     from validator import validate_domain

@@ -21,12 +21,8 @@ __pycache__/
 backup_pre_cleanup.bat
 b64.txt
 
-# PyInstaller specs (only the canonical one is kept)
-DanOverlay 2.0 Beta.spec
-DanOverlay 2.0.spec
-DanOverlay 2.1.spec
-DanOverlay 2.1.1.spec
-DanOverlay 2.2.0-beta.spec
+# PyInstaller specs (generated into build\spec via --specpath; never tracked)
+*.spec
 
 # In-development skins
 prototype/

@@ -14,9 +14,9 @@ setlocal
 :: ══════════════════════════════════════════════════════════════
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=2.3.1"
+set "APP_VERSION=2.3.5"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
-set "ENTRY=src\01_overlay_ui\main.py"
+set "ENTRY=%CD%\src\01_overlay_ui\main.py"
 
 :: Build options
 set "BUILD_MODE=--onefile"
@@ -183,18 +183,18 @@ if exist "%BUILD_NAME%.spec"      del /q "%BUILD_NAME%.spec"
 ::  resource_path() in code relies on these paths.
 
 set "DATA="
-set "DATA=%DATA% --add-data "src\01_overlay_ui\web;web""
-set "DATA=%DATA% --add-data "config;config""
-set "DATA=%DATA% --add-data "tools\bin\msd.exe;.""
+set "DATA=%DATA% --add-data "%CD%\src\01_overlay_ui\web;web""
+set "DATA=%DATA% --add-data "%CD%\config;config""
+set "DATA=%DATA% --add-binary "%CD%\tools\bin\msd.exe;.""
 if not "%FFMPEG_BIN%"=="" set "DATA=%DATA% --add-binary "%FFMPEG_BIN%;.""
 
 :: ── Module Search Paths ───────────────────────────────────────
 set "PATHS="
-set "PATHS=%PATHS% --paths "src""
-set "PATHS=%PATHS% --paths "src\01_overlay_ui""
-set "PATHS=%PATHS% --paths "src\02_runtime_bridge""
-set "PATHS=%PATHS% --paths "src\03_engine_reference""
-set "PATHS=%PATHS% --paths "src\07_model""
+set "PATHS=%PATHS% --paths "%CD%\src""
+set "PATHS=%PATHS% --paths "%CD%\src\01_overlay_ui""
+set "PATHS=%PATHS% --paths "%CD%\src\02_runtime_bridge""
+set "PATHS=%PATHS% --paths "%CD%\src\03_engine_reference""
+set "PATHS=%PATHS% --paths "%CD%\src\07_model""
 
 :: ── Hidden imports ────────────────────────────────────────────
 ::  Modules imported dynamically that PyInstaller might miss.
@@ -266,7 +266,10 @@ if not "%FFMPEG_BIN%"=="" (
     %BUILD_MODE% ^
     --noconsole ^
     --name "%BUILD_NAME%" ^
-    --icon "src\01_overlay_ui\web\graph.ico" ^
+    --specpath "%CD%\build\spec" ^
+    --workpath "%CD%\build" ^
+    --distpath "%CD%\dist" ^
+    --icon "%CD%\src\01_overlay_ui\web\graph.ico" ^
     --noupx ^
     %DATA% ^
     %PATHS% ^
