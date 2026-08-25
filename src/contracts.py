@@ -157,11 +157,13 @@ class AnalysisResult:
     tier_7k: str = ""
     sublevel_7k: str = ""
     dp_7k: float = 0.0
+    engine: str = "isor"
 
     def to_dict(self):
         return {
             "type": "analysis",
             "state": self.state,
+            "engine": self.engine,
             "mode": "7k" if self.mode_7k else "",
             "tier_7k": self.tier_7k,
             "sublevel_7k": self.sublevel_7k,
@@ -218,6 +220,7 @@ class AnalysisResult:
                 state=STATE_ERROR,
                 error=str(raw["error"]),
                 warnings=raw.get("warnings", []),
+                engine=str(raw.get("engine", "isor") or "isor"),
             )
 
         dp = float(raw.get("dp", 0) or 0)
@@ -281,4 +284,5 @@ class AnalysisResult:
             tier_7k=str(raw.get("tier_7k", "") or ""),
             sublevel_7k=str(raw.get("sublevel_7k", "") or ""),
             dp_7k=float(raw.get("dp_7k", 0) or 0),
+            engine=str(raw.get("engine", "isor") or "isor"),
         )

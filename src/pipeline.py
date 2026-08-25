@@ -16,6 +16,7 @@ import sys
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(_ROOT, "02_runtime_bridge"))
 sys.path.insert(0, os.path.join(_ROOT, "07_model"))
+sys.path.insert(0, os.path.join(_ROOT, "08_isor_engine"))
 sys.path.insert(0, os.path.join(_ROOT, "03_engine_reference", "sr_core"))
 
 from minacalc_estimator import estimate as _minacalc_estimate
@@ -368,7 +369,141 @@ def _monotonic_floor(lo_res, hi_res, dp_to_label, dp_to_sublevel, fields_fns, dp
     return hi
 
 
-def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
+def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None):
+    """Execution path for the ISOR engine (Isotonic Strain Organic Residual)."""
+    from parser import parsear_osu_v2
+    from validator import validate_domain
+    from isor_engine import analyze_beatmap_isor
+    from feature_extractor import extract_features
+
+    try:
+        parsed = parsear_osu_v2(osu_path, enforce_mode_mania=True)
+    except Exception as exc:
+        return _error_payload(f"parse_error: {exc}")
+
+    if parsed.get("rejected"):
+        return _error_payload(
+            "domain_rejected",
+            warnings=parsed.get("warnings", []),
+        )
+
+    domain = validate_domain(parsed)
+    if strict_domain and not domain.get("valid", True):
+        return _error_payload("domain_out_of_range")
+
+    # If 7K or LN-dominant (LN ratio > 0.18), use the specialized 7K/LN legacy logic
+    _ln_route = str(domain.get("ln_route", "rice") or "rice")
+    if domain.get("is_7k") or _ln_route == "ln":
+        res = _analyze_map_impl_inner(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
+        if isinstance(res, dict):
+            res["engine"] = "isor"
+        return res
+
+    # 4K Rice beatmap: run ISOR
+    try:
+        raw_isor = analyze_beatmap_isor(osu_path, mod=mod, rate=rate, parsed=parsed, domain=domain)
+        if not raw_isor or raw_isor.get("error"):
+            return _error_payload(raw_isor.get("error") if raw_isor else "isor_analysis_failed")
+    except Exception as exc:
+        return _error_payload(f"isor_error: {exc}")
+
+    features = raw_isor.get("features") or extract_features(parsed)
+    msd_res = raw_isor.get("msd") or {}
+    sunny_strains = raw_isor.get("sunny_strains") or {}
+    raw_sr = float(raw_isor.get("raw_sr", 0.0) or 0.0)
+    family = str(raw_isor.get("family", "hybrid") or "hybrid")
+
+    # Build MSD skillset dict for roles/ui
+    _overall_msd = float(msd_res.get("overall", 0.0) or 0.0) if isinstance(msd_res, dict) else 0.0
+    _skillsets = {}
+    if isinstance(msd_res, dict):
+        for k in ("stream", "jumpstream", "handstream", "stamina", "jackspeed", "chordjack", "technical"):
+            if k in msd_res:
+                _skillsets[k] = float(msd_res[k])
+
+    # Rate adjusted map stats
+    _MOD_RATE = {"HT": 0.75, "DT": 1.5, "NC": 1.5, "NM": 1.0}
+    _effective_bpm_rate = rate if rate is not None else _MOD_RATE.get(mod, 1.0)
+    _raw_bpm = float(features.get("bpm", 0.0) or 0.0)
+    _raw_min = float(parsed.get("bpm_min", _raw_bpm) or _raw_bpm)
+    _raw_max = float(parsed.get("bpm_max", _raw_bpm) or _raw_bpm)
+    _raw_common = float(parsed.get("bpm_common", _raw_bpm) or _raw_bpm)
+
+    # Derive auxiliary ladders: ISOR exclusively supports Reform and Celestial
+    from celestial_estimator import estimate_from_isor_dp as _celestial_from_isor_dp
+
+    cel_obj = _celestial_from_isor_dp(raw_isor.get("dp", 0.0))
+    celestial_res = cel_obj.to_dict() if cel_obj is not None else None
+    signicial_res = None
+    shoegazer_res = None
+
+    # Sunny debug structure
+    debug = {
+        "sr_result": {
+            "jbar_max": float(sunny_strains.get("jbar_max", 0.0) or 0.0),
+            "pbar_max": float(sunny_strains.get("pbar_max", 0.0) or 0.0),
+            "xbar_max": float(sunny_strains.get("xbar_max", 0.0) or 0.0),
+            "abar_mean": float(sunny_strains.get("abar_mean", 0.0) or 0.0),
+        },
+        "isor": {
+            "weights": raw_isor.get("weights", {}),
+            "dp_sr": raw_isor.get("dp_sr"),
+            "dp_choke": raw_isor.get("dp_choke"),
+            "dp_msd": raw_isor.get("dp_msd"),
+            "dp_bio": raw_isor.get("dp_bio"),
+            "bio_numeric": raw_isor.get("bio_numeric"),
+            "sk_key": raw_isor.get("sk_key"),
+            "ridge_correction": raw_isor.get("ridge_correction", 0.0),
+            "modulated_sr": raw_isor.get("modulated_sr"),
+        }
+    }
+
+    _drain_s = float(domain.get("drain_time_s", 0.0) or 0.0)
+    _note_count = int(domain.get("note_count", 0) or 0)
+    _avg_nps = (_note_count / _drain_s) if _drain_s > 0 else 0.0
+
+    return {
+        "engine": "isor",
+        "dp": raw_isor["dp"],
+        "dan_label": raw_isor["dan_label"],
+        "dan_short": raw_isor["dan_short"],
+        "sublevel": raw_isor["sublevel"],
+        "confidence": float(raw_isor.get("family_confidence", 1.0) or 1.0),
+        "sr": raw_sr,
+        "family": family,
+        "mod": mod or "NM",
+        "corrections": [f"isor_ridge:{raw_isor.get('ridge_correction', 0.0):+.3f}"] if raw_isor.get("ridge_correction") else [],
+        "nps": round(_avg_nps, 1),
+        "peak_nps": float(features.get("nps_p90", 0.0) or 0.0),
+        "nps_curve": features.get("nps_curve", []),
+        "duration_s": _drain_s,
+        "note_count": _note_count,
+        "warnings": parsed.get("warnings", []) + domain.get("warnings", []),
+        "error": None,
+        "debug": debug,
+        "overall_msd": _overall_msd,
+        "primary_role": family,
+        "role_estimates": {},
+        "skillsets": _skillsets,
+        "composite_dan": "",
+        "bottleneck_role": "",
+        "is_generalist": False,
+        "role_breakdown_text": "",
+        "celestial": celestial_res,
+        "signicial": signicial_res,
+        "shoegazer": shoegazer_res,
+        "ln_course": None,
+        "ln_route": _ln_route,
+        "strain_graph": None,
+        "bpm": round(_raw_bpm * _effective_bpm_rate, 1),
+        "bpm_min": int(round(_raw_min * _effective_bpm_rate)),
+        "bpm_max": int(round(_raw_max * _effective_bpm_rate)),
+        "bpm_common": int(round(_raw_common * _effective_bpm_rate)),
+        "od": round(float(parsed.get("od", 0.0) or 0.0), 1),
+    }
+
+
+def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None, engine=None):
     """Estimate the Dan rank using the core pipeline runtime logic.
 
     Parameters
@@ -381,22 +516,18 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
         If True, returns error if the beatmap is outside standard constraints.
     rate : float or None
         Custom rate (e.g. from lazer). If None, mod default rate is used.
+    engine : str or None
+        "isor" (default) or "legacy".
 
     Returns
     -------
     dict
         Structured analysis payload for the overlay.
     """
-    # ── Custom lazer clock rates ───────────────────────────────────
-    # The primary SR bridge scales the .osu hit times by 1/rate and runs
-    # the Sunny engine directly (same approach as ManiaMapAnalyser /
-    # huismetbenen), so custom rates get the TRUE engine SR — not a linear
-    # interpolation between native anchors, which underrates mid rates.
-    # The engine's raw response can dip on some maps ("W" shape), so the
-    # final DP is floored against the nearest lower native anchor below to
-    # keep the dan non-decreasing with the rate.  Native rates (0.75/1.0/1.5)
-    # always show the engine's own values untouched.
-    if rate is not None:
+    _engine = str(engine or "isor").lower().strip()
+
+    # ── Custom lazer clock rates (Legacy path) ───────────────────────
+    if _engine == "legacy" and rate is not None:
         _r = round(float(rate), 4)
         _NATIVE = (0.75, 1.0, 1.5)
 
@@ -416,39 +547,25 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None):
         }
 
         if _r not in _NATIVE:
-            # ── Custom lazer rate: run the engine directly ───────────
-            # The primary SR bridge scales the .osu hit times by 1/rate and
-            # runs the Sunny engine (same approach as ManiaMapAnalyser /
-            # huismetbenen), so the result carries the TRUE SR/DP at the
-            # custom rate — a linear interpolation between native anchors
-            # would underrate mid rates (the SR-vs-rate curve is not linear).
-            # The engine's raw response can still dip on some maps ("W"), so
-            # the result is floored against the nearest lower native anchor
-            # to keep the dan non-decreasing with the rate.
-            _res = _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=_r)
+            _res = _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=_r, engine="legacy")
             if isinstance(_res, dict) and _res.get("dp") is not None:
                 _floor_anchor = _NATIVE[0] if _r < _NATIVE[1] else _NATIVE[1]
-                _res_floor = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_floor_anchor)
+                _res_floor = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_floor_anchor, engine="legacy")
                 if isinstance(_res_floor, dict) and _res_floor.get("dp") is not None:
                     _res = _monotonic_floor(_res_floor, _res, dp_to_label, dp_to_sublevel, _fields_fns, _dp_key)
                 _res["custom_rate_direct"] = True
                 return _res
             return _res
 
-    return _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
+    return _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=rate, engine=_engine)
 
 
 # ── Full-result cache for _analyze_map_impl ────────────────────────
-# The Sunny engine (~300 ms on dense maps) is the dominant cost.  Internal
-# calls (e.g. the monotonicity-floor anchor of a custom rate, or mod toggles)
-# re-ran the whole impl — parse + features + Sunny + msd.exe — every time.
-# Keyed by (path, mtime, mod, strict_domain, rate) like the other caches;
-# results are deep-copied on read/write so callers can safely mutate them.
 _impl_cache: dict[tuple, dict] = {}
 _IMPL_CACHE_MAX = 96
 
 
-def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None):
+def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None, engine="isor"):
     try:
         _mtime = os.stat(osu_path).st_mtime_ns
     except OSError:
@@ -459,12 +576,18 @@ def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None):
         mod,
         bool(strict_domain),
         round(float(rate) if rate is not None else 1.0, 4),
+        str(engine).lower(),
     )
     _hit = _impl_cache.get(_key)
     if _hit is not None:
         return copy.deepcopy(_hit)
 
-    _result = _analyze_map_impl_inner(osu_path, mod, strict_domain, rate)
+    if str(engine).lower() == "isor":
+        _result = _analyze_map_isor(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
+    else:
+        _result = _analyze_map_impl_inner(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
+        if isinstance(_result, dict):
+            _result["engine"] = "legacy"
 
     if isinstance(_result, dict):
         _impl_cache[_key] = copy.deepcopy(_result)

@@ -97,6 +97,8 @@ canvas#bg-canvas {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .dan-category {
@@ -114,7 +116,7 @@ canvas#bg-canvas {
   animation: none !important;
   line-height: 1;
   text-shadow: 0 0 20px var(--c1), 0 2px 6px rgba(0,0,0,0.9) !important;
-  transition: text-shadow 0.3s ease;
+  transition: text-shadow 0.3s ease, font-size 0.2s ease, letter-spacing 0.2s ease;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   position: relative;
   isolation: auto;

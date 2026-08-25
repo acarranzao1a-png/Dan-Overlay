@@ -12,8 +12,17 @@
 
 import logging
 import os
+import sys
 import threading
 import time
+
+_SRC_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _SRC_ROOT not in sys.path:
+    sys.path.insert(0, _SRC_ROOT)
+for _sub in ("02_runtime_bridge", "07_model", "08_isor_engine", os.path.join("03_engine_reference", "sr_core")):
+    _p = os.path.join(_SRC_ROOT, _sub)
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from events import (
     MAP_CHANGED, ANALYSIS_STARTED, ANALYSIS_COMPLETE,
@@ -28,8 +37,8 @@ class AnalysisCoordinator:
     """Listens for map changes and runs the analysis pipeline.
 
     * One analysis at a time; rapid map switches invalidate old results.
-    * Results are cached by (path, mod_label) so revisiting a map is instant.
-    * The pipeline import is deferred so the coordinator can be created early.
+    * Results are cached by (path, mod_label, mod_speed, engine) so revisiting a map is instant.
+    * Supports runtime engine switching between ISOR and Legacy.
     """
 
     _DEBOUNCE_S = 0.2
@@ -42,6 +51,7 @@ class AnalysisCoordinator:
         self._seq = 0
         self._current_token = None
         self._lock = threading.Lock()
+        self._active_engine = self._read_engine_from_settings()
 
         event_bus.subscribe(MAP_CHANGED, self._on_map_changed)
 
@@ -60,6 +70,31 @@ class AnalysisCoordinator:
         self._worker = threading.Thread(target=self._worker_loop, daemon=True)
         self._worker.start()
 
+    def _read_engine_from_settings(self) -> str:
+        try:
+            import json
+            from pathlib import Path
+            if sys.platform.startswith("win"):
+                base = Path(os.environ.get("APPDATA") or Path.home())
+            else:
+                base = Path.home() / ".config"
+            settings_file = base / "DanOverlay" / "settings.json"
+            if settings_file.is_file():
+                data = json.loads(settings_file.read_text(encoding="utf-8"))
+                return str(data.get("engine", "isor") or "isor").lower().strip()
+        except Exception:
+            pass
+        return "isor"
+
+    def set_engine(self, engine: str):
+        """Switch calculation engine dynamically and re-analyze active map."""
+        engine = str(engine or "isor").lower().strip()
+        with self._lock:
+            changed = (engine != self._active_engine)
+            self._active_engine = engine
+        if changed and self._pending_map is not None:
+            self._on_map_changed(self._pending_map)
+
     # ── warmup (cold-start elimination) ────────────────────────────
 
     def _warmup(self):
@@ -75,6 +110,7 @@ class AnalysisCoordinator:
             import feature_extractor
             import classifier
             import rank_engine
+            import isor_engine
         except Exception:
             pass
         finally:
@@ -83,7 +119,8 @@ class AnalysisCoordinator:
     # ── event handler ───────────────────────────────────────────────
 
     def _on_map_changed(self, map_info):
-        cache_key = (map_info.path, map_info.mod_label, round(map_info.mod_speed, 4))
+        engine = self._active_engine
+        cache_key = (map_info.path, map_info.mod_label, round(map_info.mod_speed, 4), engine)
 
         with self._lock:
             self._seq += 1
@@ -143,10 +180,12 @@ class AnalysisCoordinator:
             if map_info is None:
                 continue
 
+            engine = self._active_engine
             cache_key = (
                 map_info.path,
                 map_info.mod_label,
                 round(map_info.mod_speed, 4),
+                engine,
             )
 
             # Wait for warmup so the first analysis is fast.
@@ -160,7 +199,7 @@ class AnalysisCoordinator:
 
                 mod = map_info.mod_label or "NM"
                 raw = analyze_map(
-                    map_info.path, mod=mod, rate=map_info.mod_speed
+                    map_info.path, mod=mod, rate=map_info.mod_speed, engine=engine
                 )
                 raw["osu_sr"] = map_info.sr_official
 

@@ -422,3 +422,97 @@ def estimate(skillsets: dict, sr: float | None = None,
 
     # ── Fallback: MSD distance matching ───────────────────────────────────────
     return _estimate_msd_fallback(msd)
+
+
+_RULER_PATH = (
+    os.path.join(sys._MEIPASS, "config", "celestial_ruler.json")
+    if getattr(sys, "frozen", False)
+    else os.path.join(_ROOT, "config", "celestial_ruler.json")
+)
+
+_isor_celestial_boundaries: list[tuple[float, float, int]] | None = None
+
+
+def _load_isor_celestial_ruler() -> list[tuple[float, float, int]] | None:
+    global _isor_celestial_boundaries
+    if _isor_celestial_boundaries is not None:
+        return _isor_celestial_boundaries
+
+    if not os.path.isfile(_RULER_PATH):
+        return None
+
+    try:
+        with open(_RULER_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+            means = data.get("slot_means", [])
+            if not means or len(means) != 35:
+                return None
+            means_clean = [float(m) for m in means]
+    except Exception:
+        return None
+
+    n = len(means_clean)
+    boundaries = []
+    for i in range(n):
+        if i > 0:
+            lo = (means_clean[i - 1] + means_clean[i]) / 2.0
+        else:
+            lo = means_clean[0] - ((means_clean[1] - means_clean[0]) / 2.0 if n > 1 else 1.0)
+
+        if i < n - 1:
+            hi = (means_clean[i] + means_clean[i + 1]) / 2.0
+        else:
+            hi = means_clean[-1] + ((means_clean[-1] - means_clean[-2]) / 2.0 if n > 1 else 1.0)
+
+        boundaries.append((lo, hi, i + 1))
+
+    _isor_celestial_boundaries = boundaries
+    return _isor_celestial_boundaries
+
+
+def estimate_from_isor_dp(dp: float) -> CelestialResult | None:
+    """Estimate Dan Celestial tier + category directly from ISOR continuous DP using celestial_ruler.json."""
+    boundaries = _load_isor_celestial_ruler()
+    if not boundaries:
+        return None
+
+    dp_val = float(dp)
+    t = 0.5
+    if dp_val < boundaries[0][0]:
+        dp_celestial = 1.0
+        beyond = False
+        t = 0.0
+    elif dp_val >= boundaries[-1][1]:
+        dp_celestial = min(35.99, 35.0 + (dp_val - boundaries[-1][1]) / 2.0)
+        beyond = True
+        t = 1.0
+    else:
+        dp_celestial = 1.0
+        beyond = False
+        for lo, hi, slot_num in boundaries:
+            if lo <= dp_val < hi:
+                width = max(hi - lo, 1e-6)
+                t = (dp_val - lo) / width
+                dp_celestial = float(slot_num) + t
+                beyond = False
+                break
+
+    dp_clamped = max(0.5, min(35.99, dp_celestial))
+    slot = _dp_to_slot(dp_clamped)
+    if slot is None:
+        return None
+
+    tier, cat = slot
+    conf = _confidence_from_frac(max(0.0, min(1.0, t)))
+    short = f"{_TIER_SHORT[tier]}-{cat}"
+    label = f"{tier} {cat}"
+    return CelestialResult(
+        tier=tier,
+        category=cat,
+        short_label=short,
+        label=label,
+        confidence=conf,
+        dp_celestial=round(dp_clamped, 3),
+        beyond=beyond,
+    )
+

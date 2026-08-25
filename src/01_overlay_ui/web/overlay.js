@@ -463,6 +463,7 @@ const _CURRENT_SKIN = window.location.href.includes("/ui-9/") ? "9"
               : "1";
 
 let _settings = {
+  engine: "isor", // "isor" (Isotonic Strain Organic Residual) | "legacy" (Sunny + MinaCalc v3)
   blur: _DEF_BLUR,
   brightness: _DEF_BRIGHT,
   layout: "complete",
@@ -511,6 +512,9 @@ async function _loadSettings() {
   if (!raw) return;
   try {
     const saved = JSON.parse(raw);
+    if (typeof saved.engine === "string" && ["isor", "legacy"].includes(saved.engine.toLowerCase())) {
+      _settings.engine = saved.engine.toLowerCase();
+    }
     if (typeof saved.blur === "number") _settings.blur = saved.blur;
     if (typeof saved.brightness === "number") _settings.brightness = saved.brightness;
     if (typeof saved.logoSize === "number") _settings.logoSize = Math.max(0, Math.min(100, saved.logoSize));
@@ -1347,6 +1351,15 @@ function _renderAnalysisPayload(payload) {
   const _signicialRaw = payload.signicial;
   const _shoegazerRaw = payload.shoegazer;
 
+  // ISOR Engine strictly supports Reform and Celestial scoring modes
+  const isIsorEngine = (payload.engine === "isor" || _settings.engine === "isor");
+  if (isIsorEngine && _scoringMode !== "celestial" && _scoringMode !== "reform") {
+    _scoringMode = "reform";
+    _lnModePinned = false;
+    _lnOverrideActive = false;
+    _updateScoringModeBadge();
+  }
+
   if (payload.mode === "7k" && payload.tier_7k) {
       const tDp = Number(payload.dp_7k || 0);
       lastDanRaw = "7K Tier: " + payload.tier_7k;
@@ -1655,7 +1668,11 @@ function _startSkin8DotsAnimation() {
   const updateDots = () => {
     const dots = ".".repeat(count);
     const danEl = document.getElementById("ui-dan-name");
-    if (danEl) danEl.textContent = dots;
+    if (danEl) {
+      danEl.textContent = dots;
+      danEl.style.fontSize = "";
+      danEl.style.letterSpacing = "";
+    }
     const intEl = document.getElementById("ui-dp-int");
     if (intEl) intEl.textContent = dots;
     const decEl = document.getElementById("ui-dp-dec");
@@ -1769,6 +1786,21 @@ function _updateHeroDanLazerSkin(payload) {
   if (catEl) catEl.textContent = category;
 
   danNameEl.textContent = danName;
+
+  // Dynamic font scaling for long tier names (e.g. Celestial TRANSCENDENCE, INTERMEDIATE, GRANDMASTER)
+  if (danName.length >= 13) {
+    danNameEl.style.fontSize = "22px";
+    danNameEl.style.letterSpacing = "0.5px";
+  } else if (danName.length >= 11) {
+    danNameEl.style.fontSize = "26px";
+    danNameEl.style.letterSpacing = "1px";
+  } else if (danName.length >= 9) {
+    danNameEl.style.fontSize = "31px";
+    danNameEl.style.letterSpacing = "1.5px";
+  } else {
+    danNameEl.style.fontSize = "";
+    danNameEl.style.letterSpacing = "";
+  }
 
   const decPart = Math.abs(dpVal % 1);
   let tierName = "LOW";
@@ -3981,6 +4013,10 @@ document.addEventListener("keydown", (e) => {
   if (_cfgIsOpen()) return;
   if (!isKeybind("mode_signicial", e)) return;
   e.preventDefault();
+  if (_settings.engine === "isor") {
+    showToast("Signicial mode is not supported by ISOR (Reform & Celestial only)", 2200);
+    return;
+  }
   _scoringMode = "signicial";
   _lnModePinned = false;
   _lnOverrideActive = false;
@@ -3994,6 +4030,10 @@ document.addEventListener("keydown", (e) => {
   if (_cfgIsOpen()) return;
   if (!isKeybind("mode_shoegazer", e)) return;
   e.preventDefault();
+  if (_settings.engine === "isor") {
+    showToast("Shoegazer mode is not supported by ISOR (Reform & Celestial only)", 2200);
+    return;
+  }
   _scoringMode = "shoegazer";
   _lnModePinned = false;
   _lnOverrideActive = false;
@@ -4007,6 +4047,10 @@ document.addEventListener("keydown", (e) => {
   if (_cfgIsOpen()) return;
   if (!isKeybind("mode_ln_course", e)) return;
   e.preventDefault();
+  if (_settings.engine === "isor") {
+    showToast("LN Course mode is not supported by ISOR (Reform & Celestial only)", 2200);
+    return;
+  }
   if (_lnModePinned) {
     // Unpin: revert to pipeline control
     _lnModePinned = false;
@@ -4332,6 +4376,8 @@ function _renderCfgPanel() {
   if (greenScreenChk) greenScreenChk.checked = _settings.greenScreen;
   const framelessChk = document.getElementById("cfgFramelessChk");
   if (framelessChk) framelessChk.checked = _settings.frameless;
+  const engineSel = document.getElementById("cfgEngineSelect");
+  if (engineSel) engineSel.value = _settings.engine || "isor";
   const skinSel = document.getElementById("cfgSkinSelect");
   if (skinSel) skinSel.value = _settings.skin;
   
@@ -4515,6 +4561,11 @@ function _initCfgListeners() {
   });
   document.getElementById("cfgSave")?.addEventListener("click", async () => {
     const skinChanged = _settings.skin !== _CURRENT_SKIN;
+    const prevEngine = _settings.engine;
+    const engineSel = document.getElementById("cfgEngineSelect");
+    if (engineSel) _settings.engine = engineSel.value;
+    const engineChanged = _settings.engine !== prevEngine;
+
     // Read window size directly from DOM (change event may not have fired yet)
     const winW = document.getElementById("cfgWinWidth");
     const winH = document.getElementById("cfgWinHeight");
@@ -4571,6 +4622,14 @@ function _initCfgListeners() {
           window.location.href = newUrl;
         }
       }, 1600);
+    } else if (engineChanged) {
+      if (_settings.engine === "isor" && _scoringMode !== "celestial" && _scoringMode !== "reform") {
+        _scoringMode = "reform";
+        _lnModePinned = false;
+        _lnOverrideActive = false;
+        _updateScoringModeBadge();
+      }
+      showToast(_settings.engine === "isor" ? "Engine: ISOR activated ⚡ (Reform & Celestial)" : "Engine: Legacy activated 🏛️", 2200);
     } else {
       showToast("Settings saved \u2713", 2000);
     }

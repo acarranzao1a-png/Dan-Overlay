@@ -1,29 +1,70 @@
-# DanOverlay — osu!mania 4K Dan Estimation Overlay
+# DanOverlay — osu!mania 4K & 7K Dan Estimation Overlay
 
-**DanOverlay** is a real-time overlay for osu!mania 4K that estimates your Dan tier
-as you select and play beatmaps. It connects to [tosu](https://tosu.app) to read
-live game data, runs the [Sunny Star Rating Rebirth](https://github.com/kolhox/Star-Rating-Rebirth)
-algorithm together with MinaCalc MSD skillsets, and displays the estimated Dan rank
-through a lightweight HTML overlay using [pywebview](https://github.com/r0x0r/pywebview).
+**DanOverlay** is a high-performance, real-time overlay for osu!mania that estimates your Dan tier as you select and play beatmaps. It connects to [tosu](https://tosu.app) to read live game data, runs state-of-the-art difficulty calculation engines (**ISOR** & **Legacy**), and displays your estimated Dan rank through a GPU-accelerated HTML overlay using [pywebview](https://github.com/r0x0r/pywebview).
 
 ---
 
-## Features
+## Key Highlights
 
-- **Real-time Dan estimation** — updates instantly when you switch maps or toggle mods
-- **6 estimation modes:** Standard (Reform), Celestial, Signicial, Shoegazer, LN Course
-- **20-tier Dan system** (1st–10th + Alpha–Kappa) with per-skillset SR rulers
-- **Per-skillset classification** — automatically detects whether a map is jack, speed,
-  stamina, tech, or hybrid and applies the optimal SR→DP ruler
-- **Confidence scoring** — shows a range (e.g. "Alpha–Beta") when the estimate is uncertain
-- **6 built-in skins** — Modern, Classic, Density Graph, Vertical Monolith, Broadcast Bar, Dark Vignette
-- **Real-time audio visualizer** — FFT-based spectrum bars synced to playback
-- **Chart export** — generates a PNG NPS/density chart and opens it on your Desktop
-- **osu!lazer compatible** — reads custom clock rates (DT 1.5× → 2.0×, HT 0.5× → 0.75×)
-- **Frameless mode** — borderless window overlay for OBS capture
-- **Aspect-ratio lock** — toggleable fixed-width/height resize
-- **Speedjack rescue** — automatic correction for peak-jack maps (Vertex Beta, etc.)
-- **Marathon correction** — duration-based penalty for hybrid marathon maps
+- **Dual Estimation Engines** — Select between **ISOR** (*Next-Gen Rice Triangulation*) and **Legacy** (*Sunny + MinaCalc v3*) directly from the overlay settings.
+- **#1 Ranked Rice Accuracy** — ISOR achieves rank **#1 globally** on the competitive Leo_Black VSRG Benchmark (MAE `0.2110`), outperforming top community engines including **ROXY** and **Mixed**.
+- **Real-Time Performance** — Parallelized worker pipeline computes full analysis in **~500 ms** on standard maps and under **~1.2 s** on dense marathons with instantaneous LRU cache recall.
+- **9 Built-In Skins** — Modern, Classic, Density Graph, Vertical Monolith, Broadcast Bar, Dark Vignette, Sunny Rebirth Dedicated HUD, Cyber HUD, and Minimalist Stream HUD.
+- **Multiple Estimation Ladders**:
+  - **ISOR Engine:** **Reform** (20-tier continuous scale: 1st Dan $\to$ Kappa) and **Celestial** (35 discrete rank slots across 7 tiers).
+  - **Legacy Engine:** **Reform**, **Celestial**, **Signicial** (18 stages), **Shoegazer** (12 stages), and **LN Course** (16 stages).
+- **Strict Rate Monotonicity** — Mathematically guaranteed $\frac{\partial DP}{\partial r} \ge 0$: playback speedups (HT $\to$ NM $\to$ DT $\to$ custom Lazer rates) never lower your estimated Dan rating.
+- **Dynamic Audio Visualizer & Chart Export** — Real-time FFT audio spectrum synced to playback, plus one-click PNG density graph generation.
+
+---
+
+## Calculation Engines: ISOR vs. Legacy
+
+DanOverlay offers two fully selectable engines to match your preference:
+
+| Feature / Metric | ISOR Engine (*Recommended*) | Legacy Engine |
+| :---| :---: | :---: |
+| **Primary Methodology** | Continuous Multidimensional Convex Triangulation + Dual-Band $L_2$ Ridge Meta-Corrector | Sunny Star Rating Rebirth + MinaCalc MSD Skillset Frontier Interpolation |
+| **Target Map Scope** | **4K Rice Beatmaps** (Streams, Chordjacks, Speed bursts, Tech, Marathons) | **4K Rice, 4K LN Courses & 7K Beatmaps** |
+| **Supported Ladders** | **Reform** (1st Dan $\to$ Kappa) & **Celestial** (35 slots) | **Reform**, **Celestial**, **Signicial**, **Shoegazer**, **LN Course** |
+| **VSRG Benchmark Accuracy (Tiers 11–17)** | **MAE: 0.2110** (Global #1) | MAE: 0.5478 (Sunny) / Heuristic |
+| **Continuous Sub-Tier Derivation** | Quintile scale (`Low`, `Mid-Low`, `Mid`, `Mid-High`, `High`) directly from $DP$ | Zone boundary confidence heuristic |
+| **Biomechanical Modeling** | 7 physical strain streams + rolling Shannon column entropy | 4 Sunny strain components (Jbar, Pbar, Xbar, Abar) |
+
+> **Switching Engines:** Press `Ctrl + ,` (or right-click the overlay window) to open Settings, choose your preferred Algorithm under **Estimation Engine**, and click **Save**.
+
+---
+
+## VSRG Benchmark Results (Leo_Black Benchmark & ROXY Head-to-Head)
+
+> **Evaluation Methodology & Transparency:**  
+> The benchmark metrics presented below were evaluated through rigorous **local testing** using the official reference dataset and scoring criteria established in [Leo_Black's VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark). To guarantee full reproducibility and transparency, the complete raw predictions for all 746 benchmark beatmaps are provided in [src/08_isor_engine/ISOR.csv](src/08_isor_engine/ISOR.csv).
+
+### A. High Rice Scale (Tiers 11.0 – 17.0 · Core Competitive Arena)
+| Algorithm | Valid Maps | Coverage | MAE (Lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Benchmark Rank |
+| :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **ISOR (DanOverlayV2)** | **485 / 485** | **100.0%** | **0.2110** | **0.2790** | **60.0%** | **93.2%** | **#1 Globally** |
+| **ROXY** | 480 / 485 | 99.0% | 0.2191 | 0.2966 | 59.4% | 92.9% | #2 |
+| **Mixed** | 485 / 485 | 100.0% | 0.2329 | 0.3308 | 58.4% | 92.0% | #3 |
+| **Azusa** | 485 / 485 | 100.0% | 0.2795 | 0.3820 | 46.4% | 88.7% | #4 |
+| **Daniel** | 481 / 485 | 99.2% | 0.3116 | 0.4535 | 46.4% | 83.6% | #5 |
+| **Companella** | 485 / 485 | 100.0% | 0.4409 | 0.6120 | 35.5% | 70.1% | #6 |
+| **Sunny (Native)** | 485 / 485 | 100.0% | 0.5478 | 0.7517 | 32.2% | 56.9% | #7 |
+
+<p align="center">
+  <img src="src/08_isor_engine/assets/benchmark_accuracy_breakdown.png" alt="Benchmark Accuracy Breakdown" width="820" />
+</p>
+
+### B. Head-to-Head Comparison: ISOR vs. ROXY
+In a direct symmetric head-to-head evaluation across 502 matched benchmark charts:
+- **ISOR:** MAE **0.2333** · **259 Wins**
+- **ROXY:** MAE **0.2414** · **230 Wins** (13 Ties)
+
+<p align="center">
+  <img src="src/08_isor_engine/assets/benchmark_head_to_head.png" alt="Direct Symmetric Head-to-Head Comparison" width="800" />
+</p>
+
+**For the complete mathematical specification, 98-D feature vector, LaTeX formulations, and full pattern breakdown, read [src/08_isor_engine/ISOR.md](src/08_isor_engine/ISOR.md).**
 
 ---
 
@@ -52,7 +93,7 @@ flowchart TD
 
     subgraph BRIDGE["Runtime Bridge — src/02_runtime_bridge/"]
         TS["tosu_source.py\nWebSocket listener\nmod detection\nlazer rate override"]
-        AC["analysis_coordinator.py\nsingle worker + debounce\nstale-token invalidation\n200-entry LRU cache"]
+        AC["analysis_coordinator.py\nsingle worker + debounce\nstale-token invalidation\n200-entry LRU cache\nEngine Hot-Switching"]
         WS -->|JSON stream| TS
         HTTP -->|poll fallback| TS
         TS -->|MAP_CHANGED\nMUSIC_TIME| EBUS["events.py\npub/sub event bus"]
@@ -66,33 +107,35 @@ flowchart TD
         VAL -->|valid| PARSER
         VAL -->|7K flag| K7["7K Branch\nsr_means_7k.json\nBoundary Interpolation\nDP = tier + pos_in_bracket"]
 
-        subgraph SR_PATH["Primary SR Path"]
-            PSR["primary_sr_bridge.py\nalgorithm.calculate\nlazer rate scaling"]
-            ALG["algorithm.py\nSunny SR Rebirth\nJbar/Pbar/Xbar/Abar strain"]
-            FE["feature_extractor.py\n40+ structural features\nstream purity, jack density\nLN ratio, chord fraction"]
-            CLS["classifier.py\nfamily detection\njack/speed/stamina\ntech/stream/hybrid"]
-            RE["rank_engine.py\nper-skillset SR ruler\nboundary interpolation\nDP + sublevel + corrections"]
-            PARSER --> PSR --> ALG --> FE --> CLS --> RE
+        subgraph ENGINES["Selectable Estimation Engines"]
+            direction TB
+            subgraph ISOR_ENGINE["ISOR Engine (src/08_isor_engine/)"]
+                ISOR_CORE["isor_engine.py\nMultidimensional Triangulation\nSR + Choke 10s + MSD + Strain"]
+                ISOR_BIO["strain.py\n7 Biomechanical Streams\nShannon Pattern Entropy"]
+                ISOR_RIDGE["vsrg_ridge_model.json\nDual-Band Ridge Corrector (λ=8, λ=32)"]
+                ISOR_CEL["celestial_ruler.json\n35-Slot Frontier Mapping"]
+                ISOR_CORE --> ISOR_BIO --> ISOR_RIDGE --> ISOR_CEL
+            end
+
+            subgraph LEGACY_ENGINE["Legacy Engine (src/07_model/)"]
+                PSR["primary_sr_bridge.py\nalgorithm.calculate\nSunny SR Rebirth"]
+                FE["feature_extractor.py\n40+ structural features"]
+                CLS["classifier.py\nfamily detection"]
+                RE["rank_engine.py\nper-skillset SR ruler"]
+                MCB["minacalc_bridge.py + msd.exe\n7 MinaCalc Skillsets"]
+                PSR --> FE --> CLS --> RE
+                MCB --> RE
+            end
         end
 
-        subgraph MSD_PATH["MinaCalc Path"]
-            MCB["minacalc_bridge.py\n.osu → Etterna rows\nbitmask columns\n4K + 7K support"]
-            MSDEXE["msd.exe\nMinaCalc CLI\n7 skillset scores"]
-            MCE["minacalc_estimator.py\nMSD → Dan estimate\nfeeds alt. mode estimators"]
-            PARSER --> MCB --> MSDEXE --> MCE
-        end
-
-        MERGE["Merge & Enrich\nmarathon correction\nconfidence scoring"]
-        RE --> MERGE
-        MCE --> MERGE
-        K7 --> MERGE
+        PARSER --> ENGINES
 
         subgraph ESTIMATORS["Mode Estimators"]
             CEL["celestial_estimator.py\n35 slots: 7 tiers × 5 cats"]
             SIG["signicial_estimator.py\n18 stages: I–XIV + Extra"]
             SHO["shoegazer_estimator.py\n12 stages: 1st–Tachyon"]
-            LNC["ln_course_estimator.py\n16 stages + OLS regression\n4 LN subfamilies"]
-            MERGE --> CEL & SIG & SHO & LNC
+            LNC["ln_course_estimator.py\n16 stages + OLS regression"]
+            ENGINES --> CEL & SIG & SHO & LNC
         end
     end
 
@@ -101,21 +144,24 @@ flowchart TD
         BRG["bridge.py\nJSON serialization\nevaluate_js()"]
         OVH["overlay_host.py\npywebview window\nWin32 frameless\naspect-ratio lock\nHWND_TOPMOST"]
         WV["WebView2\nChromium renderer"]
-        JS["overlay.js\n~4400 lines\nstate machine\n6 scoring modes"]
+        JS["overlay.js\nstate machine\nScoring modes\nEngine selector"]
 
-        subgraph SKINS["Skins"]
-            S1["ui-1 Modern\ndefault"]
+        subgraph SKINS["9 Built-In Skins"]
+            S1["ui-1 Modern"]
             S2["ui-2 Classic"]
             S3["ui-3 Density Graph"]
-            S4["ui-4 Vertical Monolith"]
-            S5["ui-5 Broadcast Bar"]
+            S4["ui-4 Monolith"]
+            S5["ui-5 Broadcast"]
             S6["ui-6 Dark Vignette"]
+            S7["ui-7 Sunny Rebirth"]
+            S8["ui-8 Cyber HUD"]
+            S9["ui-9 Stream HUD"]
         end
 
         AV["audio_visualizer.py\nffmpeg decode\nFFT bands"]
         AS["audio_service.py\nMAP_CHANGED listener"]
 
-        CEL & SIG & SHO & LNC --> EBUS2
+        ESTIMATORS --> EBUS2
         EBUS2 --> BRG --> OVH --> WV --> JS
         JS --> SKINS
         AS --> EBUS2
@@ -143,13 +189,18 @@ graph LR
 
 ### Directory Structure
 
+- **`src/08_isor_engine/`** — next-generation 4K rice estimation engine
+  - `isor_engine.py` — Triangulation pipeline, dual-band Ridge meta-layer, apex gate
+  - `strain.py` — 7 physiological strain streams, Shannon pattern entropy, quantile aggregation
+  - `ISOR.csv` — Full local benchmark evaluation predictions (746 maps)
+  - `ISOR.md` — Full technical documentation & LaTeX mathematical formulations
 - **`src/02_runtime_bridge/`** — runtime data flow
   - `tosu_source.py` — Client that reads tosu JSON, emits events
-  - `analysis_coordinator.py` — Single-worker scheduling, caches results, runs pipeline
+  - `analysis_coordinator.py` — Single-worker scheduling, LRU cache, hot-swappable engine selection
   - `primary_sr_bridge.py` — Wraps Sunny SR algorithm.calculate() with native-rate interpolation
   - `parser.py` — .osu file parser
   - `validator.py` — Domain validation (note count, drain, LN)
-- **`src/07_model/`** — estimation engine
+- **`src/07_model/`** — legacy estimation engine
   - `feature_extractor.py` — Extracts structural features from parsed
   - `classifier.py` — Family detection (jack/speed/stamina/…)
   - `rhythm_profile.py` — Pattern-based chart family classifier
@@ -162,14 +213,16 @@ graph LR
   - `sr_core/osu_file_parser.py` — .osu parser (vendored, patched for robustness)
 - **`src/01_overlay_ui/`** — desktop overlay
   - `main.py` — Entry point, crash log, CLR fix
-  - `overlay_host.py` — Window creation, Win32 API, skin loader
+  - `overlay_host.py` — Window creation, Win32 API, 9 skins loader, live engine bridge
   - `bridge.py` — Python→JS event serialisation
   - `audio_service.py` — Bridges AudioVisualizer to event bus
   - `audio_visualizer.py` — FFT bands from decoded audio file
   - `chart_export.py` — NPS/density chart generator
-  - `web/` — HTML/JS/CSS: 6 skins + chart renderer
+  - `web/` — HTML/JS/CSS: 9 skins + chart renderer
   - `ffmpeg/` — ffmpeg/ffprobe binaries (Git LFS, for audio decoding)
 - **`config/`**
+  - `vsrg_ridge_model.json` — Calibrated Ridge weights for ISOR (λ=8 High, λ=32 Low)
+  - `celestial_ruler.json` — 35-slot monotonic frontier rulers for Celestial mode
   - `sr_means.json` — SR means per Dan (20 general + 4 skillsets)
   - `sr_means_7k.json` — SR means per Tier for 7K
   - `celestial_profiles.json` — 35 slots (7 tiers × 5 categories)
@@ -432,7 +485,7 @@ from note timing and column data using strain analysis with four component metri
 
 The SR is a weighted combination of high-percentile strain values with
 logarithmic compression at the high end. This file is vendored from
-[Star-Rating-Rebirth](https://github.com/kolhox/Star-Rating-Rebirth) and is
+[Star-Rating-Rebirth](https://github.com/sunnyxxy/Star-Rating-Rebirth) and is
 kept unmodified by this project.
 
 #### `feature_extractor.py`
@@ -555,6 +608,26 @@ subfamilies (allround, jack_technical, inverse, speed_density). Uses SR boundary
 interpolation followed by an OLS regression correction based on LN structural
 features (hold occupancy, release density, duration CV, etc.).
 
+### ISOR Engine (`src/08_isor_engine/`)
+
+The next-generation 4K rice estimation engine, achieving #1 global ranking on the Leo_Black VSRG Benchmark.
+
+#### `isor_engine.py`
+The primary pipeline orchestration for ISOR:
+- **Multidimensional Convex Triangulation** — Combines modulated Star Rating ($DP_{\text{SR}}$), 10-second rolling choke point density ($DP_{\text{choke}}$), multi-skillset MinaCalc MSD ($DP_{\text{MSD}}$), and biomechanical strain ($DP_{\text{bio}}$).
+- **Dual-Band $L_2$ Ridge Meta-Corrector** — Evaluates 98 standardized structural features across high-tier ($\lambda=8.0$) and low-tier ($\lambda=32.0$) models with a smooth sigmoidal transition gate.
+- **Apex Cosine Gate** — Smooth $C^0$ transition for Zeta–Kappa (18.8–20.5 DP) canon restoration.
+- **3-Layer Rate Monotonicity** — Mathematically ensures $\frac{\partial DP}{\partial r} \ge 0$.
+
+#### `strain.py`
+Biomechanical physical modeling module:
+- **7 Parallel Strain Streams** — Speed, Hand, Jack, Chordjack, Tech, Stamina, Course with dual exponential decay kernels ($\tau_{\text{burst}}$ and $\tau_{\text{sustain}}$).
+- **Rolling Shannon Entropy** — Measures active column state distribution complexity across 750 ms sliding windows.
+- **Weighted Quantile Aggregation** — Multi-quantile fusion ($q_{97}, q_{90}, \mu_{\text{tail}}, q_{75}, \mu_{\text{pow}}, q_{50}$) for robust long-chart evaluation.
+
+#### `ISOR.md`
+Exhaustive technical documentation, LaTeX formulations, 98-D feature specifications, and benchmark breakdown.
+
 ### Overlay (`src/01_overlay_ui/`)
 
 #### `main.py`
@@ -568,7 +641,8 @@ Entry point. Sets up:
 
 #### `overlay_host.py`
 Window launcher. Creates the pywebview window with:
-- **6 skins** — reads `skin` from `%APPDATA%/DanOverlay/settings.json`
+- **9 built-in skins** — reads `skin` from `%APPDATA%/DanOverlay/settings.json`
+- **Dynamic engine switching** — live coordination with `AnalysisCoordinator.set_engine()`
 - **Frameless toggle** — Win32 `SetWindowLong` to remove/add title bar
 - **Aspect-ratio lock** — subclasses the Win32 WndProc to intercept `WM_SIZING`
   and enforce width/height ratio
@@ -1041,10 +1115,13 @@ ffmpeg, web assets) before compiling.
 
 ## Acknowledgements
 
-- **Sunny** — Star Rating Rebirth: the main difficulty engine powering the overlay
-- **Signicial** — Authorised use of the Signicial Dan scale in the overlay
-- **Etterna MSD** — Difficulty skillset ratings used for visualisation and chart generation
-- **tosu** — Real-time osu! data source
+- **[Daniel](https://github.com/TheBagelOfMan/Daniel) (TheBagelOfMan)** — The primary inspiration for the DanOverlay project and pioneering real-time Dan estimation overlays for osu!mania.
+- **ROXY ([Algorithm Specification](https://github.com/LeoBlackMT/osumania_map_analyser/blob/main/docs/roxy_algorithm.md) | [Source Code](https://github.com/LeoBlackMT/osumania_map_analyser/blob/main/ManiaMapAnalyser%20by%20Leo_Black/js/estimator/roxyEstimator.js)) by Leo_Black (MIT)** — Key inspiration for dual burst/sustain strain decay, pattern entropy, and biomechanical modeling, as well as providing the reference VSRG Benchmark dataset.
+- **ISOR Engine & VSRG Research** — Developed for DanOverlay, locally evaluated on the [VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark) corpus. Full raw predictions for transparency are available in [src/08_isor_engine/ISOR.csv](src/08_isor_engine/ISOR.csv).
+- **[Sunny Star Rating Rebirth](https://github.com/sunnyxxy/Star-Rating-Rebirth)** (sunnyxxy) — Core primary Star Rating difficulty engine.
+- **Signicial** — Authorised use of the Signicial Dan scale in the overlay.
+- **Etterna MinaCalc MSD** — Multi-skillset difficulty ratings utilized for pattern characterization.
+- **tosu** — Real-time osu! memory and WebSocket data provider.
 
 ---
 

@@ -76,7 +76,7 @@ def _validate_startup():
 # ── Window modes ────────────────────────────────────────────────────────
 
 # Opened on first launch; user picks resize behavior in the UI.
-_APP_VERSION = "2.3.5"
+_APP_VERSION = "3.0.0"
 _APP_TITLE = f"DanOverlay {_APP_VERSION} — by 8DOUL (discord: agent_ale)"
 _DEFAULT_MODE = {
     "label":    f"DanOverlay {_APP_VERSION}",
@@ -590,8 +590,10 @@ def _run_overlay_session(cfg, overlay_url):
         def save_settings(data: str) -> None:
             """Persist settings JSON to %APPDATA%/DanOverlay/settings.json."""
             try:
-                json.loads(data)  # validate before writing
+                parsed = json.loads(data)  # validate before writing
                 _get_settings_path().write_text(data, encoding="utf-8")
+                if "engine" in parsed and "coordinator" in runtime:
+                    runtime["coordinator"].set_engine(parsed["engine"])
             except Exception as exc:
                 logger.warning("save_settings failed: %s", exc)
 
@@ -937,6 +939,7 @@ def _run_overlay_session(cfg, overlay_url):
 
         # Analysis coordinator manages map change pipeline runs and discards stale results.
         coordinator = AnalysisCoordinator(event_bus)
+        runtime["coordinator"] = coordinator
 
         # Starts standard live source listener (tosu_source).
         threading.Thread(

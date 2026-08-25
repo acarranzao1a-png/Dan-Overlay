@@ -14,7 +14,7 @@ setlocal
 :: ══════════════════════════════════════════════════════════════
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=2.3.5"
+set "APP_VERSION=3.0.0"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
 set "ENTRY=%CD%\src\01_overlay_ui\main.py"
 
@@ -112,6 +112,22 @@ if not exist "config\ln_course_profiles.json" (
     echo [ERROR] Missing config\ln_course_profiles.json
     exit /b 1
 )
+if not exist "config\vsrg_ridge_model.json" (
+    echo [ERROR] Missing config\vsrg_ridge_model.json
+    exit /b 1
+)
+if not exist "config\celestial_ruler.json" (
+    echo [ERROR] Missing config\celestial_ruler.json
+    exit /b 1
+)
+if not exist "src\08_isor_engine\isor_engine.py" (
+    echo [ERROR] Missing src\08_isor_engine\isor_engine.py
+    exit /b 1
+)
+if not exist "src\08_isor_engine\strain.py" (
+    echo [ERROR] Missing src\08_isor_engine\strain.py
+    exit /b 1
+)
 if not exist "tools\bin\msd.exe" (
     echo [ERROR] Missing tools\bin\msd.exe
     exit /b 1
@@ -195,6 +211,7 @@ set "PATHS=%PATHS% --paths "%CD%\src\01_overlay_ui""
 set "PATHS=%PATHS% --paths "%CD%\src\02_runtime_bridge""
 set "PATHS=%PATHS% --paths "%CD%\src\03_engine_reference""
 set "PATHS=%PATHS% --paths "%CD%\src\07_model""
+set "PATHS=%PATHS% --paths "%CD%\src\08_isor_engine""
 
 :: ── Hidden imports ────────────────────────────────────────────
 ::  Modules imported dynamically that PyInstaller might miss.
@@ -233,6 +250,7 @@ set "HIDDEN=%HIDDEN% --hidden-import validator"
 set "HIDDEN=%HIDDEN% --hidden-import feature_extractor"
 set "HIDDEN=%HIDDEN% --hidden-import primary_sr_bridge"
 set "HIDDEN=%HIDDEN% --hidden-import classifier"
+set "HIDDEN=%HIDDEN% --hidden-import rhythm_profile"
 set "HIDDEN=%HIDDEN% --hidden-import rank_engine"
 set "HIDDEN=%HIDDEN% --hidden-import minacalc_estimator"
 set "HIDDEN=%HIDDEN% --hidden-import minacalc_bridge"
@@ -242,6 +260,9 @@ set "HIDDEN=%HIDDEN% --hidden-import shoegazer_estimator"
 set "HIDDEN=%HIDDEN% --hidden-import ln_course_estimator"
 :: resource_path utils (used at freeze time)
 set "HIDDEN=%HIDDEN% --hidden-import resource_path"
+:: ISOR engine (dynamic imports, missed by static analysis)
+set "HIDDEN=%HIDDEN% --hidden-import isor_engine"
+set "HIDDEN=%HIDDEN% --hidden-import strain"
 
 :: ── Collect Binaries and Data (native Windows DLLs) ───────────
 set "COLLECT="
