@@ -212,6 +212,7 @@ def compute_bio_curve(rows, cfg):
 
     mask_counts = [0] * 16
     transition_counts = [0] * 256
+    active_transitions = set()
     queue = []
     queue_head = 0
     mask_total = 0
@@ -293,6 +294,7 @@ def compute_bio_curve(rows, cfg):
             transition_code = (prev_mask << 4) | mask
             transition_counts[transition_code] += 1
             transition_total += 1
+            active_transitions.add(transition_code)
         queue.append((t, mask, transition_code))
         while queue_head < len(queue) and queue[queue_head][0] < t - cfg["entropy_window_ms"]:
             old_t, old_mask, old_code = queue[queue_head]
@@ -300,11 +302,33 @@ def compute_bio_curve(rows, cfg):
             mask_total -= 1
             if old_code >= 0:
                 transition_counts[old_code] -= 1
+                if transition_counts[old_code] == 0:
+                    active_transitions.discard(old_code)
                 transition_total -= 1
             queue_head += 1
 
-        entropy_mask = _entropy_from_counts(mask_counts, mask_total, 4.0)
-        entropy_transition = _entropy_from_counts(transition_counts, transition_total, 8.0)
+        # Fast entropy over active non-zero subsets
+        if mask_total > 0:
+            ent_m = 0.0
+            for m in range(16):
+                c = mask_counts[m]
+                if c > 0:
+                    p = c / mask_total
+                    ent_m -= p * math.log2(p)
+            entropy_mask = _clamp(ent_m / 4.0, 0.0, 1.0)
+        else:
+            entropy_mask = 0.0
+
+        if transition_total > 0 and active_transitions:
+            ent_t = 0.0
+            for code in active_transitions:
+                c = transition_counts[code]
+                if c > 0:
+                    p = c / transition_total
+                    ent_t -= p * math.log2(p)
+            entropy_transition = _clamp(ent_t / 8.0, 0.0, 1.0)
+        else:
+            entropy_transition = 0.0
 
         row_chord = (row["row_size"] - 1) / 3.0
         same_hand_chord = (max(0, row["left_count"] - 1) + max(0, row["right_count"] - 1)) / 2.0
@@ -449,28 +473,29 @@ def compute_bio_curve(rows, cfg):
 
 
 def _quantile(sorted_vals, q):
-    if not sorted_vals:
+    if len(sorted_vals) == 0:
         return 0.0
     t = q * (len(sorted_vals) - 1)
     lo = int(t)
     hi = min(len(sorted_vals) - 1, lo + 1)
     w = t - lo
-    return sorted_vals[lo] * (1 - w) + sorted_vals[hi] * w
+    return float(sorted_vals[lo] * (1 - w) + sorted_vals[hi] * w)
 
 
 def _summarize(values, cfg):
     if not values:
         return {"aggregate": 0.0}
-    sorted_vals = sorted(values)
+    import numpy as np
+    sorted_vals = np.sort(np.asarray(values, dtype=float))
     n = len(sorted_vals)
     q50 = _quantile(sorted_vals, 0.50)
     q75 = _quantile(sorted_vals, 0.75)
     q90 = _quantile(sorted_vals, 0.90)
     q97 = _quantile(sorted_vals, 0.97)
     tail_count = max(1, math.ceil(n * cfg["tail_ratio"]))
-    tail_mean = sum(sorted_vals[n - tail_count:]) / tail_count
+    tail_mean = float(np.mean(sorted_vals[n - tail_count:]))
     p = cfg["power_mean_p"]
-    power_mean = (sum(v ** p for v in sorted_vals) / n) ** (1.0 / p)
+    power_mean = float(np.mean(sorted_vals ** p) ** (1.0 / p))
     agg = (cfg["agg"]["q97"] * q97 + cfg["agg"]["q90"] * q90
            + cfg["agg"]["tail"] * tail_mean + cfg["agg"]["q75"] * q75
            + cfg["agg"]["power"] * power_mean + cfg["agg"]["q50"] * q50)

@@ -18,7 +18,7 @@ ISOR is an advanced, physiologically grounded difficulty estimation engine desig
 1. [The Acronym](#1-the-acronym)
 2. [Core Design Philosophy](#2-core-design-philosophy)
 3. [High-Level Architecture](#3-high-level-architecture)
-4. [Detailed Execution Pipeline](#4-detailed-execution-pipeline)
+4. [Execution Pipeline](#4-execution-pipeline)
 5. [Mathematical & Algorithmic Foundations](#5-mathematical--algorithmic-foundations)
 6. [Feature Vector Specification (98-D)](#6-feature-vector-specification-98-d)
 7. [Estimation Modes & Tier Systems](#7-estimation-modes--tier-systems)
@@ -63,15 +63,15 @@ The name **ISOR** embodies the four methodological pillars that drive its calcul
 
 ```mermaid
 flowchart TD
-    OSU[".osu Beatmap File (4K Rice)"] --> PARSE["parsear_osu_v2<br/>Enforce 4K Mania Mode"]
-    PARSE --> VAL["validate_domain<br/>Notes ≥ 20 · Drain ≥ 5s · LN Ratio ≤ 0.18"]
+    MAP["Beatmap / Simfile (.osu · .sm · .ssc)"] --> LOAD["_load_parsed_chart<br/>Unified Chart Dict (4K Rice)<br/>O(N) Sequential Timing Cursor"]
+    LOAD --> VAL["validate_domain<br/>Notes ≥ 20 · Drain ≥ 5s · LN Ratio ≤ 0.18"]
     VAL -->|Invalid / LN Dominant| ERR["Domain Error (Out of Scope)"]
     VAL -->|Valid 4K Rice| FEAT["extract_features<br/>40+ Base Structural Metrics"]
 
-    FEAT --> SUNNY["analyze_primary_sr(mod, rate)<br/>Sunny SR + Strains (Jbar, Pbar, Xbar, Abar)<br/>Isotonic Rate Clamp"]
-    FEAT --> MSD["calculate_msd(rate)<br/>MinaCalc C++: 7 Skillsets + Overall<br/>Monotonic Native Anchors"]
-    FEAT --> CHOKE["Choke Point 10s Window<br/>Max NPS + Peak Local Strains"]
-    FEAT --> BIO["strain.py<br/>7 Dual-Decay Streams + Shannon Entropy<br/>+ Sostenuto Density Stats"]
+    FEAT --> SUNNY["analyze_primary_sr(mod, rate)<br/>Sunny SR + Vectorized Strains (Jbar, Pbar, Xbar, Abar)<br/>Isotonic Rate Clamp"]
+    FEAT --> MSD["calculate_msd(rate)<br/>MinaCalc C++ / Etterna MSD: 7 Skillsets + Overall<br/>Monotonic Native Anchors"]
+    FEAT --> CHOKE["Choke Point 10s Window<br/>Linear O(W + N) Two-Pointer Sliding Scan"]
+    FEAT --> BIO["strain.py<br/>7 Dual-Decay Streams + Shannon Entropy (Active Set Tracking)<br/>+ Sostenuto Density Stats"]
     FEAT --> CLASS["Family Classifier<br/>Cosine Pattern Profiles + Bar Ratios"]
 
     SUNNY --> TRIA["Triangulated Organic Base"]
@@ -81,7 +81,7 @@ flowchart TD
 
     subgraph TRIA["Organic Convex Triangulation"]
         ROUT["Skillset Routing<br/>(Jack / Speed / Stamina / Tech / General)"]
-        PROJ["Ruler Projections<br/>DP_sr · DP_choke · DP_msd"]
+        PROJ["Precomputed Ruler Projections<br/>DP_sr · DP_choke · DP_msd"]
         W["Dynamic Weight System<br/>w_sr · w_choke · w_msd"]
         CORR["Continuous Dampers & Alpha/Beta Anchors"]
         ROUT --> PROJ --> W --> CORR
@@ -91,7 +91,7 @@ flowchart TD
     TRIA --> RIDGE
     RIDGE --> BLEND["C¹ Blended Base<br/>σ(4·(DP_org - 10)) Blend"]
 
-    subgraph RIDGE["Regularized Ridge Meta-Layer"]
+    subgraph RIDGE["Regularized Ridge Meta-Layer (Pre-Cast Arrays)"]
         HIGH["High Model: Tier 11–17 (λ=8, 98-D Features)"]
         LOW["Low Model: Tier 1–10.5 (λ=32, 67 Augmented Packs)"]
         GATE["Smooth Sigmoidal Transition Gate"]
@@ -108,20 +108,23 @@ flowchart TD
 
 ---
 
-## 4. Detailed Execution Pipeline
+## 4. Execution Pipeline
 
 ### 4.1 Parsing & Domain Validation
-The beatmap file is parsed via `parsear_osu_v2`, enforcing `mode == 3` (osu!mania) and $K = 4$ columns. `validate_domain` enforces structural integrity:
-- **Minimum Note Count:** $N \ge 20$.
-- **Minimum Active Drain Duration:** $T_{\text{drain}} \ge 5.0\text{ s}$.
-- **Long Note Ratio:** $r_{\text{LN}} = N_{\text{LN}} / N \le 0.18$. Maps exceeding this threshold trigger a graceful `DomainError`.
+The beatmap/simfile is parsed into the unified DanOverlay chart dictionary via `_load_parsed_chart`:
+- **Supported Formats:** Native osu!mania (`.osu`) and Etterna (`.sm`, `.ssc`) charts.
+- **Single-Pass Timing Resolution:** Simfiles are converted via an $O(N)$ sequential timing accumulator across BPM changes, STOPS, and DELAYS, achieving $<15\text{ ms}$ parse time on dense 50,000+ row charts.
+- `validate_domain` enforces structural integrity ($K = 4$ columns):
+  - **Minimum Note Count:** $N \ge 20$.
+  - **Minimum Active Drain Duration:** $T_{\text{drain}} \ge 5.0\text{ s}$.
+  - **Long Note Ratio:** $r_{\text{LN}} = N_{\text{LN}} / N \le 0.18$. Maps exceeding this threshold trigger a graceful `DomainError`.
 
 ### 4.2 Signal Ingestion
 Five independent feature extractors process the note array simultaneously:
-1. **Sunny Primary SR Bridge:** Extracts raw star rating $SR_{\text{raw}}$, peak strain components (Jbar, Pbar, Xbar: $\bar{J}, \bar{P}, \bar{X}$), and mean stream strain $\bar{A}$ (Abar).
-2. **MinaCalc MSD Subprocess:** Evaluates 7 core skillsets (Overall, Stream, Jumpstream, Handstream, Stamina, JackSpeed, Chordjack, Technical).
-3. **10-Second Choke Point Analyzer:** Computes rolling density $NPS_{10\text{s}}$, burst ratios, and local chord clusters in $O(W \log N)$ time.
-4. **Biomechanical Strain Module (`strain.py`):** Generates 7 physical strain streams, Shannon pattern entropy, and sustained density metrics.
+1. **Sunny Primary SR Bridge:** Extracts raw star rating $SR_{\text{raw}}$, peak strain components (Jbar, Pbar, Xbar: $\bar{J}, \bar{P}, \bar{X}$), and mean stream strain $\bar{A}$ (Abar) using batch-vectorized NumPy operations.
+2. **MinaCalc MSD Subprocess:** Evaluates 7 core skillsets (Overall, Stream, Jumpstream, Handstream, Stamina, JackSpeed, Chordjack, Technical). For Etterna, utilizes direct native engine MSD.
+3. **10-Second Choke Point Analyzer:** Computes rolling peak density $NPS_{10\text{s}}$, burst ratios, and local chord clusters in $O(W + N)$ linear time via two-pointer monotonic sliding window.
+4. **Biomechanical Strain Module (`strain.py`):** Generates 7 physical strain streams, Shannon pattern entropy with active transition set tracking, and sustained density metrics.
 5. **Pattern Classifier:** Identifies macro-families via cosine similarity against reference pattern profiles.
 
 ### 4.3 Skillset Routing
@@ -286,11 +289,12 @@ Where $\mathcal{M}$ represents the state space of $2^4 - 1 = 15$ possible non-em
 
 ---
 
-### 5.7 $L_2$ Regularized Ridge Meta-Corrector
-Given standardized feature matrix $\mathbf{Z} \in \mathbb{R}^{N \times D}$ and target residual vector $\mathbf{y} = \mathbf{DP}_{\text{expected}} - \mathbf{DP}_{\text{base}}$:
+### 5.7 L₂ Regularized Ridge Meta-Corrector
+Given standardized feature matrix $\mathbf{Z} \in \mathbb{R}^{N \times D}$ and target residual vector $\mathbf{y}$:
 
 $$
 \begin{aligned}
+\mathbf{y} &= \mathbf{DP}_{\text{expected}} - \mathbf{DP}_{\text{base}} \\
 \mathbf{\beta} &= \left(\mathbf{Z}^T \mathbf{Z} + \lambda \mathbf{I}\right)^{-1} \mathbf{Z}^T \mathbf{y} \\
 \hat{\delta}(\mathbf{x}) &= \text{clip}\left(\left(\frac{\mathbf{x} - \mathbf{\mu}_x}{\mathbf{\sigma}_x}\right)^T \mathbf{\beta}, \;-1.0, \;+1.0\right)
 \end{aligned}
@@ -600,7 +604,3 @@ Both `config/vsrg_ridge_model.json` and `config/celestial_ruler.json` are bundle
 ## 14. Acknowledgements & Credits
 
 - **ROXY ([Algorithm Specification](https://github.com/LeoBlackMT/osumania_map_analyser/blob/main/docs/roxy_algorithm.md) | [Source Code](https://github.com/LeoBlackMT/osumania_map_analyser/blob/main/ManiaMapAnalyser%20by%20Leo_Black/js/estimator/roxyEstimator.js)) by Leo_Black (MIT)** — Primary inspiration for the biomechanical strain modeling (dual burst/sustain decay, pattern entropy, and physiological strain streams), as well as providing the reference VSRG DanEstimation Benchmark corpus used for ground-truth validation.
-
----
-
-*ISOR — Isotonic Strain Organic Residual. Engineered for precision, physiological fidelity, and mathematical continuity in VSRG difficulty estimation.*

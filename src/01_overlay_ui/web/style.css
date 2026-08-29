@@ -2171,3 +2171,30 @@ html, body {
   color:      #fff;
 }
 .cfg-save:hover { filter: brightness(1.12); }
+
+/* ── Etterna Mode Rules (Hiding osu!-specific widgets & timer) ── */
+body.game-etterna #mapOd,
+body.game-etterna #mapSr,
+body.game-etterna #mapDuration,
+body.game-etterna #ui-len,
+body.game-etterna .g3-time-badge,
+body.game-etterna .c2-time-row,
+body.game-etterna .map-time-box,
+body.game-etterna .pill-od,
+body.game-etterna .pill-sr,
+body.game-etterna .stats-od,
+body.game-etterna .stats-sr,
+body.game-etterna .map-stat-sep,
+body.game-etterna .stat-box:has(#mapSr),
+body.game-etterna .stat-box:has(#mapOd),
+body.game-etterna .stat-box:has(#mapDuration),
+body.game-etterna [data-mirror="mapOd"],
+body.game-etterna [data-mirror="mapSr"],
+body.game-etterna .c2-sep,
+body.game-etterna .g3-stat-badge:has(#mapOd),
+body.game-etterna .g3-stat-badge:has(#mapSr),
+body.game-etterna .g3-stat-badge:has([data-mirror="mapOd"]),
+body.game-etterna .g3-stat-badge:has([data-mirror="mapSr"]) {
+  display: none !important;
+}
+

@@ -76,7 +76,7 @@ def _validate_startup():
 # ── Window modes ────────────────────────────────────────────────────────
 
 # Opened on first launch; user picks resize behavior in the UI.
-_APP_VERSION = "3.0.0"
+_APP_VERSION = "3.1.0"
 _APP_TITLE = f"DanOverlay {_APP_VERSION} — by 8DOUL (discord: agent_ale)"
 _DEFAULT_MODE = {
     "label":    f"DanOverlay {_APP_VERSION}",
@@ -362,6 +362,10 @@ def _run_overlay_session(cfg, overlay_url):
     from audio_service import AudioService
     from analysis_coordinator import AnalysisCoordinator
     from tosu_source import run as tosu_run
+    try:
+        from etterna import run as etterna_run
+    except ImportError:
+        from etterna.etterna_source import run as etterna_run
 
     event_bus = EventBus()
     stop_event = threading.Event()
@@ -562,8 +566,15 @@ def _run_overlay_session(cfg, overlay_url):
 
         _window.expose(on_generate_chart)
 
+        _last_save_time = [0.0]
         def save_chart(base64_image: str, map_name: str) -> dict:
             """Called by JS after rendering the chart canvas to save the PNG."""
+            import time
+            now = time.time()
+            if now - _last_save_time[0] < 1.0:
+                print(f"[CHART-PY] save_chart ignored (duplicate call within 1s)")
+                return {"status": "ok", "message": "Ignored duplicate"}
+            _last_save_time[0] = now
             print(f"[CHART-PY] save_chart called, map_name={map_name}, b64_len={len(base64_image)}")
             result = bridge.save_chart(base64_image, map_name)
             print(f"[CHART-PY] save_chart result: {result}")
@@ -838,36 +849,30 @@ def _run_overlay_session(cfg, overlay_url):
 
         _window.expose(set_frameless)
 
-        def check_osu_running() -> bool:
-            """Check whether the osu! process is currently running."""
-            if sys.platform != "win32":
-                return False
-            
-            # 1. Primary check: Use tasklist to specifically look for the osu! process.
-            # This is robust and unaffected by window class changes across osu! updates.
-            try:
-                import subprocess
-                CREATE_NO_WINDOW = 0x08000000
-                result = subprocess.run(
-                    ["tasklist", "/FI", "IMAGENAME eq osu!.exe", "/NH"],
-                    capture_output=True, text=True, timeout=3,
-                    creationflags=CREATE_NO_WINDOW
-                )
-                if "osu!.exe" in result.stdout:
-                    return True
-            except Exception:
-                pass
-            
-            # 2. Fallback check: Look for a window with the exact title 'osu!'
-            try:
-                import ctypes
-                hwnd = ctypes.windll.user32.FindWindowW(None, "osu!")
-                if hwnd:
-                    return True
-            except Exception:
-                pass
+        def check_osu_running() -> dict:
+            """Check whether osu! or Etterna processes are currently running."""
+            osu_running = False
+            etterna_running = False
+            if sys.platform == "win32":
+                try:
+                    import subprocess
+                    CREATE_NO_WINDOW = 0x08000000
+                    result = subprocess.run(
+                        ["tasklist", "/NH"],
+                        capture_output=True, text=True, timeout=3,
+                        creationflags=CREATE_NO_WINDOW
+                    )
+                    out = result.stdout.lower()
+                    osu_running = ("osu!.exe" in out or "osu.exe" in out)
+                    etterna_running = ("etterna.exe" in out or "stepmania.exe" in out)
+                except Exception:
+                    pass
 
-            return False
+            return {
+                "osu": osu_running,
+                "etterna": etterna_running,
+                "running": (osu_running or etterna_running),
+            }
 
         _window.expose(check_osu_running)
 
@@ -949,7 +954,19 @@ def _run_overlay_session(cfg, overlay_url):
             name="tosu-source",
         ).start()
 
-        logger.info("overlay session started")
+        # Starts Etterna simfile live source listener (etterna_source).
+        try:
+            from etterna import run as etterna_run
+        except ImportError:
+            from etterna.etterna_source import run as etterna_run
+        threading.Thread(
+            target=etterna_run,
+            args=(event_bus, stop_event),
+            daemon=True,
+            name="etterna-source",
+        ).start()
+
+        logger.info("overlay session started with dual osu! and Etterna monitoring")
 
     _icon = str(_WEB_DIR / "graph.ico")
     webview.start(on_start, window, debug=False, icon=_icon)

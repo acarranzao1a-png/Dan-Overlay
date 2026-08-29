@@ -68,6 +68,10 @@ class MapInfo:
     mod_speed: float = 1.0
     mod_label: str = ""      # "" | "DT" | "NC" | "HT"
     bg_path: str = ""        # full path to background image file
+    banner_path: str = ""    # full path to banner image file
+    audio_path: str = ""     # full path to audio file on disk
+    pack: str = ""           # pack / songset name
+    game: str = "osu"        # "osu" | "etterna"
 
     # Live playback info (updated every poll)
     music_time_ms: int = 0
@@ -87,6 +91,11 @@ class MapInfo:
             "keycount": self.keycount,
             "mod_speed": self.mod_speed,
             "mod_label": self.mod_label,
+            "game": self.game,
+            "bg_path": self.bg_path,
+            "banner_path": self.banner_path,
+            "audio_path": self.audio_path,
+            "pack": self.pack,
         }
 
 

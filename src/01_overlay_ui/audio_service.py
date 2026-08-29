@@ -37,16 +37,18 @@ class AudioService:
 
     def _on_map_changed(self, map_info):
         with self._lock:
+            self._state["game"] = getattr(map_info, "game", "osu")
             self._state["music_md5"] = map_info.md5
             self._state["music_playing"] = map_info.music_playing
             self._state["mod_speed_actual"] = map_info.mod_speed
+            self._state["audio_path"] = getattr(map_info, "audio_path", "")
 
     def _on_music_time(self, data):
         with self._lock:
-            self._state["music_time_ms"] = data["ms"]
-            self._state["music_time_wall"] = data["wall"]
-            self._state["music_playing"] = data["playing"]
-            self._state["mod_speed_actual"] = data["speed"]
+            self._state["music_time_ms"] = data.get("ms", 0)
+            self._state["music_time_wall"] = data.get("wall", time.perf_counter())
+            self._state["music_playing"] = data.get("playing", False)
+            self._state["mod_speed_actual"] = data.get("speed", 1.0)
             if data.get("md5"):
                 self._state["music_md5"] = data["md5"]
 
@@ -73,6 +75,16 @@ class AudioService:
             try:
                 with self._lock:
                     state_snap = dict(self._state)
+
+                if state_snap.get("game") == "etterna":
+                    # In Etterna mode: disable FFmpeg and audio visualizer completely
+                    if viz._samples is not None:
+                        with viz._lock:
+                            viz._samples = None
+                            viz._loaded_md5 = None
+                    bus.emit(AUDIO_BANDS, {"bands": None, "active": False})
+                    time.sleep(interval)
+                    continue
 
                 md5 = state_snap.get("music_md5", "")
                 playing = state_snap.get("music_playing", False)

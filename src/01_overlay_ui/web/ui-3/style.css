@@ -324,3 +324,22 @@
 /* ── Misc overrides ──────────────────────────────────────────── */
 .dp-tooltip { display: none; }
 .premium-border { display: none; }
+
+/* ── Etterna Mode Rules (Hiding osu!-specific widgets) ── */
+body.game-etterna .g3-stat-badge:has(#mapSr),
+body.game-etterna .g3-stat-badge:has(#mapOd),
+body.game-etterna .g3-stat-badge:has([data-mirror="mapSr"]),
+body.game-etterna .g3-stat-badge:has([data-mirror="mapOd"]) {
+  display: none !important;
+}
+
+body.game-etterna .g3-badges-track {
+  animation: none !important;
+  transform: none !important;
+}
+
+body.game-etterna .g3-badges-group[aria-hidden="true"] {
+  display: none !important;
+}
+
+

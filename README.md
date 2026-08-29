@@ -1,19 +1,22 @@
-# DanOverlay — osu!mania 4K & 7K Dan Estimation Overlay
+# DanOverlay — osu!mania & Etterna 4K/7K Dan Estimation Overlay
 
-**DanOverlay** is a high-performance, real-time overlay for osu!mania that estimates your Dan tier as you select and play beatmaps. It connects to [tosu](https://tosu.app) to read live game data, runs state-of-the-art difficulty calculation engines (**ISOR** & **Legacy**), and displays your estimated Dan rank through a GPU-accelerated HTML overlay using [pywebview](https://github.com/r0x0r/pywebview).
+**DanOverlay** is a high-performance, real-time overlay for **osu!mania** and **Etterna** that estimates your Dan tier and skillset ratings as you select and play charts. It connects seamlessly to live game data ([tosu](https://tosu.app) for osu!mania, lightweight Lua bridges for Etterna), runs state-of-the-art difficulty calculation engines (**ISOR** & **Legacy**), and displays your estimated Dan rank through a GPU-accelerated HTML overlay using [pywebview](https://github.com/r0x0r/pywebview).
 
 ---
 
 ## Key Highlights
 
+- **Multi-Game Compatibility** — Automatic real-time tracking for **osu!mania** (stable & lazer) and **Etterna** (Rebirth, Til Death, Simply Love, and all Etterna themes).
+- **Universal Format Support** — Parses native `.osu` beatmaps as well as `.sm` and `.ssc` simfiles with full split timing, custom BPMs, STOPS, and DELAYS in $<15\text{ ms}$.
 - **Dual Estimation Engines** — Select between **ISOR** (*Next-Gen Rice Triangulation*) and **Legacy** (*Sunny + MinaCalc v3*) directly from the overlay settings.
 - **#1 Ranked Rice Accuracy** — ISOR achieves rank **#1 globally** on the competitive Leo_Black VSRG Benchmark (MAE `0.2110`), outperforming top community engines including **ROXY** and **Mixed**.
 - **Real-Time Performance** — Parallelized worker pipeline computes full analysis in **~500 ms** on standard maps and under **~1.2 s** on dense marathons with instantaneous LRU cache recall.
+- **Etterna Wife% & Grade Recognition** — Tracks live accuracy, evaluation screen results, and official Etterna grades (`F` through `AAAAA`).
 - **9 Built-In Skins** — Modern, Classic, Density Graph, Vertical Monolith, Broadcast Bar, Dark Vignette, Sunny Rebirth Dedicated HUD, Cyber HUD, and Minimalist Stream HUD.
 - **Multiple Estimation Ladders**:
   - **ISOR Engine:** **Reform** (20-tier continuous scale: 1st Dan $\to$ Kappa) and **Celestial** (35 discrete rank slots across 7 tiers).
   - **Legacy Engine:** **Reform**, **Celestial**, **Signicial** (18 stages), **Shoegazer** (12 stages), and **LN Course** (16 stages).
-- **Strict Rate Monotonicity** — Mathematically guaranteed $\frac{\partial DP}{\partial r} \ge 0$: playback speedups (HT $\to$ NM $\to$ DT $\to$ custom Lazer rates) never lower your estimated Dan rating.
+- **Strict Rate Monotonicity** — Mathematically guaranteed $\frac{\partial DP}{\partial r} \ge 0$: playback speedups (HT $\to$ NM $\to$ DT $\to$ custom Lazer / Etterna rates $0.5\text{x} \to 2.0\text{x}$) never lower your estimated Dan rating.
 - **Dynamic Audio Visualizer & Chart Export** — Real-time FFT audio spectrum synced to playback, plus one-click PNG density graph generation.
 
 ---
@@ -25,7 +28,7 @@ DanOverlay offers two fully selectable engines to match your preference:
 | Feature / Metric | ISOR Engine (*Recommended*) | Legacy Engine |
 | :---| :---: | :---: |
 | **Primary Methodology** | Continuous Multidimensional Convex Triangulation + Dual-Band $L_2$ Ridge Meta-Corrector | Sunny Star Rating Rebirth + MinaCalc MSD Skillset Frontier Interpolation |
-| **Target Map Scope** | **4K Rice Beatmaps** (Streams, Chordjacks, Speed bursts, Tech, Marathons) | **4K Rice, 4K LN Courses & 7K Beatmaps** |
+| **Target Map Scope** | **4K Rice Beatmaps & Simfiles** (Streams, Chordjacks, Speed bursts, Tech, Marathons) | **4K Rice, 4K LN Courses & 7K Beatmaps** |
 | **Supported Ladders** | **Reform** (1st Dan $\to$ Kappa) & **Celestial** (35 slots) | **Reform**, **Celestial**, **Signicial**, **Shoegazer**, **LN Course** |
 | **VSRG Benchmark Accuracy (Tiers 11–17)** | **MAE: 0.2110** (Global #1) | MAE: 0.5478 (Sunny) / Heuristic |
 | **Continuous Sub-Tier Derivation** | Quintile scale (`Low`, `Mid-Low`, `Mid`, `Mid-High`, `High`) directly from $DP$ | Zone boundary confidence heuristic |
@@ -74,29 +77,36 @@ In a direct symmetric head-to-head evaluation across 502 matched benchmark chart
 
 #### Complete Data Flow Diagram
 
-Full end-to-end flow: from osu! memory → tosu → analysis pipeline → overlay display.
+Full end-to-end flow: from game clients → live data bridge → analysis pipeline → overlay display.
 
 ```mermaid
 flowchart TD
-    subgraph GAME["Game Client"]
+    subgraph GAME["Game Clients"]
         OSU["osu! / osu!lazer"]
+        ETT["Etterna"]
     end
 
-    subgraph TOSU["Live Data Source — tosu.app"]
-        MEM["Memory Reader\nosu! process"]
-        WS["WebSocket\nws://localhost:24050/ws"]
-        HTTP["HTTP Fallback\nlocalhost:24050/json"]
-        OSU -->|process memory| MEM
-        MEM --> WS
-        MEM --> HTTP
+    subgraph SOURCES["Live Data Sources"]
+        subgraph TOSU["osu! Bridge (tosu.app)"]
+            MEM["Memory Reader"]
+            WS["WebSocket :24050/ws"]
+            HTTP["HTTP Fallback :24050/json"]
+            OSU --> MEM --> WS & HTTP
+        end
+        subgraph ETT_BRIDGE["Etterna Bridge (Lua Actors)"]
+            LUA["Lua Actors (ScreenSelectMusic / Gameplay)"]
+            TXT["DanOverlayBridge.txt / DanOverlayEval.txt"]
+            ETT --> LUA --> TXT
+        end
     end
 
     subgraph BRIDGE["Runtime Bridge — src/02_runtime_bridge/"]
-        TS["tosu_source.py\nWebSocket listener\nmod detection\nlazer rate override"]
+        TS["tosu_source.py"]
+        ES["etterna_source.py"]
         AC["analysis_coordinator.py\nsingle worker + debounce\nstale-token invalidation\n200-entry LRU cache\nEngine Hot-Switching"]
-        WS -->|JSON stream| TS
-        HTTP -->|poll fallback| TS
-        TS -->|MAP_CHANGED\nMUSIC_TIME| EBUS["events.py\npub/sub event bus"]
+        WS & HTTP --> TS
+        TXT --> ES
+        TS & ES -->|MAP_CHANGED\nMUSIC_TIME| EBUS["events.py\npub/sub event bus"]
         EBUS --> AC
     end
 
@@ -1097,25 +1107,36 @@ ffmpeg, web assets) before compiling.
 
 ## Usage
 
-1. Install [tosu](https://tosu.app) and launch it
-2. Launch the DanOverlay executable (or run `main.py` in dev mode)
-3. Select a beatmap in osu! — the overlay shows the estimated Dan in real time
-4. Press **Tab** to pin/unpin the overlay above osu!
-5. Press **F1** to open settings, **F2** to reset window size
+### For osu!mania
+1. Install [tosu](https://tosu.app) and launch it.
+2. Launch the DanOverlay executable (or run `main.py` in dev mode).
+3. Select a beatmap in osu! — the overlay shows the estimated Dan in real time.
+
+### For Etterna
+1. Launch DanOverlay — it will automatically detect your Etterna installation and active theme (`Til Death`, `Rebirth`, `_fallback`, etc.) and inject the bridge scripts.
+2. Open Etterna and select any song — DanOverlay immediately reads the chart and active rates ($0.5\text{x} \to 2.0\text{x}$) in real time.
+3. *Note:* If you use a non-standard custom theme where the auto-installer could not inject the lines, check [src/02_runtime_bridge/etterna/bridges/README.md](src/02_runtime_bridge/etterna/bridges/README.md) for manual setup or report it on Discord (`agent_ale`).
+
+### Shortcuts
+- Press **Tab** to pin/unpin the overlay above the game window.
+- Press **F1** (or `Ctrl + ,`) to open settings.
+- Press **F2** to reset the window size.
 
 ### Mod support
 
-| Mod | Behaviour |
-|-----|-----------|
-| DT / NC | 1.5× speed (stable); custom 1.01×–2.0× (lazer) |
-| HT | 0.75× speed (stable); custom 0.5×–0.99× (lazer) |
-| Other mods | No timing effect on SR calculation |
+| Mod / Game | Behaviour |
+|:---|:---|
+| **DT / NC** (osu!) | 1.5× speed (stable); custom 1.01×–2.0× (lazer) |
+| **HT** (osu!) | 0.75× speed (stable); custom 0.5×–0.99× (lazer) |
+| **Music Rates** (Etterna) | Continuous scaling from 0.5× to 2.0× |
+| **Other mods** | No timing effect on SR calculation |
 
 ---
 
 ## Acknowledgements
 
 - **[Daniel](https://github.com/TheBagelOfMan/Daniel) (TheBagelOfMan)** — The primary inspiration for the DanOverlay project and pioneering real-time Dan estimation overlays for osu!mania.
+- **[DanielEtterna](https://github.com/JoseMGS3/DanielEtterna) by [JoseMGS3](https://github.com/JoseMGS3)** — Special thanks and credit for sharing his codebase, providing valuable knowledge, and serving as the primary architectural reference for the Etterna Lua theme bridge integration.
 - **ROXY ([Algorithm Specification](https://github.com/LeoBlackMT/osumania_map_analyser/blob/main/docs/roxy_algorithm.md) | [Source Code](https://github.com/LeoBlackMT/osumania_map_analyser/blob/main/ManiaMapAnalyser%20by%20Leo_Black/js/estimator/roxyEstimator.js)) by Leo_Black (MIT)** — Key inspiration for dual burst/sustain strain decay, pattern entropy, and biomechanical modeling, as well as providing the reference VSRG Benchmark dataset.
 - **ISOR Engine & VSRG Research** — Developed for DanOverlay, locally evaluated on the [VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark) corpus. Full raw predictions for transparency are available in [src/08_isor_engine/ISOR.csv](src/08_isor_engine/ISOR.csv).
 - **[Sunny Star Rating Rebirth](https://github.com/sunnyxxy/Star-Rating-Rebirth)** (sunnyxxy) — Core primary Star Rating difficulty engine.

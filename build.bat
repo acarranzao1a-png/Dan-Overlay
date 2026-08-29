@@ -3,22 +3,22 @@ chcp 65001 >nul
 cd /d "%~dp0"
 setlocal
 
-:: ══════════════════════════════════════════════════════════════
-::  build.bat  —  PyInstaller build script for DanOverlay
-::  Zero-install: users only need to download and run the folder/executable.
-::
-::  Usage:
-::    build.bat           → --onefile production build (single .exe)
-::    build.bat --dev     → --onedir debug build (faster compilation)
-::    build.bat --no-audio→ compile without ffmpeg (not recommended)
-:: ══════════════════════════════════════════════════════════════
+rem ============================================================
+rem  build.bat  --  PyInstaller build script for DanOverlay
+rem  Zero-install: users only need to download and run the folder/executable.
+rem
+rem  Usage:
+rem    build.bat           - --onefile production build (single .exe)
+rem    build.bat --dev     - --onedir debug build (faster compilation)
+rem    build.bat --no-audio- compile without ffmpeg (not recommended)
+rem ============================================================
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=3.0.0"
+set "APP_VERSION=3.1.0"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
 set "ENTRY=%CD%\src\01_overlay_ui\main.py"
 
-:: Build options
+rem Build options
 set "BUILD_MODE=--onefile"
 set "REQUIRE_FFMPEG=1"
 
@@ -37,12 +37,12 @@ echo  Mode     : %BUILD_MODE%
 if "%REQUIRE_FFMPEG%"=="1" (
     echo  Audio    : ffmpeg required and embedded
 ) else (
-    echo  Audio    : optional ^(no audio visualizer in build^)
+    echo  Audio    : optional (no audio visualizer in build)
 )
 echo =====================================================
 echo.
 
-:: ── Preflight: validar archivos criticos ─────────────────────
+rem -- Preflight: validar archivos criticos --
 echo [INFO] Checking required files...
 if not exist "%ENTRY%" (
     echo [ERROR] Missing entry point: %ENTRY%
@@ -78,6 +78,10 @@ if not exist "src\01_overlay_ui\web\ui-7\index.html" (
 )
 if not exist "src\01_overlay_ui\web\ui-8\index.html" (
     echo [ERROR] Missing web\ui-8\index.html
+    exit /b 1
+)
+if not exist "src\01_overlay_ui\web\ui-9\index.html" (
+    echo [ERROR] Missing web\ui-9\index.html
     exit /b 1
 )
 if not exist "src\01_overlay_ui\web\graph.ico" (
@@ -128,13 +132,37 @@ if not exist "src\08_isor_engine\strain.py" (
     echo [ERROR] Missing src\08_isor_engine\strain.py
     exit /b 1
 )
+if not exist "src\02_runtime_bridge\etterna\etterna_source.py" (
+    echo [ERROR] Missing src\02_runtime_bridge\etterna\etterna_source.py
+    exit /b 1
+)
+if not exist "src\02_runtime_bridge\etterna\etterna_installer.py" (
+    echo [ERROR] Missing src\02_runtime_bridge\etterna\etterna_installer.py
+    exit /b 1
+)
+if not exist "src\02_runtime_bridge\etterna\sm_parser.py" (
+    echo [ERROR] Missing src\02_runtime_bridge\etterna\sm_parser.py
+    exit /b 1
+)
+if not exist "src\02_runtime_bridge\etterna\bridges\dan_overlay_bridge.lua" (
+    echo [ERROR] Missing src\02_runtime_bridge\etterna\bridges\dan_overlay_bridge.lua
+    exit /b 1
+)
+if not exist "src\02_runtime_bridge\etterna\bridges\dan_overlay_gameplay.lua" (
+    echo [ERROR] Missing src\02_runtime_bridge\etterna\bridges\dan_overlay_gameplay.lua
+    exit /b 1
+)
+if not exist "src\02_runtime_bridge\etterna\bridges\dan_overlay_eval.lua" (
+    echo [ERROR] Missing src\02_runtime_bridge\etterna\bridges\dan_overlay_eval.lua
+    exit /b 1
+)
 if not exist "tools\bin\msd.exe" (
     echo [ERROR] Missing tools\bin\msd.exe
     exit /b 1
 )
 
-:: ── Locate ffmpeg.exe (required for the audio visualizer) ────────
-:: Check in src\01_overlay_ui\ffmpeg\ first, then local ffmpeg\, then PATH.
+rem -- Locate ffmpeg.exe (required for the audio visualizer) --
+rem Check in src\01_overlay_ui\ffmpeg\ first, then local ffmpeg\, then PATH.
 set "FFMPEG_BIN="
 if exist "%~dp0src\01_overlay_ui\ffmpeg\ffmpeg.exe" (
     set "FFMPEG_BIN=%~dp0src\01_overlay_ui\ffmpeg\ffmpeg.exe"
@@ -163,17 +191,17 @@ if "%FFMPEG_BIN%"=="" (
     )
 )
 
-:: ── Select Python Environment ──────────────────────────────────
+rem -- Select Python Environment --
 if exist ".venv\Scripts\python.exe" (
     set "PY=.venv\Scripts\python.exe"
     set "PIP=.venv\Scripts\pip.exe"
 ) else (
     set "PY=python"
     set "PIP=pip"
-    echo [WARN] .venv not found — using system Python.
+    echo [WARN] .venv not found - using system Python.
 )
 
-:: ── Verify / install dependencies ─────────────────────────────
+rem -- Verify / install dependencies --
 set "REQUIRED_PY_PKGS=pyinstaller pywebview requests pillow numpy pandas websocket-client pythonnet clr-loader tzdata"
 for %%P in (%REQUIRED_PY_PKGS%) do (
     %PY% -m pip show %%P >nul 2>&1
@@ -187,34 +215,33 @@ for %%P in (%REQUIRED_PY_PKGS%) do (
     )
 )
 
-:: ── Clean previous builds ─────────────────────────────────────
+rem -- Clean previous builds --
 if exist "dist\%BUILD_NAME%"      rmdir /s /q "dist\%BUILD_NAME%"
 if exist "dist\%BUILD_NAME%.exe"  del /f /q "dist\%BUILD_NAME%.exe"
 if exist "build"                  rmdir /s /q "build"
 if exist "%APP_BASE%.spec"        del /q "%APP_BASE%.spec"
 if exist "%BUILD_NAME%.spec"      del /q "%BUILD_NAME%.spec"
 
-:: ── Data Files to Bundle ──────────────────────────────────────
-::  --add-data "source;destination_in_MEIPASS"
-::  resource_path() in code relies on these paths.
-
+rem -- Data Files to Bundle --
 set "DATA="
 set "DATA=%DATA% --add-data "%CD%\src\01_overlay_ui\web;web""
 set "DATA=%DATA% --add-data "%CD%\config;config""
+set "DATA=%DATA% --add-data "%CD%\src\02_runtime_bridge\etterna\bridges;bridges""
+set "DATA=%DATA% --add-data "%CD%\src\02_runtime_bridge\etterna\bridges;src\02_runtime_bridge\etterna\bridges""
 set "DATA=%DATA% --add-binary "%CD%\tools\bin\msd.exe;.""
 if not "%FFMPEG_BIN%"=="" set "DATA=%DATA% --add-binary "%FFMPEG_BIN%;.""
 
-:: ── Module Search Paths ───────────────────────────────────────
+rem -- Module Search Paths --
 set "PATHS="
 set "PATHS=%PATHS% --paths "%CD%\src""
 set "PATHS=%PATHS% --paths "%CD%\src\01_overlay_ui""
 set "PATHS=%PATHS% --paths "%CD%\src\02_runtime_bridge""
+set "PATHS=%PATHS% --paths "%CD%\src\02_runtime_bridge\etterna""
 set "PATHS=%PATHS% --paths "%CD%\src\03_engine_reference""
 set "PATHS=%PATHS% --paths "%CD%\src\07_model""
 set "PATHS=%PATHS% --paths "%CD%\src\08_isor_engine""
 
-:: ── Hidden imports ────────────────────────────────────────────
-::  Modules imported dynamically that PyInstaller might miss.
+rem -- Hidden imports --
 set "HIDDEN="
 set "HIDDEN=%HIDDEN% --hidden-import sr_core"
 set "HIDDEN=%HIDDEN% --hidden-import sr_core.algorithm"
@@ -223,7 +250,7 @@ set "HIDDEN=%HIDDEN% --hidden-import numpy"
 set "HIDDEN=%HIDDEN% --hidden-import pandas"
 set "HIDDEN=%HIDDEN% --hidden-import bisect"
 set "HIDDEN=%HIDDEN% --hidden-import heapq"
-:: New event-driven overlay runtime modules
+rem Runtime modules
 set "HIDDEN=%HIDDEN% --hidden-import events"
 set "HIDDEN=%HIDDEN% --hidden-import contracts"
 set "HIDDEN=%HIDDEN% --hidden-import tosu_source"
@@ -244,7 +271,7 @@ set "HIDDEN=%HIDDEN% --hidden-import PIL.Image"
 set "HIDDEN=%HIDDEN% --hidden-import PIL.ImageDraw"
 set "HIDDEN=%HIDDEN% --hidden-import PIL.ImageFont"
 set "HIDDEN=%HIDDEN% --hidden-import PIL.ImageFilter"
-:: Pipeline dynamic imports (inside function bodies, missed by static analysis)
+rem Pipeline modules
 set "HIDDEN=%HIDDEN% --hidden-import parser"
 set "HIDDEN=%HIDDEN% --hidden-import validator"
 set "HIDDEN=%HIDDEN% --hidden-import feature_extractor"
@@ -258,13 +285,18 @@ set "HIDDEN=%HIDDEN% --hidden-import celestial_estimator"
 set "HIDDEN=%HIDDEN% --hidden-import signicial_estimator"
 set "HIDDEN=%HIDDEN% --hidden-import shoegazer_estimator"
 set "HIDDEN=%HIDDEN% --hidden-import ln_course_estimator"
-:: resource_path utils (used at freeze time)
+rem resource_path
 set "HIDDEN=%HIDDEN% --hidden-import resource_path"
-:: ISOR engine (dynamic imports, missed by static analysis)
+rem ISOR engine
 set "HIDDEN=%HIDDEN% --hidden-import isor_engine"
 set "HIDDEN=%HIDDEN% --hidden-import strain"
+rem Etterna bridge
+set "HIDDEN=%HIDDEN% --hidden-import etterna"
+set "HIDDEN=%HIDDEN% --hidden-import etterna.sm_parser"
+set "HIDDEN=%HIDDEN% --hidden-import etterna.etterna_source"
+set "HIDDEN=%HIDDEN% --hidden-import etterna.etterna_installer"
 
-:: ── Collect Binaries and Data (native Windows DLLs) ───────────
+rem -- Collect Binaries and Data --
 set "COLLECT="
 set "COLLECT=%COLLECT% --collect-binaries numpy"
 set "COLLECT=%COLLECT% --collect-binaries pandas"
@@ -274,7 +306,7 @@ set "COLLECT=%COLLECT% --collect-all webview"
 set "COLLECT=%COLLECT% --collect-all clr_loader"
 set "COLLECT=%COLLECT% --collect-all pythonnet"
 
-:: ── Compile ───────────────────────────────────────────────────
+rem -- Compile --
 echo [INFO] Compiling...
 if not "%FFMPEG_BIN%"=="" (
     echo [INFO] ffmpeg embedded: %FFMPEG_BIN%
@@ -316,7 +348,7 @@ if "%BUILD_MODE%"=="--onefile" (
     )
 )
 
-:: ── Prepare Distribution (onedir files) ───────────────────────
+rem -- Prepare Distribution (onedir files) --
 if "%BUILD_MODE%"=="--onedir" (
     if exist "src\04_packaging_and_launch\run.bat" copy /y "src\04_packaging_and_launch\run.bat" "dist\%BUILD_NAME%\run.bat" >nul
 )
@@ -324,9 +356,9 @@ if "%BUILD_MODE%"=="--onedir" (
 echo.
 echo [OK] Build complete.
 if "%BUILD_MODE%"=="--onefile" (
-    echo      → dist\%BUILD_NAME%.exe
+    echo      - dist\%BUILD_NAME%.exe
 ) else (
-    echo      → dist\%BUILD_NAME%\
+    echo      - dist\%BUILD_NAME%\
 )
 echo.
 if "%BUILD_MODE%"=="--onefile" (

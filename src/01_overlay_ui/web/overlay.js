@@ -409,6 +409,11 @@ function vizRender(now = 0) {
 // only reset when the map changes.
 let lastDanRaw = "";
 let lastMapKey = "";
+let _lastMapPayload = null;
+let _osuRunning = false;
+let _etternaRunning = false;
+let _tosuConnected = false;
+let _osuCheckInterval = null;
 let _bgGeneration = 0;
 let currentPlaybackMs = 0;
 let currentTotalMs = 0;
@@ -455,12 +460,12 @@ const _DEF_BRIGHT = 82.35;
 const _CURRENT_SKIN = window.location.href.includes("/ui-9/") ? "9"
   : window.location.href.includes("/ui-8/") ? "8"
     : window.location.href.includes("/ui-7/") ? "7"
-    : window.location.href.includes("/ui-6/") ? "6"
-      : window.location.href.includes("/ui-5/") ? "5"
-        : window.location.href.includes("/ui-4/") ? "4"
-          : window.location.href.includes("/ui-3/") ? "3"
-            : window.location.href.includes("/ui-2/") ? "2"
-              : "1";
+      : window.location.href.includes("/ui-6/") ? "6"
+        : window.location.href.includes("/ui-5/") ? "5"
+          : window.location.href.includes("/ui-4/") ? "4"
+            : window.location.href.includes("/ui-3/") ? "3"
+              : window.location.href.includes("/ui-2/") ? "2"
+                : "1";
 
 let _settings = {
   engine: "isor", // "isor" (Isotonic Strain Organic Residual) | "legacy" (Sunny + MinaCalc v3)
@@ -605,7 +610,7 @@ function _applySettings() {
   if (_settings.skin === "6" && panel) {
     if (_settings.ui6_no_vignette) panel.classList.add("ui6-no-vignette");
     else panel.classList.remove("ui6-no-vignette");
-    
+
     if (_settings.ui6_simple_mode) panel.classList.add("ui6-simple-mode");
     else panel.classList.remove("ui6-simple-mode");
 
@@ -648,10 +653,10 @@ function _applyLayoutMode(skipResize) {
   if (_layoutMode !== "complete") panel.classList.add("layout-" + _layoutMode);
   if (skipResize) return;
   const h = _LAYOUT_HEIGHTS[_layoutMode];
-  
+
   const isFrameless = _settings && _settings.frameless;
   const currentOuterW = isFrameless ? window.innerWidth : (window.innerWidth + 16);
-  
+
   if (window.pywebview?.api?.set_window_size) {
     window.pywebview.api.set_window_size(currentOuterW, h);
   }
@@ -671,11 +676,11 @@ function _cycleLayout() {
     panel.classList.toggle("is-expanded", willExpand);
     const isExp = willExpand;
     if (typeof showToast === "function") showToast(isExp ? "Map info: Expanded" : "Map info: Hidden", 1600);
-    
+
     // Ignore the programmatic resize to prevent double-stretching the UI
     window._ignoreNextP2Resize = true;
     if (typeof window._resetP2ResizeStates === "function") window._resetP2ResizeStates();
-    
+
     // PyWebView's _window.width can be stale on Windows, so we pass the accurate outerWidth from JS
     const isFrameless = _settings && _settings.frameless;
     const currentOuterW = isFrameless ? window.innerWidth : (window.innerWidth + 16);
@@ -1361,22 +1366,22 @@ function _renderAnalysisPayload(payload) {
   }
 
   if (payload.mode === "7k" && payload.tier_7k) {
-      const tDp = Number(payload.dp_7k || 0);
-      lastDanRaw = "7K Tier: " + payload.tier_7k;
-      applyDanResult({
-          danName: payload.tier_7k,
-          danShort: payload.tier_7k.substring(0, 3).toUpperCase(),
-          dp: tDp,
-          danSuffix: payload.sublevel_7k || "-",
-          metrics: payload.sr > 0 ? payload.sr.toFixed(2) : "--.-",
-          chart: "7K",
-          chartColor: "HYBRID",
-          mode7k: true,
-          tier7k: payload.tier_7k,
-      });
-      setChartButtonReady(true);
-      if (ui.density) { ui.density.innerHTML = ""; ui.density.classList.remove("has-data"); }
-      return;
+    const tDp = Number(payload.dp_7k || 0);
+    lastDanRaw = "7K Tier: " + payload.tier_7k;
+    applyDanResult({
+      danName: payload.tier_7k,
+      danShort: payload.tier_7k.substring(0, 3).toUpperCase(),
+      dp: tDp,
+      danSuffix: payload.sublevel_7k || "-",
+      metrics: payload.sr > 0 ? payload.sr.toFixed(2) : "--.-",
+      chart: "7K",
+      chartColor: "HYBRID",
+      mode7k: true,
+      tier7k: payload.tier_7k,
+    });
+    setChartButtonReady(true);
+    if (ui.density) { ui.density.innerHTML = ""; ui.density.classList.remove("has-data"); }
+    return;
   }
 
   const _modeNeedsData = _scoringMode === "celestial" || _scoringMode === "signicial" || _scoringMode === "shoegazer";
@@ -1824,8 +1829,8 @@ function _updateHeroDanLazerSkin(payload) {
         const t = pillCount > 1 ? (i - 1) / (pillCount - 1) : 1.0;
         const pColor = palette
           ? (palette.length > 1
-              ? palette[Math.min(palette.length - 1, Math.floor(t * (palette.length - 1)))]
-              : palette[0])
+            ? palette[Math.min(palette.length - 1, Math.floor(t * (palette.length - 1)))]
+            : palette[0])
           : c1;
         const alpha = (0.5 + t * 0.5).toFixed(2);
         p.style.backgroundColor = pColor;
@@ -2224,7 +2229,7 @@ function applyDanResult(result) {
   root.setProperty("--dan-glow", `rgba(${primary.join(",")}, 0.45)`);
   root.setProperty("--dan-border", `rgba(${primary.join(",")}, 0.35)`);
   root.setProperty("--dan-bg-tint", `rgba(${primary.join(",")}, 0.08)`);
-  
+
   const midRGB = parseRGB(lineColor);
   const solidColor = midRGB.map(c => Math.min(255, Math.round(c * 1.3)));
   root.setProperty("--dan-solid", `rgb(${solidColor.join(",")})`);
@@ -2615,31 +2620,29 @@ function applyProgressData(payload) {
       }
     }
   } else if (state === 7) {
-    // Only update from results screen if we don't have a real accuracy
-    // value from gameplay (e.g. tosu sent placeholder 1.0 which we skipped,
-    // or no accuracy was received at all).
-    const trackedDuringPlay = prog_lastAcc > 0 && prog_lastAcc < 1.0;
-    if (!trackedDuringPlay) {
-      const rAcc = payload.results_accuracy ?? payload.gameplay_accuracy;
-      if (rAcc != null && Number.isFinite(Number(rAcc))) {
-        prog_lastAcc = Number(rAcc);
-      } else {
-        const resultAcc = Number(safeGet(payload, "resultsScreen.accuracy", -1));
-        if (resultAcc >= 0) {
-          prog_lastAcc = resultAcc;
-        }
+    const rAcc = payload.results_accuracy ?? payload.gameplay_accuracy;
+    if (rAcc != null && Number.isFinite(Number(rAcc)) && Number(rAcc) > 0) {
+      prog_lastAcc = Number(rAcc);
+    } else {
+      const resultAcc = Number(safeGet(payload, "resultsScreen.accuracy", -1));
+      if (resultAcc >= 0) {
+        prog_lastAcc = resultAcc;
       }
     }
   }
 
-  // ── Stall-based in-game pause detection ─────────────────────────
-  // tosu keeps game_state=2 while the player is in the pause menu;
-  // the only observable signal is that currentMs stops advancing.
+  const isEtternaMode = (_lastMapPayload && _lastMapPayload.game === "etterna")
+    || (payload && payload.game === "etterna")
+    || (typeof _etternaRunning !== "undefined" && _etternaRunning)
+    || document.body.classList.contains("game-etterna");
+
+  // ── Stall-based in-game pause detection (osu! only — in Etterna there is no in-game pause) ──
   if (currentMs !== prog_lastSeenMs) {
     prog_lastSeenMs = currentMs;
     prog_playingAt = performance.now();
   }
-  const isStalled = state === 2
+  const isStalled = !isEtternaMode
+    && state === 2
     && prog_wasPlaying
     && currentMs > 0
     && (performance.now() - prog_playingAt) > PAUSE_STALL_MS;
@@ -2671,10 +2674,12 @@ function applyProgressData(payload) {
     ui.progressResult.classList.remove("failed");
   } else {
     // Not playing and not stalled -> Game exited, finished, or failed
-    if (prog_wasPlaying) {
+    if (prog_wasPlaying || state === 7) {
       prog_wasPlaying = false;
       const remainingMs = Math.max(0, fullMs - currentMs);
-      const isFinished = (state === 7 || remainingMs <= 1000);
+      // The remainingMs fallback only applies while actually in gameplay
+      // (state 2). Menu previews (Etterna) must never trigger a finish flash.
+      const isFinished = (state === 7 || (state === 2 && remainingMs <= 1000));
       const isFailed = (state === 3);
 
       if (isFinished || isFailed) {
@@ -2690,7 +2695,7 @@ function applyProgressData(payload) {
           resultColor = "#ff3333";
           ui.progressResult.classList.add("failed");
         } else {
-          // Normalise: tosu sometimes sends accuracy as fraction (0.00-1.00)
+          // Normalise: tosu/bridges sometimes send accuracy as fraction (0.00-1.00)
           // and sometimes as percentage (0.00-100.00).
           let acc = prog_lastAcc;
           if (acc > 1 && acc <= 100) {
@@ -2701,18 +2706,63 @@ function applyProgressData(payload) {
             acc = 0;      // invalid / unset -> fall back to "Pass!"
           }
 
-          if (acc >= 100) {
-            resultText = "Perfect!";
-            resultColor = "#ffeb3b";
-          } else if (acc >= 98) {
-            resultText = "Hard Clear!";
-            resultColor = "#ff9800";
-          } else if (acc >= 97) {
-            resultText = "Over Clear!";
-            resultColor = "#4caf50";
-          } else if (acc >= 96) {
-            resultText = "Clear!";
-            resultColor = "#8bc34a";
+          const isEtternaMode = (_lastMapPayload && _lastMapPayload.game === "etterna")
+            || (payload && payload.game === "etterna")
+            || (typeof _etternaRunning !== "undefined" && _etternaRunning)
+            || document.body.classList.contains("game-etterna");
+
+          if (isEtternaMode) {
+            // Authentic Etterna Wife% Grades & Slang
+            if (acc >= 99.996) {
+              resultText = "AAAAA";
+              resultColor = "#ffffff";
+            } else if (acc >= 99.955) {
+              resultText = "AAAA";
+              resultColor = "#00f0ff";
+            } else if (acc >= 99.70) {
+              resultText = "AAA";
+              resultColor = "#ffd700";
+            } else if (acc >= 93.00) {
+              resultText = "AA";
+              resultColor = "#22c55e";
+            } else if (acc >= 80.00) {
+              resultText = "A";
+              resultColor = "#ef4444";
+            } else if (acc >= 70.00) {
+              resultText = "B";
+              resultColor = "#3b82f6";
+            } else if (acc >= 60.00) {
+              resultText = "C";
+              resultColor = "#a855f7";
+            } else if (acc > 0) {
+              resultText = "D";
+              resultColor = "#b45309";
+            } else {
+              resultText = "Pass!";
+              resultColor = "#22c55e";
+            }
+
+            if (acc > 0) {
+              resultText += `  ${acc.toFixed(2)}%`;
+            }
+          } else {
+            // osu!mania cleartypes standard
+            if (acc >= 100) {
+              resultText = "Perfect!";
+              resultColor = "#ffeb3b";
+            } else if (acc >= 98) {
+              resultText = "Hard Clear!";
+              resultColor = "#ff9800";
+            } else if (acc >= 97) {
+              resultText = "Over Clear!";
+              resultColor = "#4caf50";
+            } else if (acc >= 96) {
+              resultText = "Clear!";
+              resultColor = "#8bc34a";
+            } else {
+              resultText = "Pass!";
+              resultColor = "#b7c8e6";
+            }
           }
         }
 
@@ -2922,16 +2972,22 @@ function applyFromPythonBridge(payload) {
       return;
     }
 
-    // When real tosu data arrives while still on the connect screen in bridge
-    // mode, we record that tosu is connected and check if osu! is also running.
+    // When real game data (osu or Etterna) arrives while still on the connect screen,
+    // advance immediately to connected state so the overlay displays the chart.
     if (_pythonBridgeReady && introStage === "connecting") {
       const incomingState = (payload.type === "state") ? (payload.state || "") : "";
-      // Only advance on real connection — not on waiting_tosu state
-      const isRealData = payload.type !== "state" || (incomingState !== "waiting_tosu" && incomingState !== "");
+      const isRealData = payload.type === "analysis" || payload.type === "map_info" || payload.type === "map-changed" ||
+        (payload.type === "state" && incomingState !== "waiting_tosu" && incomingState !== "");
       if (isRealData) {
+        if (payload.type === "map_info" && (payload.game === "etterna" || _etternaRunning)) {
+          _etternaRunning = true;
+        }
         _tosuConnected = true;
+        setIntroStage("connected");
       } else if (incomingState === "waiting_tosu") {
-        _tosuConnected = false;
+        if (!_etternaRunning) {
+          _tosuConnected = false;
+        }
       }
       _checkAndAdvanceConnection();
     }
@@ -2940,6 +2996,7 @@ function applyFromPythonBridge(payload) {
     if (payload.type === "state") {
       const state = payload.state || "";
       const msg = payload.message || "";
+      const isEtternaState = (payload.game === "etterna") || _etternaRunning;
       if (state === "analyzing") {
         if (isMapTransitioning) {
           setAnimatedText(ui.loadingText, msg || "Computing");
@@ -2954,11 +3011,9 @@ function applyFromPythonBridge(payload) {
           applyLoading(msg || "Waiting for a map");
         }
       } else if (state === "waiting_tosu") {
-        finishMapTransition();
-        applyLoading(msg || "Waiting for tosu...");
-        // If we were past the connect screen and tosu dropped, go back to searching
-        if (introStage === "done" || introStage === "hint") {
-          // Don't re-show the full connect screen mid-session; just update the loading text
+        if (!isEtternaState) {
+          finishMapTransition();
+          applyLoading(msg || "Waiting for tosu...");
         }
       } else if (state === "error") {
         finishMapTransition();
@@ -2970,6 +3025,14 @@ function applyFromPythonBridge(payload) {
 
     // ── Map metadata (ticker update) ─────────────────────────────────
     if (payload.type === "map_info") {
+      if (connectEl) {
+        connectEl.classList.add("hidden");
+        connectEl.classList.remove("fading");
+      }
+      if (introStage === "connecting" || introStage === "connected") {
+        setIntroStage("done");
+      }
+      _lastMapPayload = payload;
       lastDanRaw = "";
       // Use md5 as primary key so this always agrees with applyBeatmapData
       const mapKey = payload.md5 || buildMapKey(payload.artist, payload.title, payload.version);
@@ -2991,10 +3054,29 @@ function applyFromPythonBridge(payload) {
           titleLine += ` [${vTrim}]`;
         }
       }
+      const isEtterna = (payload.game === "etterna") || _etternaRunning;
+      document.body.classList.toggle("game-etterna", isEtterna);
+      document.body.classList.toggle("game-osu", !isEtterna);
+
       setMapTitleText(titleLine);
-      if (ui.mapArtist && payload.mapper) ui.mapArtist.textContent = `Mapped by ${payload.mapper}`;
-      renderMapDuration(Number(payload.current_ms || 0), Number(payload.total_ms || 0), Number(payload.current_ms || 0) > 0);
-      if (ui.modBadge) {
+      if (ui.mapArtist) {
+        if (payload.mapper) {
+          ui.mapArtist.textContent = isEtterna ? `Charter: ${payload.mapper}` : `Mapped by ${payload.mapper}`;
+          ui.mapArtist.style.display = "";
+        } else {
+          ui.mapArtist.textContent = "";
+          ui.mapArtist.style.display = "none";
+        }
+      if (isEtterna) {
+        if (ui.mapDuration) ui.mapDuration.style.display = "none";
+        const uiLenEl = document.getElementById("ui-len");
+        if (uiLenEl) uiLenEl.style.display = "none";
+      } else {
+        if (ui.mapDuration) ui.mapDuration.style.display = "";
+        const uiLenEl = document.getElementById("ui-len");
+        if (uiLenEl) uiLenEl.style.display = "";
+        renderMapDuration(Number(payload.current_ms || 0), Number(payload.total_ms || 0), Number(payload.current_ms || 0) > 0);
+      }
         const modLbl = String(payload.mod_label || "");
         ui.modBadge.textContent = modLbl;
         ui.modBadge.dataset.mod = modLbl;
@@ -3006,24 +3088,15 @@ function applyFromPythonBridge(payload) {
       if (payload.bg_data && mapKey && ui.bg.dataset.mapKey !== mapKey) {
         ui.bg.dataset.mapKey = mapKey;
         crossfadeBackground(payload.bg_data);
-        ui.panel.style.background = "rgba(7, 14, 26, 0.3)";
       } else if (!payload.bg_data && payload.has_bg && mapKey && ui.bg.dataset.mapKey !== mapKey) {
-        // File existed but was too large — load via tosu's local HTTP endpoint.
         ui.bg.dataset.mapKey = mapKey;
-        crossfadeBackground(`http://localhost:24050/files/beatmap/background?t=${Date.now()}`);
-        ui.panel.style.background = "rgba(7, 14, 26, 0.3)";
+        const bgUrl = `http://127.0.0.1:24050/files/beatmap/background?_t=${Date.now()}`;
+        crossfadeBackground(bgUrl);
       } else if (!payload.bg_data && !payload.has_bg && ui.bg.dataset.mapKey) {
-        // Map genuinely has no background art — clear the old image.
-        ++_bgGeneration;
         ui.bg.dataset.mapKey = "";
-        ui.bg.style.opacity = "0";
-        const _gen = _bgGeneration;
-        setTimeout(() => {
-          if (_bgGeneration === _gen) ui.bg.style.backgroundImage = "";
-        }, 520);
-        ui.panel.style.background = "var(--bg-panel)";
+        crossfadeBackground("");
       } else if (!payload.bg_data && !payload.has_bg) {
-        ui.panel.style.background = "var(--bg-panel)";
+        ui.bg.dataset.mapKey = "";
       }
       return;
     }
@@ -3037,6 +3110,13 @@ function applyFromPythonBridge(payload) {
 
     // ── Structured analysis result ───────────────────────────────────
     if (payload.type === "analysis") {
+      if (connectEl) {
+        connectEl.classList.add("hidden");
+        connectEl.classList.remove("fading");
+      }
+      if (introStage === "connecting" || introStage === "connected") {
+        setIntroStage("done");
+      }
       // LN auto-override: activate/deactivate based on pipeline ln_route.
       // When _lnModePinned is true the user pressed Ctrl+5 to prefer LN Course;
       // still respect whether the map actually has LN Course data — if the
@@ -3062,10 +3142,15 @@ function applyFromPythonBridge(payload) {
       _renderAnalysisPayload(payload);
       setChartButtonReady(true);
       // ── Density graph (ui-3 skin) ───────────────────────────────────
+      const durationMs = (payload.duration_s || 0) * 1000;
       if (payload.strain_graph && payload.strain_graph.values) {
         _storeStrainData(payload.strain_graph, payload.duration_s || 0);
       }
-      // Populate BPM / OD / SR spans from pipeline-parsed .osu stats
+      if (durationMs > 0) {
+        renderMapDuration(currentPlaybackMs, durationMs, currentPlaybackMs > 0);
+      }
+      // Populate BPM / OD / SR spans from pipeline-parsed stats
+      const isEtternaActive = (_lastMapPayload && _lastMapPayload.game === "etterna") || _etternaRunning || document.body.classList.contains("game-etterna");
       if (ui.mapBpm) {
         const bMin = payload.bpm_min || 0;
         const bMax = payload.bpm_max || 0;
@@ -3073,8 +3158,41 @@ function applyFromPythonBridge(payload) {
         const bpmStr = bpmToString({ min: bMin || bCommon, max: bMax || bCommon, common: bCommon });
         ui.mapBpm.textContent = bpmStr ? `${bpmStr} BPM` : "-- BPM";
       }
-      if (ui.mapOd) ui.mapOd.textContent = (payload.od > 0) ? `OD ${Number(payload.od).toFixed(1)}` : "OD --";
-      if (ui.mapSr) ui.mapSr.textContent = (payload.osu_sr > 0) ? `${Number(payload.osu_sr).toFixed(2)}★` : "--★";
+      if (ui.mapOd) {
+        const parentBadge = ui.mapOd.closest(".g3-stat-badge, .stat-box, .map-stat-item");
+        if (isEtternaActive) {
+          ui.mapOd.textContent = "";
+          ui.mapOd.style.display = "none";
+          if (parentBadge) parentBadge.style.display = "none";
+        } else {
+          ui.mapOd.style.display = "";
+          ui.mapOd.textContent = (payload.od > 0) ? `OD ${Number(payload.od).toFixed(1)}` : "OD --";
+          if (parentBadge) parentBadge.style.display = "";
+        }
+      }
+      if (ui.mapSr) {
+        const parentBadge = ui.mapSr.closest(".g3-stat-badge, .stat-box, .map-stat-item");
+        if (isEtternaActive) {
+          ui.mapSr.textContent = "";
+          ui.mapSr.style.display = "none";
+          if (parentBadge) parentBadge.style.display = "none";
+        } else {
+          ui.mapSr.style.display = "";
+          ui.mapSr.textContent = (payload.osu_sr > 0) ? `${Number(payload.osu_sr).toFixed(2)}★` : "--★";
+          if (parentBadge) parentBadge.style.display = "";
+        }
+      }
+      document.querySelectorAll('[data-mirror="mapOd"], [data-mirror="mapSr"]').forEach(el => {
+        const parent = el.closest(".g3-stat-badge, .stat-box");
+        if (isEtternaActive) {
+          el.textContent = "";
+          el.style.display = "none";
+          if (parent) parent.style.display = "none";
+        } else {
+          el.style.display = "";
+          if (parent) parent.style.display = "";
+        }
+      });
       return;
     }
   } catch (err) {
@@ -3359,14 +3477,21 @@ const connIcon = document.getElementById("connectIcon");
 const connLabel = document.getElementById("connectLabel");
 const connSub = document.getElementById("connectSub");
 
-let _osuRunning = false;
-let _tosuConnected = false;
-let _osuCheckInterval = null;
-
 function _checkAndAdvanceConnection() {
   if (introStage !== "connecting") return;
 
-  if (_tosuConnected && _osuRunning) {
+  if (_lastAnalysisPayload) {
+    if (connectEl) connectEl.classList.add("hidden");
+    setIntroStage("done");
+    return;
+  }
+
+  if (_etternaRunning) {
+    setIntroStage("connected");
+    if (connSub) {
+      connSub.textContent = "Etterna detected. Select a song in Etterna...";
+    }
+  } else if (_tosuConnected && _osuRunning) {
     setIntroStage("connected");
   } else {
     // Update subtext to indicate what we are waiting for
@@ -3376,7 +3501,7 @@ function _checkAndAdvanceConnection() {
       } else if (!_tosuConnected && _osuRunning) {
         connSub.textContent = "osu! found. Waiting for tosu...";
       } else {
-          connSub.textContent = "Connect tosu and open osu! to start";
+        connSub.textContent = "Connect tosu / open osu! or Etterna to start";
       }
     }
   }
@@ -3386,26 +3511,40 @@ function _updateOsuStatus() {
   const osuEl = document.getElementById("connectOsu");
   const osuIcon = document.getElementById("connectOsuIcon");
   const osuText = document.getElementById("connectOsuText");
+  const dl = document.getElementById("connectDownload");
   if (!osuEl) return;
   osuEl.classList.remove("hidden");
-  if (_osuRunning) {
+  if (_etternaRunning) {
+    osuEl.classList.add("is-running");
+    if (osuText) osuText.textContent = "Etterna detected";
+    if (dl) dl.classList.add("hidden");
+  } else if (_osuRunning) {
     osuEl.classList.add("is-running");
     if (osuText) osuText.textContent = "osu! detected";
   } else {
     osuEl.classList.remove("is-running");
-    if (osuText) osuText.textContent = "osu! not found";
+    if (osuText) osuText.textContent = "Game not detected";
   }
 }
 
 async function _checkOsuRunning() {
   try {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.check_osu_running) {
-      _osuRunning = await window.pywebview.api.check_osu_running();
+      const res = await window.pywebview.api.check_osu_running();
+      if (typeof res === "object" && res !== null) {
+        _osuRunning = !!res.osu;
+        _etternaRunning = !!res.etterna;
+      } else {
+        _osuRunning = !!res;
+        _etternaRunning = false;
+      }
     } else {
       _osuRunning = false;
+      _etternaRunning = false;
     }
   } catch (_e) {
     _osuRunning = false;
+    _etternaRunning = false;
   }
   _updateOsuStatus();
   _checkAndAdvanceConnection();
@@ -4289,7 +4428,7 @@ async function _openSettings() {
   const overlay = document.getElementById("cfgOverlay");
   if (!overlay) return;
   _isOpeningSettings = true;
-  
+
   // Capture the *actual* window dimensions before expanding, so we can restore
   // them exactly and show the real values in the Window Size fields.
   const isFrameless = _settings && _settings.frameless;
@@ -4361,7 +4500,7 @@ function _renderCfgPanel() {
   const danScaleNum = document.getElementById("cfgDanScaleNum");
   if (danScaleSlider) danScaleSlider.value = _settings.danScale;
   if (danScaleNum) danScaleNum.value = _settings.danScale;
-  
+
   const bcastBrightSlider = document.getElementById("cfgBorderBrightSlider");
   const bcastBrightNum = document.getElementById("cfgBorderBrightNum");
   if (bcastBrightSlider) bcastBrightSlider.value = _settings.broadcastBorderBright ?? 75;
@@ -4380,7 +4519,7 @@ function _renderCfgPanel() {
   if (engineSel) engineSel.value = _settings.engine || "isor";
   const skinSel = document.getElementById("cfgSkinSelect");
   if (skinSel) skinSel.value = _settings.skin;
-  
+
   const ui6SettingsWrap = document.getElementById("cfgUi6Settings");
   if (ui6SettingsWrap) {
     ui6SettingsWrap.style.display = _settings.skin === "6" ? "block" : "none";
@@ -4391,7 +4530,7 @@ function _renderCfgPanel() {
   if (ui6SimpleModeChk) ui6SimpleModeChk.checked = _settings.ui6_simple_mode;
   const ui6OutlinesChk = document.getElementById("cfgUi6OutlinesChk");
   if (ui6OutlinesChk) ui6OutlinesChk.checked = _settings.ui6_outlines;
-  
+
   // Window size inputs — populate with current dimensions from Python
   _populateWindowSizeInputs();
   _renderKeybindRows();
@@ -4827,7 +4966,7 @@ function _initCfgListeners() {
       // Clear custom dimensions so the new skin uses its native defaults/zoom on reload
       _settings.windowWidth = null;
       _settings.windowHeight = null;
-      
+
       const ui6SettingsWrap = document.getElementById("cfgUi6Settings");
       if (ui6SettingsWrap) {
         ui6SettingsWrap.style.display = _settings.skin === "6" ? "block" : "none";
@@ -5204,7 +5343,7 @@ function _updateDensityProgress(currentMs) {
 
   window.addEventListener("resize", () => {
     if (_CURRENT_SKIN !== "5") return;
-    
+
     const curW = window.innerWidth;
     const curH = window.innerHeight;
     const curX = window.screenX ?? window.screenLeft ?? 0;

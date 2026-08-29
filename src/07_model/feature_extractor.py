@@ -10,7 +10,7 @@ from collections import defaultdict
 def _nps_windows(notes, window_ms=500, stride_ms=250):
     """Compute NPS in overlapping windows across the chart.
 
-    Uses bisect for O(n + m) total instead of O(n * m) brute force.
+    Uses a two-pointer sliding window for pure O(n + m) linear total.
     Returns list of (center_ms, nps) for all windows with at least 1 note.
     """
     if not notes:
@@ -21,11 +21,18 @@ def _nps_windows(notes, window_ms=500, stride_ms=250):
     half = window_ms // 2
     duration_s = window_ms / 1000.0
     results = []
+    n = len(times)
+    left_idx = 0
+    right_idx = 0
     t = t_min
     while t <= t_max:
         lo = t - half
         hi = t + half
-        count = bisect_right(times, hi) - bisect_left(times, lo)
+        while left_idx < n and times[left_idx] < lo:
+            left_idx += 1
+        while right_idx < n and times[right_idx] <= hi:
+            right_idx += 1
+        count = right_idx - left_idx
         nps = count / duration_s if duration_s > 0 else 0.0
         results.append((t, nps))
         t += stride_ms
@@ -225,33 +232,33 @@ def extract_features(parsed):
         entropies = []
         t = t_min
         ni = 0  # running note index
+        n_notes = len(notes_sorted)
         while t <= t_max:
             lo = t
             hi = t + _WINDOW_ENTROPY_MS
+            # Advance start pointer
+            while ni < n_notes and notes_sorted[ni][0] < lo:
+                ni += 1
             # Count notes per column in this window
-            col_counts_w = defaultdict(int)
+            col_counts_w = [0, 0, 0, 0]
             total_w = 0
-            # Use running index for efficiency
-            for j in range(ni, len(notes_sorted)):
+            for j in range(ni, n_notes):
                 nt, nc = notes_sorted[j]
-                if nt < lo:
-                    continue
                 if nt > hi:
                     break
-                col_counts_w[int(nc)] += 1
-                total_w += 1
+                c_int = int(nc)
+                if 0 <= c_int <= 3:
+                    col_counts_w[c_int] += 1
+                    total_w += 1
             if total_w >= 4:  # minimum notes for meaningful entropy
                 # Shannon entropy over column distribution
                 h = 0.0
-                for cnt in col_counts_w.values():
+                for cnt in col_counts_w:
                     if cnt > 0:
                         p = cnt / total_w
                         h -= p * math.log2(p)
                 entropies.append(h)
             t += _ENTROPY_STRIDE_MS
-            # Advance running index
-            while ni < len(notes_sorted) and notes_sorted[ni][0] < lo:
-                ni += 1
         pattern_irregularity = _cv(entropies) if len(entropies) >= 2 else 0.0
     else:
         pattern_irregularity = 0.0

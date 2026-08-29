@@ -140,26 +140,49 @@ def get_corners(T, note_seq):
 
 def get_key_usage(K, T, note_seq, base_corners):
     key_usage = {k: np.zeros(len(base_corners), dtype=bool) for k in range(K)}
-    for k, h in note_seq:
-        start = max(h - 150, 0)
-        end = min(h + 150, T - 1)
-        li = np.searchsorted(base_corners, start, side="left")
-        ri = np.searchsorted(base_corners, end, side="left")
-        key_usage[k][li:ri] = True
+    bc = np.asarray(base_corners, dtype=float)
+    for k in range(K):
+        col_notes = [h for col, h in note_seq if col == k]
+        if not col_notes:
+            continue
+        arr_k = key_usage[k]
+        h_arr = np.array(col_notes, dtype=float)
+        starts = np.maximum(h_arr - 150.0, 0.0)
+        ends = np.minimum(h_arr + 150.0, T - 1.0)
+        lis = np.searchsorted(bc, starts, side="left")
+        ris = np.searchsorted(bc, ends, side="left")
+        for li, ri in zip(lis, ris):
+            arr_k[li:ri] = True
     return key_usage
 
 
 def get_key_usage_400(K, T, note_seq, base_corners):
     key_usage_400 = {k: np.zeros(len(base_corners), dtype=float) for k in range(K)}
-    for k, h in note_seq:
-        start = max(h, 0)
-        li = np.searchsorted(base_corners, start - 400, side="left")
-        ri = np.searchsorted(base_corners, start + 400, side="left")
-        mid = np.searchsorted(base_corners, start, side="left")
+    inv_400_sq = 3.75 / 160000.0
+    bc = np.asarray(base_corners, dtype=float)
 
-        key_usage_400[k][mid] += 3.75
-        for idx_range in [np.arange(li, mid), np.arange(mid + 1, ri)]:
-            key_usage_400[k][idx_range] += 3.75 - 3.75 / 400 ** 2 * (base_corners[idx_range] - start) ** 2
+    for k in range(K):
+        col_notes = np.array([max(h, 0.0) for col, h in note_seq if col == k], dtype=float)
+        if len(col_notes) == 0:
+            continue
+        arr_k = key_usage_400[k]
+
+        lis = np.searchsorted(bc, col_notes - 400.0, side="left")
+        ris = np.searchsorted(bc, col_notes + 400.0, side="left")
+        mids = np.searchsorted(bc, col_notes, side="left")
+
+        np.add.at(arr_k, mids, 3.75)
+        for i in range(len(col_notes)):
+            start = col_notes[i]
+            li = lis[i]
+            mid = mids[i]
+            ri = ris[i]
+            if mid > li:
+                diff = bc[li:mid] - start
+                arr_k[li:mid] += 3.75 - inv_400_sq * (diff * diff)
+            if ri > mid + 1:
+                diff = bc[mid + 1:ri] - start
+                arr_k[mid + 1:ri] += 3.75 - inv_400_sq * (diff * diff)
     return key_usage_400
 
 
@@ -192,6 +215,7 @@ def compute_Jbar(K, T, x, note_seq_by_column, base_corners):
 
     J_ks = {k: np.zeros(len(base_corners)) for k in range(K)}
     delta_ks = {k: np.full(len(base_corners), 1e9) for k in range(K)}
+    bc = np.asarray(base_corners, dtype=float)
 
     for k in range(K):
         notes = note_seq_by_column[k]
@@ -201,10 +225,10 @@ def compute_Jbar(K, T, x, note_seq_by_column, base_corners):
         ends = np.array([n[1] for n in notes[1:]], dtype=float)
         deltas = 0.001 * (ends - starts)
         vals = deltas ** -1 * (deltas + 0.11 * x ** 0.25) ** -1 * jack_nerfer(deltas)
+        lis = np.searchsorted(bc, starts, side="left")
+        ris = np.searchsorted(bc, ends, side="left")
 
-        for start, end, delta, val in zip(starts, ends, deltas, vals):
-            li = np.searchsorted(base_corners, start, side="left")
-            ri = np.searchsorted(base_corners, end, side="left")
+        for li, ri, delta, val in zip(lis, ris, deltas, vals):
             if ri > li:
                 J_ks[k][li:ri] = val
                 delta_ks[k][li:ri] = delta
@@ -241,6 +265,7 @@ def compute_Xbar(K, T, x, note_seq_by_column, active_columns, base_corners):
     cross_coeff = cross_matrix[K]
     X_ks = {k: np.zeros(len(base_corners)) for k in range(K + 1)}
     fast_cross = {k: np.zeros(len(base_corners)) for k in range(K + 1)}
+    bc = np.asarray(base_corners, dtype=float)
 
     for k in range(K + 1):
         if k == 0:
@@ -252,24 +277,31 @@ def compute_Xbar(K, T, x, note_seq_by_column, active_columns, base_corners):
                 note_seq_by_column[k - 1] + note_seq_by_column[k], key=lambda t: t[1]
             )
 
-        for i in range(1, len(notes_in_pair)):
-            start = notes_in_pair[i - 1][1]
-            end = notes_in_pair[i][1]
-            li = np.searchsorted(base_corners, start, side="left")
-            ri = np.searchsorted(base_corners, end, side="left")
+        if len(notes_in_pair) < 2:
+            continue
+
+        starts = np.array([n[1] for n in notes_in_pair[:-1]], dtype=float)
+        ends = np.array([n[1] for n in notes_in_pair[1:]], dtype=float)
+        deltas = 0.001 * (ends - starts)
+        vals = 0.16 * np.maximum(x, deltas) ** -2
+        fc_vals = np.maximum(0.0, 0.4 * np.maximum(deltas, max(0.06, 0.75 * x)) ** -2 - 80.0)
+        lis = np.searchsorted(bc, starts, side="left")
+        ris = np.searchsorted(bc, ends, side="left")
+
+        for i in range(len(starts)):
+            li = lis[i]
+            ri = ris[i]
             if ri <= li:
                 continue
 
-            delta = 0.001 * (notes_in_pair[i][1] - notes_in_pair[i - 1][1])
-            val = 0.16 * max(x, delta) ** -2
-
+            val = vals[i]
             left_inactive = (k - 1) not in active_columns[li] and (k - 1) not in active_columns[ri]
             right_inactive = k not in active_columns[li] and k not in active_columns[ri]
             if left_inactive or right_inactive:
                 val *= 1 - cross_coeff[k]
 
             X_ks[k][li:ri] = val
-            fast_cross[k][li:ri] = max(0, 0.4 * max(delta, 0.06, 0.75 * x) ** -2 - 80)
+            fast_cross[k][li:ri] = fc_vals[i]
 
     # Vectorised X_base: replaces O(corners * K) Python loop with numpy ops
     X_ks_arr = np.stack([X_ks[k] for k in range(K + 1)], axis=0)   # (K+1, corners)
@@ -295,36 +327,38 @@ def compute_Pbar(K, T, x, note_seq, anchor, base_corners):
         return 1 + primary + secondary
 
     P_step = np.zeros(len(base_corners))
-
-    for i in range(len(note_seq) - 1):
-        h_l = note_seq[i][1]
-        h_r = note_seq[i + 1][1]
-        delta_time = h_r - h_l
-
-        if delta_time < 1e-9:
-            spike = 1000 * (0.02 * (4 / x - 24)) ** 0.25
-            li = np.searchsorted(base_corners, h_l, side="left")
-            ri = np.searchsorted(base_corners, h_l, side="right")
-            if ri > li:
-                P_step[li:ri] += spike
-            continue
-
-        li = np.searchsorted(base_corners, h_l, side="left")
-        ri = np.searchsorted(base_corners, h_r, side="left")
-        if ri <= li:
-            continue
-
-        delta = 0.001 * delta_time
-        b_val = stream_booster(delta)
+    bc = np.asarray(base_corners, dtype=float)
+    if len(note_seq) > 1:
+        h_ls = np.array([note_seq[i][1] for i in range(len(note_seq) - 1)], dtype=float)
+        h_rs = np.array([note_seq[i + 1][1] for i in range(len(note_seq) - 1)], dtype=float)
+        delta_times = h_rs - h_ls
+        lis = np.searchsorted(bc, h_ls, side="left")
+        ris = np.searchsorted(bc, h_rs, side="left")
         base_inc = (0.08 * x ** -1 * (1 - 24 * x ** -1 * (x / 6) ** 2)) ** 0.25
+        spike_val = 1000 * (0.02 * (4 / x - 24)) ** 0.25
 
-        if delta < 2 * x / 3:
-            inc = delta ** -1 * (0.08 * x ** -1 * (1 - 24 * x ** -1 * (delta - x / 2) ** 2)) ** 0.25 * max(b_val, 1)
-        else:
-            inc = delta ** -1 * base_inc * max(b_val, 1)
+        for i in range(len(note_seq) - 1):
+            dt = delta_times[i]
+            li = lis[i]
+            if dt < 1e-9:
+                ri_spike = np.searchsorted(bc, h_ls[i], side="right")
+                if ri_spike > li:
+                    P_step[li:ri_spike] += spike_val
+                continue
 
-        seg_anchor = anchor[li:ri]
-        P_step[li:ri] += np.minimum(inc * seg_anchor, np.maximum(inc, inc * 2 - 10))
+            ri = ris[i]
+            if ri <= li:
+                continue
+
+            delta = 0.001 * dt
+            b_val = stream_booster(delta)
+            if delta < 2 * x / 3:
+                inc = delta ** -1 * (0.08 * x ** -1 * (1 - 24 * x ** -1 * (delta - x / 2) ** 2)) ** 0.25 * max(b_val, 1)
+            else:
+                inc = delta ** -1 * base_inc * max(b_val, 1)
+
+            seg_anchor = anchor[li:ri]
+            P_step[li:ri] += np.minimum(inc * seg_anchor, np.maximum(inc, inc * 2 - 10))
 
     return smooth_on_corners(base_corners, P_step, window=500, scale=0.001, mode="sum")
 

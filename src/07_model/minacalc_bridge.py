@@ -178,7 +178,7 @@ def calc(osu_path: str, rate: float = 1.0, goal: float = 0.96,
     # Custom rate: interpolate between the two nearest native anchors.
     if _r < _NATIVE[0]:
         lo, hi = _NATIVE[0], _NATIVE[1]
-        t = 0.0
+        t = (_r - lo) / max(hi - lo, 1e-9)
     elif _r > _NATIVE[-1]:
         lo, hi = _NATIVE[-2], _NATIVE[-1]
         t = 1.0 + (_r - hi) / max(hi - lo, 1e-9)
@@ -201,7 +201,8 @@ def calc(osu_path: str, rate: float = 1.0, goal: float = 0.96,
             out[k] = v_lo
             continue
         v_hi = float(res_hi.get(k, v_lo) or v_lo)
-        out[k] = round(float(v_lo) + t * (v_hi - float(v_lo)), 4)
+        interpolated = float(v_lo) + t * (v_hi - float(v_lo))
+        out[k] = round(max(0.0, interpolated), 4)
 
     key = _cache_key(osu_path, rate)
     _cache[key] = out

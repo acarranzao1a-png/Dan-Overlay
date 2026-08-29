@@ -122,6 +122,9 @@ class AudioVisualizer:
 
     # ── map change: clear immediately, load in background ────────────
     def _trigger_load(self, md5: str, estado_global: dict):
+        if estado_global.get("game") == "etterna":
+            return
+
         self._loading_md5 = md5
 
         # Wipe old samples right now so the render loop shows silence
@@ -137,11 +140,27 @@ class AudioVisualizer:
 
     def _load_audio(self, md5: str, estado_global: dict):
         try:
-            if _FFMPEG_PATH is None:
-                return   # ffmpeg not available — visualizer disabled
+            if estado_global.get("game") == "etterna" or _FFMPEG_PATH is None:
+                return   # ffmpeg disabled in Etterna mode or not available
 
-            resp = requests.get(TOSU_AUDIO_URL, timeout=15)
-            if resp.status_code != 200:
+            audio_content = None
+            audio_path = estado_global.get("audio_path", "")
+            if audio_path and os.path.isfile(audio_path):
+                try:
+                    with open(audio_path, "rb") as af:
+                        audio_content = af.read()
+                except Exception:
+                    audio_content = None
+
+            if not audio_content:
+                try:
+                    resp = requests.get(TOSU_AUDIO_URL, timeout=10)
+                    if resp.status_code == 200:
+                        audio_content = resp.content
+                except Exception:
+                    return
+
+            if not audio_content:
                 return
 
             # Map changed while we were downloading → discard this result.

@@ -749,7 +749,7 @@ def classify_from_parsed(parsed: Dict) -> Dict:
     first_time = float(raw_notes[0][0] if isinstance(raw_notes[0], tuple) else raw_notes[0].get("time", 0) or 0)
     last_time = first_time
 
-    beat_notes = []
+    time_map = {}
     for n in raw_notes:
         if isinstance(n, tuple):
             t = float(n[0] or 0)
@@ -761,26 +761,13 @@ def classify_from_parsed(parsed: Dict) -> Dict:
             kind = str(n.get("type", "normal") or "normal")
         mapped_kind = _NOTE_KIND_MAP.get(kind, "tap")
 
-        # Build data row for this timestamp
-        existing = None
-        for bn in beat_notes:
-            if bn["time"] == t:
-                existing = bn
-                break
-        if existing:
-            while len(existing["data"]) <= col:
-                existing["data"].append(None)
-            existing["data"][col] = mapped_kind
-        else:
-            data = [None] * (col + 1)
-            data[col] = mapped_kind
-            beat_notes.append({"time": t, "data": data})
+        if t not in time_map:
+            time_map[t] = [None] * key_count
+        if col < key_count:
+            time_map[t][col] = mapped_kind
         last_time = max(last_time, t)
 
-    # Ensure all data arrays have length key_count
-    for bn in beat_notes:
-        while len(bn["data"]) < key_count:
-            bn["data"].append(None)
+    beat_notes = [{"time": t, "data": time_map[t]} for t in sorted(time_map.keys())]
 
     total_ms = (last_time - first_time) or 60000
 

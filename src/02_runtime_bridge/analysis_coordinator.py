@@ -41,7 +41,7 @@ class AnalysisCoordinator:
     * Supports runtime engine switching between ISOR and Legacy.
     """
 
-    _DEBOUNCE_S = 0.2
+    _DEBOUNCE_S = 0.08
 
     def __init__(self, event_bus, cache_size=200):
         self._bus = event_bus
@@ -111,6 +111,7 @@ class AnalysisCoordinator:
             import classifier
             import rank_engine
             import isor_engine
+            import strain
         except Exception:
             pass
         finally:
@@ -120,11 +121,12 @@ class AnalysisCoordinator:
 
     def _on_map_changed(self, map_info):
         engine = self._active_engine
-        cache_key = (map_info.path, map_info.mod_label, round(map_info.mod_speed, 4), engine)
+        diff_ver = getattr(map_info, "version", "") or ""
+        cache_key = (map_info.path, diff_ver, map_info.mod_label, round(map_info.mod_speed, 4), engine)
 
         with self._lock:
             self._seq += 1
-            token = f"{map_info.md5}|{self._seq}"
+            token = f"{map_info.md5}|{diff_ver}|{self._seq}"
             self._current_token = token
 
         # Cache hit — return instantly without debounce.
@@ -181,8 +183,10 @@ class AnalysisCoordinator:
                 continue
 
             engine = self._active_engine
+            diff_ver = getattr(map_info, "version", "") or ""
             cache_key = (
                 map_info.path,
+                diff_ver,
                 map_info.mod_label,
                 round(map_info.mod_speed, 4),
                 engine,
@@ -199,7 +203,11 @@ class AnalysisCoordinator:
 
                 mod = map_info.mod_label or "NM"
                 raw = analyze_map(
-                    map_info.path, mod=mod, rate=map_info.mod_speed, engine=engine
+                    map_info.path,
+                    mod=mod,
+                    rate=map_info.mod_speed,
+                    engine=engine,
+                    difficulty=diff_ver,
                 )
                 raw["osu_sr"] = map_info.sr_official
 

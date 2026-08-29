@@ -473,20 +473,23 @@ def compute_rank(sr_result, features, classification, domain_info, msd=None):
     #   stage 2 – supplemental extra (ruler-mismatch underestimation, ≤0.65)
     _SJ_JBAR_FLOOR  = 70.0
     _SJ_SHARE_FLOOR  = 0.55
-    _SJ_PBAR_CEIL    = 55.0
     _sj_jbar  = float(sr_result.get("jbar_max",   0.0) or 0.0)
     _sj_share = float(sr_result.get("jbar_share",  0.0) or 0.0)
     _sj_pbar  = float(sr_result.get("pbar_max",    0.0) or 0.0)
-    _is_speedjack = (_sj_jbar >= _SJ_JBAR_FLOOR and _sj_share >= _SJ_SHARE_FLOOR and _sj_pbar < _SJ_PBAR_CEIL and sr < 10.5)
+    
+    _pbar_taper = max(0.0, min(1.0, (65.0 - _sj_pbar) / 10.0)) if _sj_pbar > 55.0 else 1.0
+    _sr_taper = max(0.0, min(1.0, (11.5 - sr) / 1.0)) if sr > 10.5 else 1.0
+    _sj_taper = _pbar_taper * _sr_taper
+    _is_speedjack = (_sj_jbar >= _SJ_JBAR_FLOOR and _sj_share >= _SJ_SHARE_FLOOR and _sj_taper > 0.0)
 
     corrections = []
     jack_bonus = 0.0
     stamina_bonus = 0.0
 
     if _is_speedjack:
-        # Force jack ruler path — classifier-independent
+        # Force jack ruler path with smooth taper
         jack_bonus = _jack_peak_bonus(sr_result, "jack")       # stage 1 (same-column)
-        _sj_extra  = min(0.65, max(0.0, _sj_jbar - 72.0) * 0.060) # stage 2 (ruler-mismatch)
+        _sj_extra  = min(0.65, max(0.0, _sj_jbar - 72.0) * 0.060) * _sj_taper # stage 2 (ruler-mismatch)
         _sj_total  = jack_bonus + _sj_extra
         ranking_sr = sr + _sj_total
         dp = sr_to_dp(ranking_sr, skillset="jack")

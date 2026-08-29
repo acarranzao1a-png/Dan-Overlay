@@ -55,38 +55,41 @@ def run(event_bus, stop_event, poll_interval=POLL_INTERVAL):
 def _parse_lazer_mods(mods_array: list) -> tuple[float, str]:
     """Extracts (mod_speed, mod_label) from the lazer mods array.
 
-    Searches for NC, DT, or HT in the array and reads speed_change settings.
+    Searches for NC, DT, HT, or DC in the array and reads speed_change settings.
     Returns (1.0, "") if no rate mods are found.
 
     Clamps:
       DT/NC: speed clamped to [1.01, 2.0]
-      HT:    speed clamped to [0.5, 0.99]
+      HT/DC: speed clamped to [0.5, 0.99]
     """
-    _RATE_MODS = {"NC", "DT", "HT"}
+    if not isinstance(mods_array, list):
+        return 1.0, ""
+    _RATE_MODS = {"NC", "DT", "HT", "DC"}
     for mod_obj in mods_array:
         if not isinstance(mod_obj, dict):
             continue
         acronym = str(mod_obj.get("acronym", "")).upper()
         if acronym not in _RATE_MODS:
             continue
+        label = "HT" if acronym == "DC" else acronym
         settings = mod_obj.get("settings") or {}
         raw_speed = settings.get("speed_change")
         if raw_speed is not None:
             try:
-                speed = float(raw_speed)
+                speed = round(float(raw_speed), 4)
             except (TypeError, ValueError):
-                speed = 1.5 if acronym != "HT" else 0.75
+                speed = 1.5 if label != "HT" else 0.75
             # Clamp to maintain monotonic progression
-            if acronym == "HT":
+            if label == "HT":
                 speed = max(0.5, min(0.99, speed))
             else:
                 speed = max(1.01, min(2.0, speed))
-            return speed, acronym
+            return speed, label
         else:
             # Rate mod is active but missing speed_change; use standard defaults
-            if acronym == "NC":
+            if label == "NC":
                 return 1.5, "NC"
-            elif acronym == "DT":
+            elif label == "DT":
                 return 1.5, "DT"
             else:
                 return 0.75, "HT"
@@ -122,11 +125,22 @@ def _extract_and_emit(data, event_bus, state):
     mapper = meta.get("mapper", "")
     sr_official = bm.get("stats", {}).get("fullSR", 0.0)
 
-    # Mods
+    # Mods: check lazer mods array across menu, play, and resultsScreen
     mods_num = menu.get("mods", {}).get("num", 0)
     is_lazer = str(data.get("client", "")).lower() == "lazer"
 
-    if is_lazer and _v2_lazer_rate["speed"] is not None:
+    lazer_mods_array = (
+        menu.get("mods", {}).get("array")
+        or data.get("play", {}).get("mods", {}).get("array")
+        or data.get("resultsScreen", {}).get("mods", {}).get("array")
+    )
+    if isinstance(lazer_mods_array, list):
+        lazer_speed, lazer_label = _parse_lazer_mods(lazer_mods_array)
+        _v2_lazer_rate["speed"] = lazer_speed
+        _v2_lazer_rate["label"] = lazer_label
+        mod_speed = lazer_speed
+        mod_label = lazer_label
+    elif is_lazer and _v2_lazer_rate["speed"] is not None:
         # Use rate captured by lazer WS listener
         mod_speed = _v2_lazer_rate["speed"]
         mod_label = _v2_lazer_rate["label"]
@@ -224,7 +238,11 @@ def _run_v2_ws(stop_event):
         try:
             import json
             data = json.loads(msg)
-            mods_array = data.get("play", {}).get("mods", {}).get("array")
+            mods_array = (
+                data.get("menu", {}).get("mods", {}).get("array")
+                or data.get("play", {}).get("mods", {}).get("array")
+                or data.get("resultsScreen", {}).get("mods", {}).get("array")
+            )
             if isinstance(mods_array, list):
                 speed, label = _parse_lazer_mods(mods_array)
                 _v2_lazer_rate["speed"] = speed

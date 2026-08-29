@@ -34,6 +34,9 @@ from primary_sr_bridge import analyze_primary_sr
 from classifier import classify_family
 from rhythm_profile import classify_from_parsed
 from minacalc_bridge import calc as calculate_msd
+from strain import BIO_CONFIG, build_bio_rows, biomech_numeric
+
+_ISOR_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="ISOR-Worker")
 
 # ── Dan Definitions ───────────────────────────────────────────────────────────
 
@@ -307,16 +310,21 @@ def extract_choke_and_local_strains(notes, drain_s, window_ms=10000, stride_ms=2
     t_max = times[-1]
     total_notes = len(notes)
     mean_nps = total_notes / max(drain_s, 1.0)
+    n_times = len(times)
 
-    # 10s Rolling Peak Window (optimized binary search O(W log N))
+    # 10s Rolling Peak Window (linear two-pointer sliding window O(W + N))
     max_notes_window = 0
     t = t_min
+    left_idx = 0
+    right_idx = 0
     while t <= t_max:
         lo = t
         hi = t + window_ms
-        idx_lo = bisect.bisect_left(times, lo)
-        idx_hi = bisect.bisect_right(times, hi)
-        c = idx_hi - idx_lo
+        while left_idx < n_times and times[left_idx] < lo:
+            left_idx += 1
+        while right_idx < n_times and times[right_idx] <= hi:
+            right_idx += 1
+        c = right_idx - left_idx
         if c > max_notes_window:
             max_notes_window = c
         t += stride_ms
@@ -353,8 +361,7 @@ def extract_choke_and_local_strains(notes, drain_s, window_ms=10000, stride_ms=2
 
 # ── Continuous Interpolator Primitive ─────────────────────────────────────────
 
-def interpolate_ruler(val, mean_dict):
-    """Converts any continuous scalar metric into a 1.0-20.99 DP coordinate."""
+def _build_ruler_boundaries(mean_dict):
     means = [mean_dict[d] for d in DAN_ORDER]
     n = len(means)
     boundaries = []
@@ -369,7 +376,19 @@ def interpolate_ruler(val, mean_dict):
         else:
             hi = means[-1] + (means[-1] - means[-2]) / 2.0
 
-        boundaries.append((lo, hi, i + 1))
+        boundaries.append((lo, hi, float(i + 1)))
+    return boundaries
+
+_RULER_BOUNDARIES_CACHE = {}
+
+
+def interpolate_ruler(val, mean_dict):
+    """Converts any continuous scalar metric into a 1.0-20.99 DP coordinate."""
+    dict_id = id(mean_dict)
+    boundaries = _RULER_BOUNDARIES_CACHE.get(dict_id)
+    if boundaries is None:
+        boundaries = _build_ruler_boundaries(mean_dict)
+        _RULER_BOUNDARIES_CACHE[dict_id] = boundaries
 
     if val < boundaries[0][0]:
         t = max(0.0, (val - (boundaries[0][0] - 1.0)) / 1.0)
@@ -381,7 +400,7 @@ def interpolate_ruler(val, mean_dict):
     for lo, hi, dp_base in boundaries:
         if lo <= val < hi:
             t = (val - lo) / max(hi - lo, 1e-6)
-            return float(dp_base) + t
+            return dp_base + t
 
     return 20.0
 
@@ -579,39 +598,55 @@ def _ridge_feature_vector(bio_res, msd_dict, sunny_strains=None, purity=0.0, sub
     return v
 
 
+_RIDGE_HIGH_MEAN = None
+_RIDGE_HIGH_SCALE = None
+_RIDGE_HIGH_BETA = None
+_RIDGE_LOW_MEAN = None
+_RIDGE_LOW_SCALE = None
+_RIDGE_LOW_BETA = None
+_RIDGE_SINGLE_MEAN = None
+_RIDGE_SINGLE_SCALE = None
+_RIDGE_SINGLE_BETA = None
+
+if _RIDGE_MODEL:
+    if _RIDGE_MODEL.get("dual"):
+        _h = _RIDGE_MODEL["high"]
+        _l = _RIDGE_MODEL["low"]
+        _RIDGE_HIGH_MEAN = np.array(_h["mean"], dtype=float)
+        _RIDGE_HIGH_SCALE = np.array(_h["scale"], dtype=float)
+        _RIDGE_HIGH_BETA = np.array(_h["beta"], dtype=float)
+        _RIDGE_LOW_MEAN = np.array(_l["mean"], dtype=float)
+        _RIDGE_LOW_SCALE = np.array(_l["scale"], dtype=float)
+        _RIDGE_LOW_BETA = np.array(_l["beta"], dtype=float)
+    else:
+        _RIDGE_SINGLE_MEAN = np.array(_RIDGE_MODEL.get("mean", []), dtype=float)
+        _RIDGE_SINGLE_SCALE = np.array(_RIDGE_MODEL.get("scale", []), dtype=float)
+        _RIDGE_SINGLE_BETA = np.array(_RIDGE_MODEL.get("beta", []), dtype=float)
+
+
 def apply_ridge_correction(dp_base, bio_res, msd_dict, sunny_strains=None, purity=0.0, subrank=None):
     """Return (dp_corrected, correction) applying the calibrated ridge."""
     if not _RIDGE_ENABLED or not _RIDGE_MODEL or not bio_res:
         return dp_base, 0.0
     try:
         v = np.array(_ridge_feature_vector(bio_res, msd_dict, sunny_strains, purity, subrank), dtype=float)
-        if _RIDGE_MODEL.get("dual"):
-            high = _RIDGE_MODEL["high"]
-            low = _RIDGE_MODEL["low"]
+        if _RIDGE_MODEL.get("dual") and _RIDGE_HIGH_BETA is not None:
+            xh = (v - _RIDGE_HIGH_MEAN) / _RIDGE_HIGH_SCALE
+            corr_h = float(np.clip(xh @ _RIDGE_HIGH_BETA, -_RIDGE_CAP, _RIDGE_CAP))
 
-            # High band evaluation
-            mean_h, scale_h, beta_h = np.array(high["mean"]), np.array(high["scale"]), np.array(high["beta"])
-            xh = (v - mean_h) / scale_h
-            corr_h = float(np.clip(xh @ beta_h, -_RIDGE_CAP, _RIDGE_CAP))
+            xl = (v - _RIDGE_LOW_MEAN) / _RIDGE_LOW_SCALE
+            corr_l = float(np.clip(xl @ _RIDGE_LOW_BETA, -_RIDGE_CAP, _RIDGE_CAP))
 
-            # Low band evaluation
-            mean_l, scale_l, beta_l = np.array(low["mean"]), np.array(low["scale"]), np.array(low["beta"])
-            xl = (v - mean_l) / scale_l
-            corr_l = float(np.clip(xl @ beta_l, -_RIDGE_CAP, _RIDGE_CAP))
-
-            # Smooth sigmoid blend around 10.0 DP (k=4.0 ensures 96%+ high model for DP >= 10.8)
             gate = _sigmoid(dp_base, k=4.0, x0=10.0)
             correction = gate * corr_h + (1.0 - gate) * corr_l
             return round(dp_base + correction, 2), round(correction, 3)
-        else:
-            mean = np.array(_RIDGE_MODEL["mean"], dtype=float)
-            scale = np.array(_RIDGE_MODEL["scale"], dtype=float)
-            beta = np.array(_RIDGE_MODEL["beta"], dtype=float)
-            if v.shape[0] != len(beta):
+        elif _RIDGE_SINGLE_BETA is not None:
+            if v.shape[0] != len(_RIDGE_SINGLE_BETA):
                 return dp_base, 0.0
-            x = (v - mean) / scale
-            correction = float(np.clip(x @ beta, -_RIDGE_CAP, _RIDGE_CAP))
+            x = (v - _RIDGE_SINGLE_MEAN) / _RIDGE_SINGLE_SCALE
+            correction = float(np.clip(x @ _RIDGE_SINGLE_BETA, -_RIDGE_CAP, _RIDGE_CAP))
             return round(dp_base + correction, 2), round(correction, 3)
+        return dp_base, 0.0
     except Exception:
         return dp_base, 0.0
 
@@ -804,27 +839,25 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     _rate_msd = float(rate) if rate else {"HT": 0.75, "DT": 1.5, "NC": 1.5, "NM": 1.0}.get(mod, 1.0)
 
     # Parallel ingestion: Run Sunny SR, MinaCalc MSD, Feature extraction, and Biomech strain concurrently
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        fut_sunny = executor.submit(analyze_primary_sr, osu_path, mod=mod, rate=rate)
-        fut_msd = executor.submit(calculate_msd, osu_path, rate=_rate_msd)
-        fut_feat = executor.submit(extract_features, parsed)
+    fut_sunny = _ISOR_POOL.submit(analyze_primary_sr, osu_path, mod=mod, rate=rate)
+    fut_msd = _ISOR_POOL.submit(calculate_msd, osu_path, rate=_rate_msd)
+    fut_feat = _ISOR_POOL.submit(extract_features, parsed)
 
-        def _run_bio():
-            try:
-                from strain import BIO_CONFIG, build_bio_rows, biomech_numeric
-                bio_rows = build_bio_rows(parsed.get("rows", []), BIO_CONFIG["row_tolerance_ms"])
-                bio_res = biomech_numeric(bio_rows, BIO_CONFIG)
-                return bio_res, float(bio_res.get("bio_numeric", 0.0) or 0.0)
-            except Exception:
-                return None, 0.0
+    def _run_bio():
+        try:
+            bio_rows = build_bio_rows(parsed.get("rows", []), BIO_CONFIG["row_tolerance_ms"])
+            bio_res = biomech_numeric(bio_rows, BIO_CONFIG)
+            return bio_res, float(bio_res.get("bio_numeric", 0.0) or 0.0)
+        except Exception:
+            return None, 0.0
 
-        fut_bio = executor.submit(_run_bio)
-        choke_info = extract_choke_and_local_strains(notes, drain_s)
+    fut_bio = _ISOR_POOL.submit(_run_bio)
+    choke_info = extract_choke_and_local_strains(notes, drain_s)
 
-        sunny_res = fut_sunny.result()
-        msd_res = fut_msd.result() or {}
-        features = fut_feat.result()
-        bio_res, bio_numeric = fut_bio.result()
+    sunny_res = fut_sunny.result()
+    msd_res = fut_msd.result() or {}
+    features = fut_feat.result()
+    bio_res, bio_numeric = fut_bio.result()
 
     if not sunny_res.get("success"):
         return {"error": f"sunny_error: {sunny_res.get('error')}"}
@@ -919,10 +952,22 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     # floored against the nearest lower native anchor (0.75 / 1.0 / 1.5) to
     # keep the dan non-decreasing with the rate. Native rates are untouched.
     if rate is not None and round(float(rate), 4) not in (0.75, 1.0, 1.5):
-        _anchor = 0.75 if float(rate) < 1.0 else 1.0
-        _res_a = analyze_beatmap_prototype(osu_path, mod="NM", rate=_anchor)
-        if "error" not in _res_a and _res_a.get("dp") is not None:
-            dp_ridge = max(dp_ridge, _res_a["dp"])
+        _r_val = round(float(rate), 4)
+        if _r_val > 0.75:
+            if _r_val >= 1.5:
+                _anchor = 1.5
+            elif _r_val >= 1.0:
+                _anchor = 1.0
+            else:
+                _anchor = 0.75
+            _res_a = analyze_beatmap_prototype(osu_path, mod="NM", rate=_anchor, parsed=parsed, domain=domain)
+            if "error" not in _res_a and _res_a.get("dp") is not None:
+                dp_ridge = max(dp_ridge, _res_a["dp"])
+        else:
+            # For rates below 0.75x, ensure it does not overshoot 0.75x while scaling downwards
+            _res_a = analyze_beatmap_prototype(osu_path, mod="NM", rate=0.75, parsed=parsed, domain=domain)
+            if "error" not in _res_a and _res_a.get("dp") is not None:
+                dp_ridge = min(dp_ridge, _res_a["dp"])
 
     triang["dp"] = round(dp_ridge, 2)
     triang["ridge_correction"] = ridge_corr
@@ -963,6 +1008,7 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
         "ridge_correction": triang.get("ridge_correction", 0.0),
         "choke_info": choke_info,
         "sunny_strains": sunny_strains,
+        "strain_graph": sunny_res.get("strain_graph"),
         "msd": msd_res,
         "features": features
     }

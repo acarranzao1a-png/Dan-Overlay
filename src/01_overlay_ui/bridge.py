@@ -177,6 +177,7 @@ class OverlayBridge:
             # True when a bg file exists even if it was too large to inline.
             # JS uses this to decide whether to fall back to the tosu endpoint.
             "has_bg": bool(map_info.bg_path),
+            "game": getattr(map_info, "game", "osu"),
         }
         self._last_map_payload = payload
         self._send(payload)
@@ -219,7 +220,12 @@ class OverlayBridge:
         self._send({"type": "notification", "message": data.get("message", "")})
 
     def _on_overlay_state(self, data):
-        self._send({"type": "state", "state": data["state"], "message": data.get("message", "")})
+        self._send({
+            "type": "state",
+            "state": data["state"],
+            "message": data.get("message", ""),
+            "game": data.get("game", ""),
+        })
 
     # ── Lifecycle ───────────────────────────────────────────────────
 

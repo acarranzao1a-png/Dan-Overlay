@@ -29,6 +29,8 @@ from shoegazer_estimator import fields_from_dp as _shoegazer_fields_from_dp
 from ln_course_estimator import estimate as _ln_course_estimate
 from ln_course_estimator import fields_from_dp as _ln_course_fields_from_dp
 
+_PIPELINE_POOL = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="Pipeline-Worker")
+
 
 def _error_payload(error, *, warnings=None):
     return {
@@ -369,15 +371,65 @@ def _monotonic_floor(lo_res, hi_res, dp_to_label, dp_to_sublevel, fields_fns, dp
     return hi
 
 
-def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None):
-    """Execution path for the ISOR engine (Isotonic Strain Organic Residual)."""
+def _load_parsed_chart(file_path: str, difficulty: str = "") -> dict:
+    """Parses .osu, .sm, or .ssc into the unified DanOverlay chart dict."""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in (".sm", ".ssc"):
+        try:
+            from etterna import parse_simfile
+        except ImportError:
+            from etterna.sm_parser import parse_simfile
+        return parse_simfile(file_path, difficulty=difficulty)
     from parser import parsear_osu_v2
+    return parsear_osu_v2(file_path, enforce_mode_mania=True)
+
+
+def _ensure_osu_path_for_c_engines(file_path: str, parsed: dict | None = None, difficulty: str = "") -> tuple[str, bool]:
+    """Ensures a valid .osu path for C++/C# binary engines (Sunny SR & MinaCalc).
+    If file_path is already .osu, returns (file_path, False).
+    If .sm or .ssc, writes a temporary .osu and returns (temp_path, True).
+    """
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".osu":
+        return file_path, False
+
+    if parsed is None:
+        parsed = _load_parsed_chart(file_path, difficulty=difficulty)
+
+    import tempfile
+    fd, tmp_path = tempfile.mkstemp(suffix=".osu")
+    bpm = parsed.get("bpm", 120.0) or 120.0
+    beat_len = 60000.0 / bpm if bpm > 0 else 500.0
+    ln_map = {}
+    for ev in parsed.get("note_events", []):
+        if ev.get("event_type") == "ln_start" and ev.get("ln_end_ms"):
+            ln_map[(ev["time_ms"], ev["col"])] = ev["ln_end_ms"]
+
+    lines = [
+        "osu file format v14\n\n[General]\nMode: 3\n\n[Difficulty]\nCircleSize: 4\nOverallDifficulty: 8\n\n[TimingPoints]\n",
+        f"0,{beat_len:.4f},4,2,0,0,1,0\n\n[HitObjects]\n"
+    ]
+    for t_ms, col in parsed.get("notes", []):
+        x = int(col * 128 + 64)
+        if (t_ms, col) in ln_map:
+            end_ms = ln_map[(t_ms, col)]
+            lines.append(f"{x},192,{t_ms},128,0,{end_ms}:0:0:0:0:\n")
+        else:
+            lines.append(f"{x},192,{t_ms},1,0,0:0:0:0:\n")
+
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    return tmp_path, True
+
+
+def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None, difficulty: str = ""):
+    """Execution path for the ISOR engine (Isotonic Strain Organic Residual)."""
     from validator import validate_domain
     from isor_engine import analyze_beatmap_isor
     from feature_extractor import extract_features
 
     try:
-        parsed = parsear_osu_v2(osu_path, enforce_mode_mania=True)
+        parsed = _load_parsed_chart(osu_path, difficulty=difficulty)
     except Exception as exc:
         return _error_payload(f"parse_error: {exc}")
 
@@ -400,12 +452,19 @@ def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None):
         return res
 
     # 4K Rice beatmap: run ISOR
+    engine_path, is_temp = _ensure_osu_path_for_c_engines(osu_path, parsed)
     try:
-        raw_isor = analyze_beatmap_isor(osu_path, mod=mod, rate=rate, parsed=parsed, domain=domain)
+        raw_isor = analyze_beatmap_isor(engine_path, mod=mod, rate=rate, parsed=parsed, domain=domain)
         if not raw_isor or raw_isor.get("error"):
             return _error_payload(raw_isor.get("error") if raw_isor else "isor_analysis_failed")
     except Exception as exc:
         return _error_payload(f"isor_error: {exc}")
+    finally:
+        if is_temp and os.path.exists(engine_path):
+            try:
+                os.remove(engine_path)
+            except OSError:
+                pass
 
     features = raw_isor.get("features") or extract_features(parsed)
     msd_res = raw_isor.get("msd") or {}
@@ -494,7 +553,7 @@ def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None):
         "shoegazer": shoegazer_res,
         "ln_course": None,
         "ln_route": _ln_route,
-        "strain_graph": None,
+        "strain_graph": raw_isor.get("strain_graph"),
         "bpm": round(_raw_bpm * _effective_bpm_rate, 1),
         "bpm_min": int(round(_raw_min * _effective_bpm_rate)),
         "bpm_max": int(round(_raw_max * _effective_bpm_rate)),
@@ -503,7 +562,7 @@ def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None):
     }
 
 
-def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None, engine=None):
+def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None, engine=None, difficulty: str = ""):
     """Estimate the Dan rank using the core pipeline runtime logic.
 
     Parameters
@@ -518,6 +577,8 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None, engine=None)
         Custom rate (e.g. from lazer). If None, mod default rate is used.
     engine : str or None
         "isor" (default) or "legacy".
+    difficulty : str
+        Target difficulty name/version (e.g. for StepMania .sm/.ssc simfiles).
 
     Returns
     -------
@@ -531,33 +592,77 @@ def analyze_map(osu_path, mod="NM", strict_domain=False, rate=None, engine=None)
         _r = round(float(rate), 4)
         _NATIVE = (0.75, 1.0, 1.5)
 
-        from rank_engine import dp_to_label, dp_to_sublevel
-
-        _fields_fns = {
-            "celestial": _celestial_fields_from_dp,
-            "signicial": _signicial_fields_from_dp,
-            "shoegazer": _shoegazer_fields_from_dp,
-            "ln_course": _ln_course_fields_from_dp,
-        }
-        _dp_key = {
-            "celestial": "dp_celestial",
-            "signicial": "dp_signicial",
-            "shoegazer": "dp_shoegazer",
-            "ln_course": "dp_ln",
-        }
-
         if _r not in _NATIVE:
-            _res = _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=_r, engine="legacy")
-            if isinstance(_res, dict) and _res.get("dp") is not None:
-                _floor_anchor = _NATIVE[0] if _r < _NATIVE[1] else _NATIVE[1]
-                _res_floor = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_floor_anchor, engine="legacy")
-                if isinstance(_res_floor, dict) and _res_floor.get("dp") is not None:
-                    _res = _monotonic_floor(_res_floor, _res, dp_to_label, dp_to_sublevel, _fields_fns, _dp_key)
-                _res["custom_rate_direct"] = True
-                return _res
-            return _res
+            _lo, _hi = None, None
+            if _r < _NATIVE[0]:
+                # Extrapolate below HT (0.75x) against the 0.75-1.0 segment so
+                # lazer rates like 0.43x/0.5x keep following the rate (t goes negative).
+                _lo, _hi = _NATIVE[0], _NATIVE[1]
+                _t = (_r - _lo) / max(_hi - _lo, 1e-9)
+            elif _r > _NATIVE[-1]:
+                _lo, _hi = _NATIVE[-2], _NATIVE[-1]
+                _t = 1.0 + (_r - _hi) / max(_hi - _lo, 1e-9)
+            else:
+                for i in range(len(_NATIVE) - 1):
+                    if _NATIVE[i] <= _r <= _NATIVE[i + 1]:
+                        _lo, _hi = _NATIVE[i], _NATIVE[i + 1]
+                        break
+                _t = (_r - _lo) / max(_hi - _lo, 1e-9)
 
-    return _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=rate, engine=_engine)
+            _res_lo = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_lo, engine="legacy", difficulty=difficulty)
+            _res_hi = analyze_map(osu_path, mod=mod, strict_domain=strict_domain, rate=_hi, engine="legacy", difficulty=difficulty)
+            if isinstance(_res_lo, dict) and isinstance(_res_hi, dict) \
+                    and _res_lo.get("dp") is not None and _res_hi.get("dp") is not None:
+                from rank_engine import dp_to_label, dp_to_sublevel
+
+                _interp_result = dict(_res_lo)
+                _NUMERIC = [
+                    "dp", "sr", "overall_msd", "confidence",
+                    "bpm", "bpm_min", "bpm_max", "bpm_common", "od",
+                ]
+                for _f in _NUMERIC:
+                    _v_lo = float(_res_lo.get(_f, 0.0) or 0.0)
+                    _v_hi = float(_res_hi.get(_f, 0.0) or 0.0)
+                    _interp_result[_f] = round(max(0.0, _v_lo + _t * (_v_hi - _v_lo)), 2)
+
+                _dp_val = round(max(0.5, _res_lo.get("dp", 0.0) + _t * (_res_hi.get("dp", 0.0) - _res_lo.get("dp", 0.0))), 2)
+                _interp_result["dp"] = _dp_val
+                _label, _short = dp_to_label(_dp_val)
+                _interp_result["dan_label"] = _label
+                _interp_result["dan_short"] = _short
+                _interp_result["sublevel"] = dp_to_sublevel(_dp_val)
+
+                # Interpolate alternative-mode estimates (celestial etc.)
+                _fields_fns = {
+                    "celestial": _celestial_fields_from_dp,
+                    "signicial": _signicial_fields_from_dp,
+                    "shoegazer": _shoegazer_fields_from_dp,
+                    "ln_course": _ln_course_fields_from_dp,
+                }
+                _dp_key = {
+                    "celestial": "dp_celestial",
+                    "signicial": "dp_signicial",
+                    "shoegazer": "dp_shoegazer",
+                    "ln_course": "dp_ln",
+                }
+                for _mk in ("celestial", "signicial", "shoegazer", "ln_course"):
+                    _m_lo = _res_lo.get(_mk)
+                    _m_hi = _res_hi.get(_mk)
+                    if isinstance(_m_lo, dict) and isinstance(_m_hi, dict):
+                        _interp_result[_mk] = dict(_m_lo)
+                        for _mf in ("dp_celestial", "dp_signicial", "dp_shoegazer", "dp_ln", "confidence"):
+                            if _mf in _m_lo and _mf in _m_hi:
+                                _a = float(_m_lo.get(_mf, 0.0) or 0.0)
+                                _b = float(_m_hi.get(_mf, 0.0) or 0.0)
+                                _interp_result[_mk][_mf] = round(max(0.0, _a + _t * (_b - _a)), 2)
+                        _dpf = _interp_result[_mk].get(_dp_key[_mk])
+                        if _dpf is not None:
+                            _interp_result[_mk].update(_fields_fns[_mk](float(_dpf)))
+
+                _interp_result["custom_rate_interpolated"] = True
+                return _interp_result
+
+    return _analyze_map_impl(osu_path, mod=mod, strict_domain=strict_domain, rate=rate, engine=_engine, difficulty=difficulty)
 
 
 # ── Full-result cache for _analyze_map_impl ────────────────────────
@@ -565,13 +670,14 @@ _impl_cache: dict[tuple, dict] = {}
 _IMPL_CACHE_MAX = 96
 
 
-def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None, engine="isor"):
+def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None, engine="isor", difficulty: str = ""):
     try:
         _mtime = os.stat(osu_path).st_mtime_ns
     except OSError:
         _mtime = 0
     _key = (
         os.path.abspath(osu_path),
+        str(difficulty or ""),
         _mtime,
         mod,
         bool(strict_domain),
@@ -583,9 +689,9 @@ def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None, engine
         return copy.deepcopy(_hit)
 
     if str(engine).lower() == "isor":
-        _result = _analyze_map_isor(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
+        _result = _analyze_map_isor(osu_path, mod=mod, strict_domain=strict_domain, rate=rate, difficulty=difficulty)
     else:
-        _result = _analyze_map_impl_inner(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
+        _result = _analyze_map_impl_inner(osu_path, mod=mod, strict_domain=strict_domain, rate=rate, difficulty=difficulty)
         if isinstance(_result, dict):
             _result["engine"] = "legacy"
 
@@ -597,15 +703,14 @@ def _analyze_map_impl(osu_path, mod="NM", strict_domain=False, rate=None, engine
     return _result
 
 
-def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None):
+def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None, difficulty: str = ""):
     """Core pipeline implementation (no custom-rate interpolation)."""
-    from parser import parsear_osu_v2
     from validator import validate_domain
     from feature_extractor import extract_features
 
-    # ── Parse .osu once (shared by both engines) ───────────────────
+    # ── Parse chart once (shared by both engines) ───────────────────
     try:
-        parsed = parsear_osu_v2(osu_path, enforce_mode_mania=True)
+        parsed = _load_parsed_chart(osu_path, difficulty=difficulty)
     except Exception as exc:
         return _error_payload(f"parse_error: {exc}")
 
@@ -729,12 +834,14 @@ def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None):
 
     features = extract_features(parsed)
 
+    engine_path, is_temp = _ensure_osu_path_for_c_engines(osu_path, parsed)
+
     # ── Run MinaCalc + Primary SR in parallel ──────────────────────
     def _safe_mina():
         try:
             _MOD_RATE = {"HT": 0.75, "DT": 1.5, "NC": 1.5}
             effective_rate = rate if rate is not None else _MOD_RATE.get(mod, 1.0)
-            return _minacalc_estimate(osu_path, rate=effective_rate, features=features)
+            return _minacalc_estimate(engine_path, rate=effective_rate, features=features)
         except Exception:
             return None
 
@@ -791,15 +898,21 @@ def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None):
         except Exception:
             return None
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-        mina_future = pool.submit(_safe_mina)
-        primary_future = pool.submit(
+    try:
+        mina_future = _PIPELINE_POOL.submit(_safe_mina)
+        primary_future = _PIPELINE_POOL.submit(
             _compute_primary_rank_result,
-            osu_path, mod, strict_domain, None,
+            engine_path, mod, strict_domain, None,
             parsed=parsed, domain=domain, features=features, rate=rate,
         )
         primary_core = primary_future.result()
         mina = mina_future.result()
+    finally:
+        if is_temp and os.path.exists(engine_path):
+            try:
+                os.remove(engine_path)
+            except OSError:
+                pass
 
     primary_ok = isinstance(primary_core, dict) and primary_core.get("dp") is not None
 

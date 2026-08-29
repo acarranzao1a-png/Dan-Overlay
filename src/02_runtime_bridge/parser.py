@@ -106,6 +106,7 @@ def parsear_osu_v2(
     version = ""
     creator = ""
     beatmap_id = ""
+    bg_file = ""
 
     section = ""
     notes = []
@@ -141,6 +142,14 @@ def parsear_osu_v2(
                 creator = _safe_str(line.split(":", 1)[1])
             elif line.startswith("BeatmapID:"):
                 beatmap_id = _safe_str(line.split(":", 1)[1])
+
+        elif section == "[Events]":
+            if line.startswith("0,0,") or line.startswith("1,0,"):
+                parts = line.split(",")
+                if len(parts) >= 3:
+                    cand = parts[2].strip().replace('"', "")
+                    if cand and not bg_file and not cand.lower().endswith((".mp4", ".avi", ".flv", ".mkv")):
+                        bg_file = cand
 
         elif section == "[Difficulty]":
             if line.startswith("CircleSize:"):
@@ -310,6 +319,7 @@ def parsear_osu_v2(
             "version": version,
             "creator": creator,
             "beatmap_id": beatmap_id,
+            "bg_file": bg_file,
         },
         "note_count": note_count,
         "ln_count": ln_count,

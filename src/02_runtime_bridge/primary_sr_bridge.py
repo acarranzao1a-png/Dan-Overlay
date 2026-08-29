@@ -101,17 +101,21 @@ def _import_sr_core():
         sys.path.insert(0, _SR_CORE_DIR)
 
     try:
-        from sr_core import algorithm as _alg
+        import algorithm as _alg
         _sr_core_alg = _alg
     except ImportError:
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "sr_core_algorithm",
-            os.path.join(_SR_CORE_DIR, "algorithm.py"),
-        )
-        _alg = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(_alg)
-        _sr_core_alg = _alg
+        try:
+            from sr_core import algorithm as _alg
+            _sr_core_alg = _alg
+        except ImportError:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "sr_core_algorithm",
+                os.path.join(_SR_CORE_DIR, "algorithm.py"),
+            )
+            _alg = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(_alg)
+            _sr_core_alg = _alg
 
     return _sr_core_alg
 
