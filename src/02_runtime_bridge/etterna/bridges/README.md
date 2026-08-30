@@ -11,9 +11,9 @@ Unlike osu!mania which relies on memory reading via `tosu.app`, Etterna communic
 ```mermaid
 flowchart LR
     subgraph ETTERNA["Etterna Client (Lua Engine)"]
-        SSM["ScreenSelectMusic<br/>(dan_overlay_bridge.lua + dan_overlay_menu.lua)"]
+        SSM["ScreenSelectMusic<br/>(dan_overlay_bridge.lua)"]
         SGP["ScreenGameplay<br/>(dan_overlay_gameplay.lua)"]
-        SEV["ScreenEvaluation<br/>(Score & Wife% Results)"]
+        SEV["ScreenEvaluation<br/>(dan_overlay_eval.lua)"]
     end
 
     subgraph SAVE["Etterna/Save/ Directory"]
@@ -35,24 +35,27 @@ flowchart LR
 
 ### The Three Lua Bridge Actors:
 1. **`dan_overlay_bridge.lua`** (`ScreenSelectMusic`):
-   - Triggers whenever a song, difficulty, or rate is changed.
-   - Extracts metadata: Song Title, Artist, Song Directory, Step File Path, Difficulty, Meter, Rate Multiplier, and native Etterna MSD skillset ratings.
+   - Triggers whenever a song, difficulty, or rate is changed on the song wheel.
+   - Extracts metadata: Song Title, Artist, Song Directory, Step File Path, Difficulty, Meter, Rate Multiplier, Background Image, and native Etterna MSD skillset ratings.
    - Writes `Save/DanOverlayBridge.txt`.
-2. **`dan_overlay_menu.lua`** (`ScreenSelectMusic`):
-   - Keeps rate and wheel settlement in sync during rapid song-wheel scrolling without lagging the UI.
-   - Writes `Save/DanOverlayMenu.txt`.
-3. **`dan_overlay_gameplay.lua`** (`ScreenGameplay` & `ScreenEvaluation`):
-   - **Zero In-Game Overhead**: Performs exactly 2 disk writes per session (1 at song start, 1 at song finish) — **0 CPU work and 0 disk writes** while notes are falling.
-   - Emits live play status, music timestamp, final Wife% accuracy, pass/fail status, and official Etterna grade (`F` through `AAAAA`).
-   - Writes `Save/DanOverlayGameplay.txt` and `Save/DanOverlayEval.txt`.
+
+2. **`dan_overlay_gameplay.lua`** (`ScreenGameplay`):
+   - **Zero In-Game Overhead**: Performs exactly 2 disk writes per session (1 at song start, 1 at song finish) — **0 CPU work and 0 disk writes** while notes are actively falling.
+   - Emits live play status, music timestamp, and active playback rate.
+   - Writes `Save/DanOverlayGameplay.txt`.
+
+3. **`dan_overlay_eval.lua`** (`ScreenEvaluation`):
+   - Triggers when entering the end-of-song score evaluation screen.
+   - Extracts the official Wife% accuracy directly from `SCOREMAN` / `PlayerStageStats` (rescoring replay vectors to the active Judge level), pass/fail status, and official Etterna grade (`F` through `AAAAA`).
+   - Writes `Save/DanOverlayEval.txt`.
 
 ---
 
 ## 2. Installation: Automatic & Manual Fallback
 
 ### A. Automatic Installation (Recommended)
-DanOverlay includes an **automatic installer**:
-- Whenever you launch DanOverlay while Etterna is installed or running, it automatically detects your active theme (e.g. `Til Death`, `Rebirth`, `_fallback`, etc.), copies the Lua bridge scripts into your theme directories, and safely injects the actor loader lines into `default.lua`.
+DanOverlay includes a built-in **automatic installer**:
+- Whenever you launch DanOverlay while Etterna is installed or running, it automatically detects your active theme (e.g. `Til Death`, `Rebirth`, `Simply Love`, `_fallback`, etc.), copies the Lua bridge scripts into your theme directories, and safely injects the actor loader lines into `default.lua`.
 - Automatic backups (`default.lua.dan_backup`) are created before any modifications.
 - **No manual file copying is required under standard setups.**
 
@@ -61,29 +64,43 @@ DanOverlay includes an **automatic installer**:
 ### B. Manual Installation (Fallback for Custom / Modified Themes)
 If you are using a heavily modified or non-standard custom theme where automatic detection did not inject the bridge lines, you can install the scripts manually:
 
-1. Copy `dan_overlay_bridge.lua` and `dan_overlay_menu.lua` to:
+#### 1. Song Selection Bridge (`ScreenSelectMusic`)
+1. Copy `dan_overlay_bridge.lua` to:
    ```text
    Etterna/Themes/[YOUR_THEME]/BGAnimations/ScreenSelectMusic decorations/
    ```
-   *(or `ScreenSelectMusic overlay/` depending on the theme structure)*
+   *(or `ScreenSelectMusic overlay/` / `underlay/` depending on the theme structure)*
 
-2. Open `default.lua` in that directory and add the following lines before `return t`:
+2. Open `default.lua` in that directory and add the following line before `return t`:
    ```lua
    -- [DanOverlay Integration]
    t[#t+1] = LoadActor("dan_overlay_bridge.lua")
-   t[#t+1] = LoadActor("dan_overlay_menu.lua")
    ```
 
-3. Copy `dan_overlay_gameplay.lua` to:
+#### 2. Gameplay Bridge (`ScreenGameplay`)
+1. Copy `dan_overlay_gameplay.lua` to:
    ```text
    Etterna/Themes/[YOUR_THEME]/BGAnimations/ScreenGameplay overlay/
    ```
-   *(or `ScreenGameplay decorations/` depending on the theme structure)*
+   *(or `ScreenGameplay decorations/` / `underlay/` depending on the theme structure)*
 
-4. Open `default.lua` in that directory and add the following line before `return t`:
+2. Open `default.lua` in that directory and add the following line before `return t`:
    ```lua
    -- [DanOverlay Integration]
    t[#t+1] = LoadActor("dan_overlay_gameplay.lua")
+   ```
+
+#### 3. Evaluation Bridge (`ScreenEvaluation`)
+1. Copy `dan_overlay_eval.lua` to:
+   ```text
+   Etterna/Themes/[YOUR_THEME]/BGAnimations/ScreenEvaluation overlay/
+   ```
+   *(or `ScreenEvaluation decorations/` / `underlay/` depending on the theme structure)*
+
+2. Open `default.lua` in that directory and add the following line before `return t`:
+   ```lua
+   -- [DanOverlay Integration]
+   t[#t+1] = LoadActor("dan_overlay_eval.lua")
    ```
 
 ---
@@ -102,7 +119,7 @@ If you are using a heavily modified or non-standard custom theme where automatic
 
 > [!IMPORTANT]
 > **Bug Reporting & Support:**  
-> If you experience any theme-specific integration issues, if the automatic installer didn't inject the lines into your custom theme, or if you find any parsing anomalies with specific `.sm`/`.ssc` charts, please report them directly on **Discord** (or open an issue on the GitHub repository) with:
+> If you experience any theme-specific integration issues, if the automatic installer didn't inject the lines into your custom theme, or if you find any parsing anomalies with specific `.sm`/`.ssc` charts, please report them directly via Discord DM to **`agent_ale`** (or open an issue on the GitHub repository) with:
 > - Your active Etterna theme name.
 > - The song / simfile `.sm` / `.ssc` name.
 > - Any relevant logs from DanOverlay or the Etterna console.
@@ -112,4 +129,5 @@ If you are using a heavily modified or non-standard custom theme where automatic
 ## 5. Acknowledgements & Credits
 
 - **[JoseMGS3/DanielEtterna](https://github.com/JoseMGS3/DanielEtterna) by JoseMGS3** — Special thanks and credits for sharing his codebase, providing valuable knowledge, and serving as the primary architectural reference and inspiration for the Etterna Lua theme bridge connection mechanism.
+
 

@@ -16,8 +16,8 @@ DanOverlay connects non-invasively to **Etterna** via lightweight background Lua
 - **Non-Invasive File IPC**: The runtime bridge (`etterna_source.py`) monitors the Etterna `Save/` folder at ~16 Hz, detecting active song changes, rate modifications, live gameplay timestamps, and score evaluation results.
 - **Three Core Theme Actors (`src/02_runtime_bridge/etterna/bridges/`)**:
   - `dan_overlay_bridge.lua` (`ScreenSelectMusic`): Emits active song metadata (Title, Artist, Song Directory, Stepfile Path, Difficulty, Meter, Rate Multiplier, Background Image, and native MSD ratings).
-  - `dan_overlay_menu.lua` (`ScreenSelectMusic`): Maintains smooth rate synchronization and wheel settlement during rapid song-wheel scrolling.
-  - `dan_overlay_gameplay.lua` (`ScreenGameplay` & `ScreenEvaluation`): Emits play session starts/stops and evaluation screen statistics (Wife% accuracy, clear/fail status, and official Etterna grade) with **zero CPU overhead** during active gameplay.
+  - `dan_overlay_gameplay.lua` (`ScreenGameplay`): Emits play session starts and stops with **zero CPU overhead** during active gameplay.
+  - `dan_overlay_eval.lua` (`ScreenEvaluation`): Emits evaluation screen statistics (Wife% accuracy, clear/fail status, and official Etterna grade badges).
 - **Universal Theme Support**: Works out of the box with **Rebirth**, **Til Death**, **Simply Love**, **Cyberia**, **Default**, and custom Etterna themes.
 - **Process Detection**: Verifies when `Etterna.exe` is actively running to prevent reading stale cached state when starting the overlay first.
 
