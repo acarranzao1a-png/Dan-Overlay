@@ -443,12 +443,25 @@ def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None, diffic
     if strict_domain and not domain.get("valid", True):
         return _error_payload("domain_out_of_range")
 
-    # If 7K or LN-dominant (LN ratio > 0.18), use the specialized 7K/LN legacy logic
+    # If 7K, or LN-bearing beyond the rice scope (LN ratio > 0.18), use the
+    # specialized 7K/LN legacy logic.  ISOR is strictly 4K rice; scoring
+    # hybrid rice+LN maps with it overshoots.
     _ln_route = str(domain.get("ln_route", "rice") or "rice")
-    if domain.get("is_7k") or _ln_route == "ln":
+    _ln_ratio = float(domain.get("ln_ratio", 0.0) or 0.0)
+    if domain.get("is_7k") or _ln_ratio > 0.18:
         res = _analyze_map_impl_inner(osu_path, mod=mod, strict_domain=strict_domain, rate=rate)
         if isinstance(res, dict):
-            res["engine"] = "isor"
+            # Honest attribution: the number below was produced by the LEGACY
+            # engine, not by ISOR.  Stamping these delegated results as "isor"
+            # made users attribute legacy LN/7K behaviour to ISOR (a reported
+            # bug: "ISOR overshoots hybrid LN maps" while ISOR never scored
+            # them).  `engine` now names the engine that actually computed the
+            # value; the request is preserved separately for the UI/debug.
+            res["engine"] = "legacy"
+            res["engine_requested"] = "isor"
+            res["isor_delegated_reason"] = (
+                "7k_out_of_scope" if domain.get("is_7k") else "ln_ratio>0.18"
+            )
         return res
 
     # 4K Rice beatmap: run ISOR

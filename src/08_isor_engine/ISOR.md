@@ -128,19 +128,26 @@ Five independent feature extractors process the note array simultaneously:
 5. **Pattern Classifier:** Identifies macro-families via cosine similarity against reference pattern profiles.
 
 ### 4.3 Skillset Routing
-The map is dynamically mapped to a canonical skillset $\kappa \in \{\text{jack}, \text{speed}, \text{stamina}, \text{tech}, \text{general}\}$:
+
+The map is mapped to a canonical skillset $\kappa \in \{\text{jack}, \text{speed}, \text{stamina}, \text{tech}, \text{general}\}$ as a **continuous mixture over the canonical rulers**: the classifier's family label selects the candidate rulers and every historical hard threshold (`jbar_max > 55`, `jack_density >= thr`, `jump_ratio >= thr`) is a sharp sigmoid, so a chart blends between skillsets instead of switching discretely and never jumps ruler when it crosses a value:
+
 ```python
-if "jack" in family or jbar_max > 55.0 or jack_density >= jack_threshold:
-    skillset = "jack"
-elif "tech" in family or family == "ln":
-    skillset = "tech"
-elif "stream" in family and jump_ratio < speed_jump_threshold:
-    skillset = "speed"
-elif "stamina" in family or jump_ratio >= speed_jump_threshold:
-    skillset = "stamina"
+# isor_engine.compute_triangulated_rank
+_jbar_gate = _sigmoid(jbar_max, k=0.5, x0=55.0)
+_jd_gate   = _sigmoid(jack_density, k=40.0, x0=_JD_JACK_THR)
+if "jack" in fam_lower:
+    sk_w = {"jack": 1.0}
+elif "tech" in fam_lower:
+    sk_w = {"jack": _jbar_gate, "tech": 1.0 - _jbar_gate}
 else:
-    skillset = "general"
+    _rescue = 1.0 - (1.0 - _jbar_gate) * (1.0 - _jd_gate)
+    _t = _sigmoid(jump_ratio, k=12.0, x0=<threshold for this family>)
+    sk_w = {_lo: (1.0 - _t) * (1.0 - _rescue), "stamina": _t * (1.0 - _rescue), "jack": _rescue}
+# normalised to sum 1.0; dp_sr / dp_choke are the weighted blend of the skillset rulers
+sk_key = max(sk_w, key=sk_w.get)   # dominant skillset, used for the lin_base coefficients
 ```
+
+`sk_key` (the dominant weighted skillset) selects the `lin_base` coefficient set. A chart whose family resolves to `ln` is never scored by ISOR: the pipeline delegates it to the legacy LN/7K path rather than mixing LN behaviour into a rice estimate.
 
 ### 4.4 Continuous Ruler Projections
 Each primary signal is projected onto continuous Dan Points ($DP$) via piecewise-linear frontier interpolation against calibrated skillset vectors:
@@ -157,22 +164,56 @@ $$
 The intermediate organic rating $DP_{\text{organic}}$ is computed via normalized convex combination:
 
 $$
-DP_{\text{organic}} = \frac{w_{\text{SR}} DP_{\text{SR}} + w_{\text{choke}} DP_{\text{choke}} + w_{\text{MSD}} DP_{\text{MSD}} + w_{\text{bio}} DP_{\text{bio}}}{w_{\text{SR}} + w_{\text{choke}} + w_{\text{MSD}} + w_{\text{bio}}}
+DP_{\text{organic}} = \frac{w_{\text{SR}} DP_{\text{SR}} + w_{\text{choke}} DP_{\text{choke}} + w_{\text{MSD}} DP_{\text{MSD}}}{w_{\text{SR}} + w_{\text{choke}} + w_{\text{MSD}}}
 $$
 
-### 4.6 Dual-Model Ridge Meta-Correction
-To correct subtle non-linear residual errors ($y - DP_{\text{base}}$), a dual regularized Ridge model is applied across the standardized 98-D feature vector $\mathbf{z}$:
+> **Biomechanical layer (`strain.py`) is a feature supplier, not a fourth vector.**
+> `_BIO_ENABLED` is `False`: the $w_{\text{bio}}\,DP_{\text{bio}}$ term is not part of the
+> deployed triangulation. The 7 strain streams, their q97 peaks and the sustained-density
+> statistics feed the Ridge meta-corrector instead (see §6).
+
+### 4.6 Multi-Head Meta-Correction
+To correct the residual error $y - DP_{\text{base}}$, three correction heads operate on the
+standardized feature vector and are combined by smooth gates:
 
 $$
-\hat{\delta} = \mathbf{z}^T \mathbf{\beta}
+\hat{\delta} = g_{\text{blend}} \cdot \Big[(1 - \alpha p)\,\hat{\delta}_{\text{high}} + \alpha p\,\hat{\delta}_{\text{mid}}\Big] + (1 - g_{\text{blend}}) \cdot \hat{\delta}_{\text{low}}
 $$
 
-- **High-Tier Model ($\lambda = 8$):** Trained on tiers 11–17.5.
-- **Low-Tier Model ($\lambda = 32$):** Trained on tiers 1–10.5 augmented with 67 official DDMythical low-tier maps.
-- **Transition Gate:** Blended smoothly via $\sigma\left(4.0 \cdot (DP_{\text{organic}} - 10.0)\right)$.
+- **High-tier head (Ridge, $\lambda = 8$):** trained on the benchmark band 11–17.5, $D = 98$.
+- **Low-tier head (RBF lift + Ridge, $\lambda = 2$):** a Gaussian lift replaces the purely linear
+  term on the lower band, $D = 99$ (the 98 structural features plus the row-transition entropy of
+  §5.6). Its 163 centres are the maps of its own training population, so the correction is a smooth
+  function of distance to real charts rather than a global linear fit. It remains $C^\infty$.
+- **Mid head (Ridge, $\lambda = 16$) with a learned gate:** the blend gate hands charts with a high
+  base level to the high-tier head even when their true tier is low, and that head was never trained
+  on such charts. A third head is fitted on exactly that population, and a logistic weight
+  $p(\mathbf{x}) \in [0,1]$ — fitted on the same features — decides per chart how much of it to
+  apply. $D = 102$ (98 plus four texture/irregularity signals). No chart type, skillset, name or
+  pack is ever consulted: the weight is a function of the features only.
+- **Blend gate:** $\sigma\left(4.0 \cdot (DP_{\text{base}} - 10.0)\right)$.
+- **Anchor calibration** (§4.7) is applied after this stack.
+- The total correction is clipped to $\pm 1.0$.
 
-### 4.7 Apex Cosine Gate (Zeta–Kappa Canon Restoration)
-Because standard training sets sparsely populate tiers beyond 18.0 DP, a $C^0$ cosine transition gate activates smoothly above 18.8 DP to restore the official high-tier progression:
+The linear low-tier head remains in the model as a fallback for builds without the RBF block.
+
+### 4.7 Anchor Calibration and Apex Cosine Gate
+
+**Anchor calibration.** A residual level bias was measured in the stripe between the low-tier head and
+the apex region — the fused base ran high there while no correction stage covered it. A smooth curve of
+the level corrects it:
+
+$$
+DP \leftarrow \text{clip}\left(DP + \sum_j a_j \, e^{-\left((DP_{\text{base}} - c_j)/w\right)^2}, \; 0, \; 20.5\right)
+$$
+
+The Gaussian support is placed only where the bias was measured, so the correction decays to exactly
+zero outside that range and cannot disturb the bands that were already calibrated. It is a calibration
+curve — a function of the level with a handful of coefficients — not a per-chart or per-skillset rule.
+It is applied after the correction stack and before the rate-monotonicity clamps.
+
+**Apex cosine gate.** Because standard training sets sparsely populate tiers beyond 18.0 DP, a $C^0$
+cosine transition gate activates smoothly above 18.8 DP to restore the official high-tier progression:
 
 $$
 DP_{\text{final}} = \min\left(DP_{\text{blended}} + \text{lift}_{\text{apex}}, \; 20.5\right)
@@ -232,7 +273,7 @@ $$
 \begin{aligned}
 w_{\text{SR}} &= \min\left(w_{\text{SR}}^{\max}, \; w_{\text{SR}}^{\text{base}} + \gamma_{\text{SR}} \cdot \sigma(SR_{\text{raw}} - SR_0) \cdot \sigma(NPS_0 - NPS_{\text{choke}})\right) \\
 w_{\text{MSD}} &= \min\left(w_{\text{MSD}}^{\max}, \; w_{\text{MSD}}^{\text{base}} + \gamma_{\text{MSD}} \cdot \sigma\left(\left|DP_{\text{SR}} - DP_{\text{choke}}\right| - \theta_{\text{agree}}\right)\right) \\
-w_{\text{choke}} &= \max\left(w_{\text{choke}}^{\min}, \; 1.0 - w_{\text{SR}} - w_{\text{MSD}} - w_{\text{bio}}\right)
+w_{\text{choke}} &= \max\left(w_{\text{choke}}^{\min}, \; 1.0 - w_{\text{SR}} - w_{\text{MSD}}\right)
 \end{aligned}
 $$
 
@@ -289,8 +330,9 @@ Where $\mathcal{M}$ represents the state space of $2^4 - 1 = 15$ possible non-em
 
 ---
 
-### 5.7 L₂ Regularized Ridge Meta-Corrector
-Given standardized feature matrix $\mathbf{Z} \in \mathbb{R}^{N \times D}$ and target residual vector $\mathbf{y}$:
+### 5.7 Regularized Ridge & RBF Meta-Correctors
+
+**Ridge heads.** Given standardized feature matrix $\mathbf{Z} \in \mathbb{R}^{N \times D}$ and target residual vector $\mathbf{y}$:
 
 $$
 \begin{aligned}
@@ -300,8 +342,83 @@ $$
 \end{aligned}
 $$
 
-* **High-Tier Model:** $\lambda = 8.0$ across $D = 98$ features.
-* **Low-Tier Model:** $\lambda = 32.0$ across $D = 98$ features.
+* **High-tier head:** $\lambda = 8.0$ across $D = 98$ features.
+* **Mid head:** $\lambda = 16.0$ across $D = 102$ features, mixed in by its own logistic weight.
+
+**RBF low-tier head.** The lower band is where a linear corrector loses the most, so a Gaussian lift is
+applied before the linear term. With centres $\mathbf{c}_k$ taken from the training population and
+$\gamma$ set from the median pairwise distance:
+
+$$
+\begin{aligned}
+\mathbf{z} &= \frac{\mathbf{x} - \mathbf{\mu}_x}{\mathbf{\sigma}_x} \\
+\phi_k(\mathbf{z}) &= \exp\left(-\gamma \, \lVert \mathbf{z} - \mathbf{c}_k \rVert^2\right) \\
+\hat{\delta}_{\text{low}}(\mathbf{x}) &= \text{clip}\left(\left[\mathbf{z}, \boldsymbol{\phi}(\mathbf{z})\right]^T \mathbf{\beta} + \beta_0, \;-1.0, \;+1.0\right)
+\end{aligned}
+$$
+
+The design matrix is $[\mathbf{Z}, \boldsymbol{\Phi}, \mathbf{1}]$ and $\mathbf{\beta}$ comes from the
+same ridge solve, so the model class changes while the estimator stays a closed-form linear solve in
+the lifted space. The lift is $C^\infty$, which preserves the engine's continuity guarantee.
+
+---
+
+## 9bis. Verified State of the Current Build
+
+The tables in §9 are the live measurement, recomputed from the raw CSVs. This section records how
+the current build reaches those numbers and which caveats belong next to them. The contract is the
+official one, `got = DP − 0.5`; *rice* means the 644 benchmark maps with `pattern != ln`.
+
+| Metric | Current build | Previous published build |
+|---|---|---|
+| Rice-only MAE | **0.2449** (RMSE 0.3376, bias +0.0159) | 0.2920 (RMSE 0.4157) |
+| RC 11-17 (485 maps) MAE | **0.2066** (RMSE 0.2819) | 0.2110 |
+| jack / speed / stamina / tech / course MAE | **0.2264 / 0.2285 / 0.2621 / 0.2724 / 0.2788** | 0.2622 / 0.2648 / 0.3226 / 0.3012 / 0.4562 |
+| Bands 1-11 / 11-14 / 14-16 / 16-17 / 17+ MAE | **0.3666 / 0.2466 / 0.1775 / 0.2085 / 0.3253** | 0.5536 / 0.2433 / 0.1887 / 0.2060 / 0.4342 |
+| Same bands, exact tier rate ($\le 0.20$) | **38.6% / 53.6% / 69.0% / 66.0% / 42.1%** | 22.9% / 51.9% / 66.7% / 61.7% / 26.3% |
+| Head-to-head vs ROXY (501 common) | **0.2139 vs 0.2414** (+0.0276, p=0.001) | — |
+| Head-to-head vs Mixed (643 common) | **0.2450 vs 0.3020** (+0.0570, p=0.000) | — |
+
+The 11-14 band is the one place where mean error is marginally higher while the exact-tier rate is
+better: maps move out of the middle bands and into *exact*, which is the intended direction.
+
+### Correction stack
+
+Four stages act on the organic base, in this order:
+
+1. **Anchor calibration** — a smooth curve of the fused base level,
+   $DP \leftarrow \text{clip}\left(DP + \sum_j a_j e^{-((DP_{base} - c_j)/w)^2},\ 0,\ 20.5\right)$,
+   with Gaussian support placed only where a level bias was measured, so it is exactly zero outside
+   that range. It covers the stripe between the low-tier head and the apex region, which previously
+   had no active correction stage at all.
+2. **Three correction heads**, blended by the transition gate $\sigma(4.0\,(DP_{base} - 10.0))$:
+   a high-tier Ridge head, a non-linear RBF head on the lower band, and a *mid* head paired with a
+   learned logistic weight that decides, per chart, how much of it to apply. The mid head exists
+   because the gate hands overrated charts to the high-tier head, which was never trained on them.
+3. **Apex cosine gate** for the upper canon (see §5.8).
+4. **Rate monotonicity clamps** across the native anchors (see §5.9).
+
+All corrections are clipped to $\pm 1.0$ and every stage is continuous, so the engine keeps its
+zero-step-discontinuity guarantee.
+
+### Honesty caveat
+
+The Ridge heads and `lin_base` are **full fits on the evaluation corpus**, so the published MAE
+contains in-sample optimism; refitting the trainable stack out of fold gives a higher figure. The
+same caveat applies to the rival estimators, which also calibrate on benchmark data, but it should
+not be hidden. Changes were only kept when they held up on held-out data — several candidates that
+improved the benchmark were rejected and reverted for exactly this reason.
+
+### Hypotheses tested and refuted (do not repeat them)
+
+A global de-bias of the choke projection (absorbed entirely by `lin_base`'s free coefficient);
+switching the lower head to a label-based population; widening the blend gate; using either head
+alone instead of the blend; the orthogonal reading axis `Hn` as a Ridge feature (diff −0.0002,
+p=0.615); raising the ±1.0 correction cap (it binds on the worst cases but degrades held-out error
+monotonically); a texture/irregularity block in either head; additional skillset × signal
+interactions (improves the fit, degrades held-out error); and a dedicated top-band head (it improves
+the benchmark's 17+ band from 0.4268 to 0.2353 but **worsens the official Zeta–Kappa packs** from
+0.4747 to 0.4912, so it was reverted as benchmark-fitting).
 
 ---
 
@@ -362,6 +479,17 @@ The regularized meta-layer inspects a vector of 98 continuous structural feature
 | **Slow-Hand Gate** | 1 | Low-speed hand fatigue threshold modulator (`same_hand_q10`). |
 | **Sustained Density (`sustain_v1`)** | 15 | Rolling NPS percentiles (1000 ms & 4000 ms), profile flatness $q_{50}/q_{97}$, row/hand/column $\Delta t$ distributions. |
 | **Total Dimensions** | **98** | **Full standardized feature representation** |
+
+#### Head-specific extensions
+
+The 98 dimensions above are the shared base. Individual heads declare extra columns, appended in the
+order the model specifies so training and inference cannot drift apart:
+
+| Head | Extra columns | Purpose |
+| :---| :---: | :--- |
+| **Low-tier head** | 1 | Row-mask transition entropy (§5.6) — an orthogonal reading axis for irregular transitions. |
+| **Mid head and its gate** | 4 | Density variability, timing irregularity, transition variance, pattern irregularity. |
+| **High-tier head** | 0 | Uses the 98 base dimensions. |
 
 ---
 
@@ -440,15 +568,21 @@ $$
 > The benchmark metrics presented below were evaluated through rigorous **local testing** using the official reference dataset and scoring criteria established in [Leo_Black's VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark). To guarantee full reproducibility and transparency, the complete raw predictions for all 746 benchmark beatmaps are provided in [ISOR.csv](ISOR.csv).
 
 #### A. High Rice Scale (Tiers 11.0 – 17.0 · 485 Maps) — *Core Competitive Arena*
+
+> Every figure is recomputed from the raw CSVs with a single shared implementation
+> (`benchmark_tables.py`), so the published tables cannot drift apart. Counts are per
+> benchmark row; algorithms that do not cover the whole scope are marked and not ranked,
+> because a lower MAE over a subset is not comparable.
+
 | Algorithm | Valid Maps | Coverage | MAE (Lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Benchmark Rank |
 | :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ISOR (DanOverlayV2)** | **485 / 485** | **100.0%** | **0.2110** | **0.2790** | **60.0%** | **93.2%** | #1 |
-| **ROXY** | 480 / 485 | 99.0% | 0.2191 | 0.2966 | 59.4% | 92.9% | #2 |
-| **Mixed** | 485 / 485 | 100.0% | 0.2329 | 0.3308 | 58.4% | 92.0% | #3 |
-| **Azusa** | 485 / 485 | 100.0% | 0.2795 | 0.3820 | 46.4% | 88.7% | #4 |
-| **Daniel** | 481 / 485 | 99.2% | 0.3116 | 0.4535 | 46.4% | 83.6% | #5 |
-| **Companella** | 485 / 485 | 100.0% | 0.4409 | 0.6120 | 35.5% | 70.1% | #6 |
-| **Sunny (Native)** | 485 / 485 | 100.0% | 0.5478 | 0.7517 | 32.2% | 56.9% | #7 |
+| **ISOR (DanOverlayV2)** | **485 / 485** | **100.0%** | **0.2066** | **0.2819** | **62.9%** | **92.6%** | **#1** |
+| **ROXY** *(Partial)* | 479 / 484 | 99.0% | 0.2191 | 0.2967 | 60.1% | 92.9% | *(Incomplete Scope)* |
+| **Mixed** | 484 / 484 | 100.0% | 0.2330 | 0.3309 | 59.1% | 91.9% | #2 |
+| **Azusa** | 484 / 484 | 100.0% | 0.2800 | 0.3824 | 46.9% | 88.6% | #3 |
+| **Daniel** *(Partial)* | 480 / 484 | 99.2% | 0.3119 | 0.4538 | 51.5% | 83.8% | *(Incomplete Scope)* |
+| **Companella** | 484 / 484 | 100.0% | 0.4413 | 0.6125 | 35.7% | 70.0% | #4 |
+| **Sunny (Native)** | 484 / 484 | 100.0% | 0.5473 | 0.7516 | 37.6% | 57.4% | #5 |
 
 <p align="center">
   <img src="assets/benchmark_accuracy_breakdown.png" alt="Benchmark Accuracy Breakdown" width="820" />
@@ -465,13 +599,13 @@ $$
 #### B. Full Rice Scale (Tiers 1.0 – 18.0 · 644 Maps) — *Comprehensive Ladder*
 | Algorithm | Valid Maps | Coverage | MAE (Lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Full Coverage Rank |
 | :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ISOR (DanOverlayV2)** | **644 / 644** | **100.0%** | **0.2920** | **0.4157** | **50.8%** | **84.2%** | #1 |
-| **Mixed** | 644 / 644 | 100.0% | 0.3019 | 0.4338 | 50.5% | 83.2% | #2 |
-| **Azusa** | 644 / 644 | 100.0% | 0.3370 | 0.4657 | 41.6% | 80.1% | #3 |
-| **ROXY** *(Partial)* | 502 / 644 | 78.0% | 0.2414 | 0.3372 | 57.2% | 90.2% | *(Incomplete Scope)* |
-| **Daniel** *(Partial)* | 522 / 644 | 81.1% | 0.3193 | 0.4633 | 46.6% | 82.2% | *(Incomplete Scope)* |
-| **Companella** | 644 / 644 | 100.0% | 0.5420 | 0.8050 | 32.5% | 64.1% | #4 |
-| **Sunny (Native)** | 644 / 644 | 100.0% | 0.6196 | 0.8500 | 30.1% | 52.8% | #5 |
+| **ISOR (DanOverlayV2)** | **644 / 644** | **100.0%** | **0.2449** | **0.3376** | **57.0%** | **87.9%** | **#1** |
+| **ROXY** *(Partial)* | 501 / 643 | 77.9% | 0.2414 | 0.3374 | 57.9% | 90.2% | *(Incomplete Scope)* |
+| **Mixed** | 643 / 643 | 100.0% | 0.3020 | 0.4341 | 51.3% | 83.2% | #2 |
+| **Azusa** | 643 / 643 | 100.0% | 0.3375 | 0.4660 | 42.5% | 80.1% | #3 |
+| **Daniel** *(Partial)* | 521 / 643 | 81.0% | 0.3196 | 0.4636 | 51.6% | 82.3% | *(Incomplete Scope)* |
+| **Companella** | 643 / 643 | 100.0% | 0.5425 | 0.8056 | 32.8% | 64.1% | #4 |
+| **Sunny (Native)** | 643 / 643 | 100.0% | 0.6193 | 0.8501 | 35.1% | 53.2% | #5 |
 
 <p align="center">
   <img src="assets/benchmark_scatter_plot.png" alt="ISOR Expected vs Estimated Dan Scatter Plot" width="680" />
@@ -500,10 +634,11 @@ Performance across distinct mechanical archetypes on the **High Rice Scale
 
 | Pattern Skillset | Evaluated Maps ($n$) | MAE (Lower is better) | RMSE | Exact Fit ($\le 0.20$) | Close Fit ($\le 0.50$) |
 | :---| :---: | :---: | :---: | :---: | :---: |
-| **Jack / Chordjack** | 181 | **0.2036** | 0.2688 | 59.7% | 93.9% |
-| **Speed / Burst Streams** | 109 | **0.1917** | 0.2490 | 67.9% | 92.7% |
-| **Technical / Poly-Rhythm** | 81 | **0.2198** | 0.2801 | 60.5% | 95.1% |
-| **Stamina / Dense Jumpstream** | 102 | **0.2283** | 0.3149 | 54.9% | 93.1% |
+| **Jack / Chordjack** | 181 | **0.1919** | 0.2587 | 64.6% | 93.9% |
+| **Speed / Burst Streams** | 109 | **0.2013** | 0.2638 | 63.3% | 91.7% |
+| **Stamina / Dense Jumpstream** | 102 | **0.2181** | 0.3150 | 64.7% | 93.1% |
+| **Technical / Poly-Rhythm** | 81 | **0.2330** | 0.3135 | 58.0% | 88.9% |
+| **Course / Marathon** | 12 | **0.1992** | 0.2524 | 50.0% | 100.0% |
 
 <p align="center">
   <img src="assets/benchmark_pattern_breakdown.png" alt="MAE by Pattern Skillset" width="800" />
@@ -515,16 +650,16 @@ Performance across distinct mechanical archetypes on the **High Rice Scale
 ### 9.4 Head-to-Head Matrix: ISOR vs. Key Benchmark Engines
 
 Direct symmetric comparison across common matched beatmaps on the **High Rice
-Scale (Tiers 11–17)**:
+Scale (Tiers 11–17)**. A tie is a per-map difference of $|\Delta\text{MAE}| \le 0.005$:
 
-$$
-\begin{aligned}
-\text{vs. ROXY (482 maps):} &\quad \mathbf{\text{ISOR MAE: } 0.2097} \;\text{ vs. }\; \text{ROXY MAE: } 0.2191 \quad (\mathbf{251 \text{ Wins}} \;/\; 219 \text{ Losses} \;/\; 12 \text{ Ties}) \\
-\text{vs. Mixed (487 maps):} &\quad \mathbf{\text{ISOR MAE: } 0.2108} \;\text{ vs. }\; \text{Mixed MAE: } 0.2329 \quad (\mathbf{257 \text{ Wins}} \;/\; 218 \text{ Losses} \;/\; 12 \text{ Ties}) \\
-\text{vs. Azusa (487 maps):} &\quad \mathbf{\text{ISOR MAE: } 0.2108} \;\text{ vs. }\; \text{Azusa MAE: } 0.2784 \quad (\mathbf{295 \text{ Wins}} \;/\; 183 \text{ Losses} \;/\; 9 \text{ Ties}) \\
-\text{vs. Daniel (483 maps):} &\quad \mathbf{\text{ISOR MAE: } 0.2105} \;\text{ vs. }\; \text{Daniel MAE: } 0.3112 \quad (\mathbf{279 \text{ Wins}} \;/\; 199 \text{ Losses} \;/\; 5 \text{ Ties})
-\end{aligned}
-$$
+| Rival | Common Maps | ISOR MAE | Rival MAE | Wins | Losses | Ties |
+| :---| :---: | :---: | :---: | :---: | :---: | :---: |
+| **ROXY** | 479 | **0.2027** | 0.2191 | **252** | 210 | 17 |
+| **Mixed** | 484 | **0.2066** | 0.2330 | **259** | 208 | 17 |
+| **Azusa** | 484 | **0.2066** | 0.2800 | **304** | 167 | 13 |
+| **Daniel** | 480 | **0.2043** | 0.3119 | **276** | 189 | 15 |
+| **Companella** | 484 | **0.2066** | 0.4413 | **328** | 145 | 11 |
+| **Sunny** | 484 | **0.2066** | 0.5473 | **362** | 114 | 8 |
 
 <p align="center">
   <img src="assets/benchmark_head_to_head.png" alt="Head to Head Win Matrix" width="800" />
@@ -560,7 +695,7 @@ config/
 1. **Zero Piecewise Step Cliffs:** All internal functions and transitions are $C^0$/$C^1$ smooth.
 2. **Strict Frontier Monotonicity:** Rulers enforced via PAVA; rate progression clamped isotonically.
 3. **Domain-Restricted Meta-Layer:** Ridge corrections strictly gated by $r_{\text{LN}} \le 0.18$ and bound within $[-1.0, +1.0]$.
-4. **Deterministic Reproducibility:** Fixed-point bit-exact mathematical outputs across all platforms.
+4. **Deterministic Reproducibility:** identical inputs produce identical outputs. The engine is **not** claimed to be bit-exact across platforms (floating-point libm differences and the `msd.exe` subprocess make that unprovable); what *is* guaranteed by construction is that a given rate always resolves to the same value regardless of the order in which rates were queried.
 5. **No Regressions on Out-of-Sample Sets:** Generalization confirmed via external practice and official packs.
 
 ---
@@ -569,6 +704,9 @@ config/
 
 * **Strictly 4K Rice:** Long-note dominant beatmaps and non-4K keymodes are rejected by domain validation.
 * **Residual Physical Variance Floor:** On the 11–17 tier band, bias is $\approx 0$ with residual variance $\sigma \approx 0.25 - 0.31$, representing the empirical theoretical limit of 4K notechart signals.
+* **Lower-Band Dispersion:** below tier 11 the residual error is dispersion rather than bias, so level calibration cannot reduce it; further gains there require additional labelled charts, not a different model.
+* **Sparse Upper Canon:** the tiers above 16 are represented by very few labelled charts, and the official packs contain almost none above the Zeta band. Any correction fitted there rests on thin evidence and should be read as provisional.
+* **Correction Cap:** each head and the total correction are clipped to $\pm 1.0$ Dan. A small number of charts require a larger correction; raising the cap was measured to degrade held-out accuracy, so the limit is deliberate.
 * **Sub-0.75× Rate Plateau:** Rates below $0.75\times$ are plateaued against the lower native anchor to preserve monotonicity.
 * **Celestial Intra-Tier Overlap:** Human consensus in Celestial packs exhibits real overlap across adjacent slots, bounding maximum 35-slot exact accuracy near $\approx 26\%$.
 

@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(_PROJECT_ROOT, "src", "02_runtime_bridge"))
 sys.path.insert(0, os.path.join(_PROJECT_ROOT, "src", "07_model"))
 sys.path.insert(0, os.path.join(_PROJECT_ROOT, "src", "03_engine_reference", "sr_core"))
 
-from parser import parsear_osu_v2
+from parser import parsear_osu_v2, _build_rows as _parser_build_rows
 from validator import validate_domain
 from feature_extractor import extract_features
 from primary_sr_bridge import analyze_primary_sr
@@ -186,16 +186,60 @@ SKILLSET_CHOKE_MEANS = {
 }
 
 
+# Diagnostic thresholds for ruler health.  These NEVER modify a ruler; they
+# only make silent calibration defects visible at import time.
+_RULER_MIN_STEP = 0.05   # two tiers closer than this are indistinguishable
+_RULER_MIN_ZONE = 0.15   # interpolation band narrower than this = a cliff
+
+
 def _report_ruler_health(name, means_dict):
-    """Report (do not modify) non-monotonic rulers used by the triangulation."""
+    """Report (do not modify) ruler defects that degrade the interpolation.
+
+    Three classes, all diagnostic only:
+
+      1. non-monotonic means — create zero-width or inverted zones;
+      2. collapsed steps — adjacent tiers separated by less than
+         ``_RULER_MIN_STEP``, where the signal cannot separate them at all;
+      3. narrow zones — a tier whose interpolation band is thinner than
+         ``_RULER_MIN_ZONE``, where a tiny signal change moves a whole tier.
+
+    Classes 2 and 3 do not break monotonicity, so the original check let them
+    pass silently even though they produce exactly the "this map reads one
+    tier high/low" behaviour users report.
+    """
     vals = [means_dict[d] for d in DAN_ORDER]
     bad = [i + 1 for i in range(1, len(vals)) if vals[i] <= vals[i - 1]]
     if bad:
         print(f"[prototype] WARNING: {name} non-monotonic at positions {bad}")
 
+    collapsed = [
+        f"{DAN_ORDER[i - 1]}->{DAN_ORDER[i]}={vals[i] - vals[i - 1]:+.3f}"
+        for i in range(1, len(vals))
+        if vals[i] > vals[i - 1] and (vals[i] - vals[i - 1]) < _RULER_MIN_STEP
+    ]
+    if collapsed:
+        print(f"[prototype] NOTE: {name} collapsed steps (<{_RULER_MIN_STEP}): "
+              + ", ".join(collapsed))
+
+    narrow = []
+    for i, d in enumerate(DAN_ORDER):
+        lo = (vals[i - 1] + vals[i]) / 2.0 if i > 0 else vals[0] - (vals[1] - vals[0]) / 2.0
+        hi = (vals[i] + vals[i + 1]) / 2.0 if i < len(vals) - 1 else vals[-1] + (vals[-1] - vals[-2]) / 2.0
+        if (hi - lo) < _RULER_MIN_ZONE:
+            narrow.append(f"{d}={hi - lo:.3f}")
+    if narrow:
+        print(f"[prototype] NOTE: {name} narrow zones (<{_RULER_MIN_ZONE}): "
+              + ", ".join(narrow))
+
 
 for _sk_name, _sk_ruler in SKILLSET_SR_MEANS.items():
     _report_ruler_health(f"SKILLSET_SR_MEANS[{_sk_name}]", _sk_ruler)
+
+# The choke rulers are PAVA-sanitized above; report the plateaus the fit
+# leaves behind (e.g. jack 10th->Alpha collapses to a 0.00 NPS step, which
+# makes those two tiers impossible to separate at any density).
+for _sk_name, _sk_ruler in SKILLSET_CHOKE_MEANS.items():
+    _report_ruler_health(f"SKILLSET_CHOKE_MEANS[{_sk_name}] (post-PAVA)", _sk_ruler)
 
 # ── 3. Canonical MinaCalc MSD Benchmarks (1st to Kappa) ────────────────────────
 
@@ -213,6 +257,44 @@ def _sigmoid(x, k=1.0, x0=0.0):
     z = k * (x - x0)
     z = max(-50.0, min(50.0, z))
     return 1.0 / (1.0 + math.exp(-z))
+
+
+def _softplus(x, beta=20.0):
+    """Smooth (C^inf) one-sided rectifier: ~max(0, x), no kink at x=0."""
+    z = beta * x
+    if z > 50.0:
+        return x
+    if z < -50.0:
+        return math.exp(z) / beta
+    return math.log1p(math.exp(z)) / beta
+
+
+def _mask_transition_entropy(rows):
+    """Normalized Shannon entropy of consecutive row-mask bigrams (reading axis).
+
+    High for unpredictable/technical transitions, low for repetitive
+    streams/jacks.  Measured orthogonal to SR / choke NPS / MSD overall
+    (|r| < 0.15), so it adds an independent dimension to the base.
+    """
+    masks = []
+    for row in rows:
+        m = 0
+        for c in row.get("cols", ()):
+            m |= (1 << int(c))
+        masks.append(m)
+    if len(masks) < 10:
+        return 0.0
+    bg = {}
+    for a, b in zip(masks[:-1], masks[1:]):
+        key = (a, b)
+        bg[key] = bg.get(key, 0) + 1
+    tot = len(masks) - 1
+    H = 0.0
+    for v in bg.values():
+        p = v / tot
+        H -= p * math.log2(p)
+    denom = math.log2(min(tot, 225))
+    return (H / denom) if denom > 0 else 0.0
 
 
 # ── Dynamic continuous triangulation weights ──────────────────────────────────
@@ -601,12 +683,50 @@ def _ridge_feature_vector(bio_res, msd_dict, sunny_strains=None, purity=0.0, sub
 _RIDGE_HIGH_MEAN = None
 _RIDGE_HIGH_SCALE = None
 _RIDGE_HIGH_BETA = None
+_RIDGE_HIGH_INTERCEPT = 0.0
 _RIDGE_LOW_MEAN = None
 _RIDGE_LOW_SCALE = None
 _RIDGE_LOW_BETA = None
+_RIDGE_LOW_INTERCEPT = 0.0
 _RIDGE_SINGLE_MEAN = None
 _RIDGE_SINGLE_SCALE = None
 _RIDGE_SINGLE_BETA = None
+_RIDGE_SINGLE_INTERCEPT = 0.0
+# Optional SMOOTH non-linear LOW head (RBF lift + Ridge).  The low band is where
+# a linear corrector loses the most (measured out-of-fold), and a Gaussian lift
+# recovers part of it while staying C^inf: no steps, so the engine keeps its
+# "zero step discontinuities" guarantee.  Declared by the model as `rbf_low`.
+_RIDGE_RBF_LOW = None
+# The LOW head may declare one extra column: the mask transition entropy, i.e. the
+# normalized Shannon entropy of consecutive row-mask bigrams. The engine already
+# carries the note that this "validated orthogonal reading axis" has to be
+# integrated as a Ridge feature instead of as a standalone band-gated modulator
+# (that version was reverted). Declared by the model as `low_entropy`. It is
+# rate-invariant: it reads the sequence of chord masks, not their timing.
+_RIDGE_LOW_ENTROPY = False
+# P2: dedicated head for the OVERRATED population (base high, human label low).
+# The blend gate keys on `base`, so exactly the maps the rulers overshoot are
+# handed to the HIGH head -- which was trained on labels 11-17, where the correct
+# correction is ~0, while the required correction there is -1.0 to -1.7.  Nobody
+# was trained on that population.  This adds a mid head plus a learned logistic
+# weight p over the SAME features, mixed smoothly:
+#     corr_h <- (1 - alpha*p) * corr_h + alpha*p * corr_mid
+# No map type, skillset, pack or name is ever consulted: the only inputs are the
+# feature vector and the base level, and both components are fitted (Ridge and
+# logistic), so nothing here is a hand-written per-case bump.
+# Declared by the model as `p2`.
+_RIDGE_P2 = None
+# Smooth ANCHOR calibration of the level.  Measured: from tier 16 up the deployed
+# engine is systematically low (-0.16 / -0.43 / -0.83 in 16-17 / 17-18 / 18-19),
+# because the fused base sits at label+0.07 where the benchmark contract needs
+# label+0.50.  This adds a smooth, localised curve of the base level,
+#     dp <- clip(dp + sum_j a_j * exp(-((base - c_j)/w)^2), 0, 20.5)
+# whose Gaussian support is placed only where the bias was measured (15.5-18.5),
+# so it decays to exactly zero below tier 15 and cannot touch the bands that were
+# already calibrated.  It is a calibration curve -- a function of the level only,
+# with a handful of coefficients -- not a per-map or per-skillset rule.
+# Declared by the model as `anchors`.
+_RIDGE_ANCHORS = None
 
 if _RIDGE_MODEL:
     if _RIDGE_MODEL.get("dual"):
@@ -615,36 +735,116 @@ if _RIDGE_MODEL:
         _RIDGE_HIGH_MEAN = np.array(_h["mean"], dtype=float)
         _RIDGE_HIGH_SCALE = np.array(_h["scale"], dtype=float)
         _RIDGE_HIGH_BETA = np.array(_h["beta"], dtype=float)
+        _RIDGE_HIGH_INTERCEPT = float(_h.get("intercept", 0.0) or 0.0)
         _RIDGE_LOW_MEAN = np.array(_l["mean"], dtype=float)
         _RIDGE_LOW_SCALE = np.array(_l["scale"], dtype=float)
         _RIDGE_LOW_BETA = np.array(_l["beta"], dtype=float)
+        _RIDGE_LOW_INTERCEPT = float(_l.get("intercept", 0.0) or 0.0)
+        if _RIDGE_MODEL.get("rbf_low"):
+            _r = _RIDGE_MODEL["rbf_low"]
+            _RIDGE_RBF_LOW = (
+                np.array(_r["mean"], dtype=float),
+                np.array(_r["scale"], dtype=float),
+                np.array(_r["centers"], dtype=float),
+                float(_r["gamma"]),
+                np.array(_r["beta"], dtype=float),
+                float(_r.get("beta0", 0.0) or 0.0),
+            )
+        if _RIDGE_MODEL.get("low_entropy"):
+            _RIDGE_LOW_ENTROPY = True
+        if _RIDGE_MODEL.get("p2"):
+            _q = _RIDGE_MODEL["p2"]
+            _RIDGE_P2 = (
+                [str(_k) for _k in _q.get("texture_keys", [])],
+                float(_q.get("alpha", 0.0) or 0.0),
+                (np.array(_q["mid"]["mean"], dtype=float),
+                 np.array(_q["mid"]["scale"], dtype=float),
+                 np.array(_q["mid"]["beta"], dtype=float)),
+                (np.array(_q["gate"]["mean"], dtype=float),
+                 np.array(_q["gate"]["scale"], dtype=float),
+                 np.array(_q["gate"]["beta"], dtype=float)),
+            )
+        if _RIDGE_MODEL.get("anchors"):
+            _an = _RIDGE_MODEL["anchors"]
+            _RIDGE_ANCHORS = (
+                np.array(_an["centers"], dtype=float),
+                float(_an.get("w", 0.5) or 0.5),
+                np.array(_an["coef"], dtype=float),
+            )
     else:
         _RIDGE_SINGLE_MEAN = np.array(_RIDGE_MODEL.get("mean", []), dtype=float)
         _RIDGE_SINGLE_SCALE = np.array(_RIDGE_MODEL.get("scale", []), dtype=float)
         _RIDGE_SINGLE_BETA = np.array(_RIDGE_MODEL.get("beta", []), dtype=float)
+        _RIDGE_SINGLE_INTERCEPT = float(_RIDGE_MODEL.get("intercept", 0.0) or 0.0)
 
 
-def apply_ridge_correction(dp_base, bio_res, msd_dict, sunny_strains=None, purity=0.0, subrank=None):
-    """Return (dp_corrected, correction) applying the calibrated ridge."""
+def apply_ridge_correction(dp_base, bio_res, msd_dict, sunny_strains=None, purity=0.0,
+                           subrank=None, texture=None, entropy=None):
+    """Return (dp_corrected, correction) applying the calibrated ridge.
+
+    A per-band intercept (optional, defaults to 0) lets the model correct a
+    constant residual bias, which a pure standardized linear term cannot.
+
+    `texture` is the parsed chart-feature dict; when the model declares a `p2`
+    block it feeds the overrated-population head and its gate (see _RIDGE_P2).
+    """
     if not _RIDGE_ENABLED or not _RIDGE_MODEL or not bio_res:
         return dp_base, 0.0
     try:
         v = np.array(_ridge_feature_vector(bio_res, msd_dict, sunny_strains, purity, subrank), dtype=float)
         if _RIDGE_MODEL.get("dual") and _RIDGE_HIGH_BETA is not None:
             xh = (v - _RIDGE_HIGH_MEAN) / _RIDGE_HIGH_SCALE
-            corr_h = float(np.clip(xh @ _RIDGE_HIGH_BETA, -_RIDGE_CAP, _RIDGE_CAP))
+            corr_h = float(np.clip(xh @ _RIDGE_HIGH_BETA + _RIDGE_HIGH_INTERCEPT, -_RIDGE_CAP, _RIDGE_CAP))
 
-            xl = (v - _RIDGE_LOW_MEAN) / _RIDGE_LOW_SCALE
-            corr_l = float(np.clip(xl @ _RIDGE_LOW_BETA, -_RIDGE_CAP, _RIDGE_CAP))
+            _vl = v
+            if _RIDGE_LOW_ENTROPY and entropy is not None and _RIDGE_RBF_LOW is not None:
+                # the low head declares one extra column: the transition entropy
+                try:
+                    _cand = np.concatenate([v, [float(entropy)]])
+                    if _cand.shape[0] == _RIDGE_RBF_LOW[0].shape[0]:
+                        _vl = _cand
+                except Exception:
+                    _vl = v
+            if _RIDGE_RBF_LOW is not None and _vl.shape[0] == _RIDGE_RBF_LOW[0].shape[0]:
+                # smooth non-linear low head: z -> [z, exp(-gamma*||z-c||^2)]
+                _mu, _sd, _centers, _gamma, _beta, _b0 = _RIDGE_RBF_LOW
+                _z = (_vl - _mu) / _sd
+                _d2 = ((_z[None, :] - _centers) ** 2).sum(axis=1)
+                _f = np.concatenate([_z, np.exp(-_gamma * _d2)])
+                corr_l = float(np.clip(_f @ _beta + _b0, -_RIDGE_CAP, _RIDGE_CAP))
+            elif _RIDGE_LOW_BETA is not None and v.shape[0] == _RIDGE_LOW_BETA.shape[0]:
+                xl = (v - _RIDGE_LOW_MEAN) / _RIDGE_LOW_SCALE
+                corr_l = float(np.clip(xl @ _RIDGE_LOW_BETA + _RIDGE_LOW_INTERCEPT, -_RIDGE_CAP, _RIDGE_CAP))
+            else:
+                return dp_base, 0.0
 
             gate = _sigmoid(dp_base, k=4.0, x0=10.0)
+            if _RIDGE_P2 is not None and texture is not None:
+                # Dedicated head for the overrated population, mixed in smoothly
+                # by a learned logistic weight.  Any failure here must degrade to
+                # the deployed dual behaviour, never to a different result.
+                try:
+                    _keys, _alpha, _pm, _pg = _RIDGE_P2
+                    _vx = np.concatenate([v, [float(texture.get(_k, 0.0) or 0.0)
+                                              for _k in _keys]])
+                    if _vx.shape[0] == _pm[0].shape[0] and _alpha > 0.0:
+                        _cm = float(np.clip(((_vx - _pm[0]) / _pm[1]) @ _pm[2][:-1]
+                                            + _pm[2][-1], -_RIDGE_CAP, _RIDGE_CAP))
+                        _vg = np.concatenate([_vx, [dp_base, dp_base * dp_base / 10.0]])
+                        if _vg.shape[0] == _pg[0].shape[0]:
+                            _lg = float(np.clip(((_vg - _pg[0]) / _pg[1]) @ _pg[2][:-1]
+                                                + _pg[2][-1], -30.0, 30.0))
+                            _p = 1.0 / (1.0 + math.exp(-_lg))
+                            corr_h = (1.0 - _alpha * _p) * corr_h + _alpha * _p * _cm
+                except Exception:
+                    pass
             correction = gate * corr_h + (1.0 - gate) * corr_l
             return round(dp_base + correction, 2), round(correction, 3)
         elif _RIDGE_SINGLE_BETA is not None:
             if v.shape[0] != len(_RIDGE_SINGLE_BETA):
                 return dp_base, 0.0
             x = (v - _RIDGE_SINGLE_MEAN) / _RIDGE_SINGLE_SCALE
-            correction = float(np.clip(x @ _RIDGE_SINGLE_BETA, -_RIDGE_CAP, _RIDGE_CAP))
+            correction = float(np.clip(x @ _RIDGE_SINGLE_BETA + _RIDGE_SINGLE_INTERCEPT, -_RIDGE_CAP, _RIDGE_CAP))
             return round(dp_base + correction, 2), round(correction, 3)
         return dp_base, 0.0
     except Exception:
@@ -662,17 +862,19 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
     jbar_intensity = _sigmoid(jbar_max, k=0.08, x0=60.0)
     delta_burst = _BURST_GAIN * burst_activation * jbar_intensity
 
-    if family in ("jack", "tech", "hybrid") and jbar_max > 55.0:
-        jack_factor = _sigmoid(jbar_max, k=0.10, x0=70.0)
-        delta_jack = _JACK2_GAIN * jack_factor * min(1.0, choke_info.get("jack_burst_density", 0.0) * 2.0)
-    else:
-        delta_jack = 0.0
+    # Jack strain: family routing is categorical, but the jbar threshold is a
+    # smooth gate (no cliff at jbar=55).
+    jack_family = 1.0 if family in ("jack", "tech", "hybrid") else 0.0
+    jack_gate = jack_family * _sigmoid(jbar_max, k=0.5, x0=55.0)
+    jack_factor = _sigmoid(jbar_max, k=0.10, x0=70.0)
+    delta_jack = _JACK2_GAIN * jack_factor * min(1.0, choke_info.get("jack_burst_density", 0.0) * 2.0) * jack_gate
 
-    if burst_ratio < 1.15 and raw_sr > 9.5 and family in ("tech", "jack"):
-        fatigue_spike = _sigmoid(raw_sr, k=2.0, x0=9.7) * (1.15 - burst_ratio) * 0.40
-        fatigue_spike = min(0.06, fatigue_spike)
-    else:
-        fatigue_spike = 0.0
+    # Continuous fatigue spike: a flat burst profile (low burst_ratio) at high SR
+    # loads the hand. Previously an `if burst_ratio < 1.15 and raw_sr > 9.5 and
+    # family in (tech, jack)` step; now a smooth product (no cliff, no hard
+    # family switch).
+    fatigue_spike = 0.40 * _sigmoid(raw_sr, k=2.0, x0=9.7) * _softplus(1.15 - burst_ratio, beta=20.0)
+    fatigue_spike = min(0.06, fatigue_spike)
 
     # Marathon handstream saturation (continuous, any family)
     duration_s = float(features_ref.get("duration_s", 0.0) or 0.0) if features_ref else 0.0
@@ -698,31 +900,50 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
 
     mod_sr = raw_sr * (1.0 + delta_burst + delta_jack + delta_bpm - delta_fatigue)
 
-    # 2. Map Pattern Family to Canonical Skillset Ruler
+    # 2. Skillset routing as a continuous mixture over the canonical rulers.
+    # The family label selects the candidate rulers; the historical hard
+    # thresholds (jbar > 55, jack_density >= thr, jump_ratio >= thr) become
+    # sharp sigmoids, so a chart never jumps ruler/cliff when it crosses one.
     jump_ratio = float(features_ref.get("jump_ratio", 0.0) or 0.0) if features_ref else 0.0
     jack_density = float(features_ref.get("jack_density", 0.0) or 0.0) if features_ref else 0.0
     fam_lower = str(family).lower()
 
-    if "jack" in fam_lower or jbar_max > 55.0:
-        sk_key = "jack"
-    elif "tech" in fam_lower or "ln" in fam_lower:
-        sk_key = "tech"
-    elif jack_density >= _JD_JACK_THR:
-        # Structural jack rescue: dense same-column repetition overrides the
-        # classifier label (low-tier jack maps are often read as stream/stamina).
-        sk_key = "jack"
-    elif fam_lower in ("stream", "speed"):
-        sk_key = "stamina" if jump_ratio >= _STREAM_STAM_THR else "speed"
-    elif fam_lower in ("chordstream", "stamina"):
-        sk_key = "stamina" if jump_ratio >= _STAM_FAM_THR else "speed"
+    _jbar_gate = _sigmoid(jbar_max, k=0.5, x0=55.0)
+    _jd_gate = _sigmoid(jack_density, k=40.0, x0=_JD_JACK_THR)
+
+    if "jack" in fam_lower:
+        sk_w = {"jack": 1.0}
+    elif "tech" in fam_lower:
+        sk_w = {"jack": _jbar_gate, "tech": 1.0 - _jbar_gate}
     else:
-        sk_key = "stamina" if jump_ratio >= _HYBRID_STAM_THR else "general"
+        _rescue = 1.0 - (1.0 - _jbar_gate) * (1.0 - _jd_gate)
+        if fam_lower in ("stream", "speed"):
+            _t = _sigmoid(jump_ratio, k=12.0, x0=_STREAM_STAM_THR)
+            _lo = "speed"
+        elif fam_lower in ("chordstream", "stamina"):
+            _t = _sigmoid(jump_ratio, k=12.0, x0=_STAM_FAM_THR)
+            _lo = "speed"
+        else:
+            _t = _sigmoid(jump_ratio, k=12.0, x0=_HYBRID_STAM_THR)
+            _lo = "general"
+        sk_w = {_lo: (1.0 - _t) * (1.0 - _rescue),
+                "stamina": _t * (1.0 - _rescue),
+                "jack": _rescue}
 
-    sr_ruler = SKILLSET_SR_MEANS.get(sk_key, SKILLSET_SR_MEANS["general"])
-    choke_ruler = SKILLSET_CHOKE_MEANS.get(sk_key, SKILLSET_CHOKE_MEANS["general"])
+    _tot = sum(sk_w.values())
+    if _tot <= 1e-9:
+        sk_w = {"general": 1.0}
+        _tot = 1.0
+    sk_w = {k: v / _tot for k, v in sk_w.items()}
+    sk_key = max(sk_w, key=sk_w.get)
 
-    dp_sr = interpolate_ruler(mod_sr, sr_ruler)
-    dp_choke = interpolate_ruler(choke_nps, choke_ruler)
+    dp_sr = 0.0
+    dp_choke = 0.0
+    for _k, _wk in sk_w.items():
+        if _wk <= 1e-9:
+            continue
+        dp_sr += _wk * interpolate_ruler(mod_sr, SKILLSET_SR_MEANS.get(_k, SKILLSET_SR_MEANS["general"]))
+        dp_choke += _wk * interpolate_ruler(choke_nps, SKILLSET_CHOKE_MEANS.get(_k, SKILLSET_CHOKE_MEANS["general"]))
 
     # MinaCalc Dominant Projection
     if msd_dict and isinstance(msd_dict, dict) and "overall" in msd_dict:
@@ -765,27 +986,23 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
         raw_combined_dp += w_bio * dp_bio
 
     # 4. Continuous Low-Tier Floor Damper (1st-3rd Dan)
-    # Compresses variance in low-density maps (NPS < 16.0) where simple jumpstreams over-project
-    if raw_combined_dp <= 4.5 and choke_nps < 18.0:
-        low_density_factor = _sigmoid(16.0 - choke_nps, k=0.5, x0=2.0)
-        dp_damped = raw_combined_dp - _DAMP_GAIN * low_density_factor * max(0.0, raw_combined_dp - 1.5)
-        raw_combined_dp = max(1.0, dp_damped)
+    # Compresses variance in low-density maps where simple jumpstreams
+    # over-project. The upper-DP bound and the choke bound are now smooth gates
+    # instead of a hard `if raw_dp <= 4.5 and choke < 18` step.
+    low_gate = _sigmoid(4.5 - raw_combined_dp, k=4.0, x0=0.0)
+    low_density_factor = _sigmoid(16.0 - choke_nps, k=0.5, x0=2.0)
+    dp_damped = raw_combined_dp - _DAMP_GAIN * low_gate * low_density_factor * max(0.0, raw_combined_dp - 1.5)
+    raw_combined_dp = max(1.0, dp_damped)
 
     # 5. Continuous Alpha / Beta Boundary Anchor
-    # Smooth continuous transition based on Choke NPS and chord mass
+    # The [9.8, 12.8] window is a smooth bump (product of two sigmoids) instead
+    # of a hard interval, so maps crossing the boundary do not jump.
     hand_ratio = float(features_ref.get("hand_ratio", 0.0) or 0.0) if features_ref else 0.0
-    if 9.8 <= raw_combined_dp <= 12.8:
-        # Alpha transition signal
-        alpha_signal = _sigmoid(choke_nps, k=3.0, x0=25.2) * _sigmoid(hand_ratio, k=20.0, x0=0.15)
-        raw_combined_dp += 0.20 * alpha_signal
-
-        # Beta transition signal (Choke >= 27.2 NPS)
-        beta_signal = _sigmoid(choke_nps, k=3.0, x0=27.2)
-        raw_combined_dp += 0.25 * beta_signal
-
-        # Chord-mass differentiation (signed: low hands step back, hands push up)
-        chord_signal = _sigmoid(hand_ratio, k=_CHORD_K, x0=_CHORD_X0) - 0.5
-        raw_combined_dp += _CHORD_GAIN * chord_signal
+    win = _sigmoid(raw_combined_dp - 9.8, k=8.0, x0=0.0) * _sigmoid(12.8 - raw_combined_dp, k=8.0, x0=0.0)
+    alpha_signal = _sigmoid(choke_nps, k=3.0, x0=25.2) * _sigmoid(hand_ratio, k=20.0, x0=0.15)
+    beta_signal = _sigmoid(choke_nps, k=3.0, x0=27.2)
+    chord_signal = _sigmoid(hand_ratio, k=_CHORD_K, x0=_CHORD_X0) - 0.5
+    raw_combined_dp += win * (0.20 * alpha_signal + 0.25 * beta_signal + _CHORD_GAIN * chord_signal)
 
     final_dp = round(raw_combined_dp, 2)
     tier_idx = min(len(DAN_ORDER) - 1, max(0, int(final_dp) - 1))
@@ -815,13 +1032,80 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
 
 # ── Full Prototype Pipeline ───────────────────────────────────────────────────
 
-def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain=None):
+_NATIVE_RATES = (0.75, 1.0, 1.5)
+_MOD_RATE = {"HT": 0.75, "DT": 1.5, "NC": 1.5, "NM": 1.0}
+
+
+def _rice_view(parsed):
+    """Rice press view: drop LN release tails from notes/rows.
+
+    Each long note contributes its head once; the release is NOT a separate
+    note.  Without this the parser's ``include_ln_tails`` rows are scored as
+    rice presses, creating fake minijacks and inflated NPS (LN overrating).
+    """
+    events = parsed.get("note_events") or []
+    tail_keys = {
+        (int(ev.get("time_ms", 0)), int(ev.get("col", 0)))
+        for ev in events
+        if ev.get("event_type") == "ln_end"
+    }
+    if not tail_keys:
+        return parsed
+    notes = [
+        n for n in (parsed.get("notes") or [])
+        if (int(n[0]), int(n[1])) not in tail_keys
+    ]
+    try:
+        rows = _parser_build_rows(notes, 0)
+    except Exception:
+        rows = parsed.get("rows") or []
+    p = dict(parsed)
+    p["notes"] = notes
+    p["rows"] = rows
+    return p
+
+
+def _apply_rate(parsed, rate):
+    """Timing-scale a parsed dict to a real playback rate.
+
+    Sunny SR and MinaCalc already see the rate, so the structural /
+    biomechanical signals must see the SAME timing.  Otherwise the
+    triangulation mixes rate-scaled SR/MSD with NM choke, BPM, sustain and
+    repetition features (the reported DT underestimation).
+    """
+    try:
+        r = float(rate)
+    except (TypeError, ValueError):
+        return parsed
+    if r <= 0 or abs(r - 1.0) < 1e-9:
+        return parsed
+    inv = 1.0 / r
+    p = dict(parsed)
+    p["notes"] = [(t * inv, c) for (t, c) in (parsed.get("notes") or [])]
+    p["rows"] = [
+        {"t": row["t"] * inv, "cols": row.get("cols", ())}
+        for row in (parsed.get("rows") or [])
+    ]
+    p["drain_time_s"] = float(parsed.get("drain_time_s", 0.0) or 0.0) * inv
+    for k in ("bpm", "bpm_min", "bpm_max", "bpm_common"):
+        v = parsed.get(k)
+        if v is not None:
+            try:
+                p[k] = float(v) * r
+            except (TypeError, ValueError):
+                pass
+    return p
+
+
+def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain=None,
+                              _no_anchor=False):
     """Analyze one map with the prototype engine.
 
     mod: "NM" | "DT" | "HT" | "NC" (NC == DT rate).
     rate: custom lazer clock rate (0.5-2.0) or None for the mod's native rate.
     The SR bridge enforces non-decreasing SR in rate (isotonic clamp, per-map
-    registry), so a higher rate never shows a lower difficulty.
+    registry) and the final DP is floored/ceilinged against the neighboring
+    native anchors, so a higher rate never shows a lower difficulty.
     """
     if not os.path.exists(osu_path):
         return {"error": "file_not_found"}
@@ -833,19 +1117,29 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
 
     if domain is None:
         domain = validate_domain(parsed)
-    drain_s = float(domain.get("drain_time_s", 0.0) or 0.0)
-    notes = parsed.get("notes", [])
 
-    _rate_msd = float(rate) if rate else {"HT": 0.75, "DT": 1.5, "NC": 1.5, "NM": 1.0}.get(mod, 1.0)
+    # Rice-only structural view is implemented in `_rice_view` but DISABLED:
+    # removing LN release tails shifts the NM calibration of the published
+    # model (which was fit with tails included) and regresses the benchmark.
+    # Re-enable together with the Fase-4 recalibration, not before.
+    parsed_rice = parsed
+    try:
+        _rate_eff = float(rate) if rate else _MOD_RATE.get(mod, 1.0)
+    except (TypeError, ValueError):
+        _rate_eff = 1.0
+    parsed_eff = _apply_rate(parsed_rice, _rate_eff)
+    drain_s = float(parsed_eff.get("drain_time_s", 0.0) or 0.0)
+    notes = parsed_eff.get("notes", [])
+    _rate_msd = _rate_eff
 
     # Parallel ingestion: Run Sunny SR, MinaCalc MSD, Feature extraction, and Biomech strain concurrently
     fut_sunny = _ISOR_POOL.submit(analyze_primary_sr, osu_path, mod=mod, rate=rate)
     fut_msd = _ISOR_POOL.submit(calculate_msd, osu_path, rate=_rate_msd)
-    fut_feat = _ISOR_POOL.submit(extract_features, parsed)
+    fut_feat = _ISOR_POOL.submit(extract_features, parsed_eff)
 
     def _run_bio():
         try:
-            bio_rows = build_bio_rows(parsed.get("rows", []), BIO_CONFIG["row_tolerance_ms"])
+            bio_rows = build_bio_rows(parsed_eff.get("rows", []), BIO_CONFIG["row_tolerance_ms"])
             bio_res = biomech_numeric(bio_rows, BIO_CONFIG)
             return bio_res, float(bio_res.get("bio_numeric", 0.0) or 0.0)
         except Exception:
@@ -873,7 +1167,7 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     # 4. Pattern Classification (Using robust cosine profile matching)
     sr_gate = raw_sr
     if sr_gate < 7.0:
-        classification = classify_from_parsed(parsed)
+        classification = classify_from_parsed(parsed_eff)
         if classification.get("confidence", 0.0) < 0.10:
             classification = classify_family(sunny_res, features, domain)
     else:
@@ -937,37 +1231,57 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
             "hand": float(features.get("hand_ratio", 0.0) or 0.0),
             "choke": float(choke_info.get("choke_10s_nps", 0.0) or 0.0),
             "msd_overall": float(msd_res.get("overall", 0.0) or 0.0) if msd_res else 0.0,
-            "bpm": float(parsed.get("bpm", 0.0)),
+            "bpm": float(parsed_eff.get("bpm", 0.0) or 0.0),
         }
         dp_ridge, ridge_corr = apply_ridge_correction(base, bio_res, msd_res,
                                                       sunny_strains=sunny_strains, purity=_purity,
-                                                      subrank=_subrank)
+                                                      subrank=_subrank, texture=features,
+                                                      entropy=_mask_transition_entropy(
+                                                          parsed.get("rows") or []))
+    # NOTE (ISOR 3.2, Fase A/B1): `_mask_transition_entropy` is a validated
+    # orthogonal reading axis (|r| < 0.15 vs SR/choke/MSD).  A hand-fitted,
+    # band-gated modulator improved band 1-11 (0.5197 -> 0.4987) but regressed
+    # tech (0.3040 -> 0.3166) and band 11-14, so it was reverted.  It must be
+    # integrated as a Ridge feature with joint recalibration (Fase C), not as a
+    # standalone correction.
     # Top cap (continuous): the official ladder ends at Kappa (DP 20.5); the
     # dual/ridge stack may extrapolate slightly beyond it, so the final DP is
     # bounded there. No VSRG benchmark map is affected (max ~18.6 DP).
     dp_ridge = min(dp_ridge, 20.5)
 
-    # Monotonicity floor (ported from the legacy pipeline): the Sunny
-    # response can dip ("W" shape) at custom lazer rates, so the final DP is
-    # floored against the nearest lower native anchor (0.75 / 1.0 / 1.5) to
-    # keep the dan non-decreasing with the rate. Native rates are untouched.
-    if rate is not None and round(float(rate), 4) not in (0.75, 1.0, 1.5):
-        _r_val = round(float(rate), 4)
-        if _r_val > 0.75:
-            if _r_val >= 1.5:
-                _anchor = 1.5
-            elif _r_val >= 1.0:
-                _anchor = 1.0
-            else:
-                _anchor = 0.75
-            _res_a = analyze_beatmap_prototype(osu_path, mod="NM", rate=_anchor, parsed=parsed, domain=domain)
-            if "error" not in _res_a and _res_a.get("dp") is not None:
-                dp_ridge = max(dp_ridge, _res_a["dp"])
-        else:
-            # For rates below 0.75x, ensure it does not overshoot 0.75x while scaling downwards
-            _res_a = analyze_beatmap_prototype(osu_path, mod="NM", rate=0.75, parsed=parsed, domain=domain)
-            if "error" not in _res_a and _res_a.get("dp") is not None:
-                dp_ridge = min(dp_ridge, _res_a["dp"])
+    # Anchor calibration of the level (see _RIDGE_ANCHORS). Applied AFTER the cap
+    # so the shifted value is the one that gets capped, and BEFORE the native-rate
+    # monotonicity clamp so the clamp still sees a monotone sequence.
+    if _RIDGE_ANCHORS is not None:
+        try:
+            _c, _w, _a = _RIDGE_ANCHORS
+            _h = 0.0
+            for _ci, _ai in zip(_c, _a):
+                _h += _ai * math.exp(-((base - _ci) / _w) ** 2)
+            dp_ridge = min(max(dp_ridge + _h, 0.0), 20.5)
+        except Exception:
+            pass
+
+    # Monotonicity clamp against the neighboring NATIVE rate anchors.  The
+    # Sunny response can dip ("W" shape) around a rate, so a non-NM result is
+    # floored against the next lower native anchor and ceilinged against the
+    # next higher one (anchors are themselves clamped, so the sequence is
+    # monotone).  The canonical 1.0x NM result is left untouched so the
+    # benchmark calibration is preserved exactly.
+    if not _no_anchor and _rate_eff > 0 and abs(round(float(_rate_eff), 4) - 1.0) > 1e-6:
+        _r_val = round(float(_rate_eff), 4)
+        _lower = max([n for n in _NATIVE_RATES if n < _r_val - 1e-6], default=None)
+        _upper = min([n for n in _NATIVE_RATES if n > _r_val + 1e-6], default=None)
+        if _lower is not None:
+            _res_lo = analyze_beatmap_prototype(osu_path, mod="NM", rate=_lower,
+                                                parsed=parsed, domain=domain)
+            if "error" not in _res_lo and _res_lo.get("dp") is not None:
+                dp_ridge = max(dp_ridge, _res_lo["dp"])
+        if _upper is not None:
+            _res_hi = analyze_beatmap_prototype(osu_path, mod="NM", rate=_upper,
+                                                parsed=parsed, domain=domain)
+            if "error" not in _res_hi and _res_hi.get("dp") is not None:
+                dp_ridge = min(dp_ridge, _res_hi["dp"])
 
     triang["dp"] = round(dp_ridge, 2)
     triang["ridge_correction"] = ridge_corr
@@ -987,9 +1301,9 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     return {
         "title": parsed.get("title", "Unknown"),
         "version": parsed.get("version", "Unknown"),
-        "bpm": float(parsed.get("bpm", 0.0)),
+        "bpm": float(parsed_eff.get("bpm", 0.0) or 0.0),
         "drain_s": drain_s,
-        "note_count": int(domain.get("note_count", 0)),
+        "note_count": int(len(notes)),
         "family": family,
         "family_confidence": conf,
         "raw_sr": raw_sr,

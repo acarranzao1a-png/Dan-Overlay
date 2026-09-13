@@ -15,12 +15,34 @@ _sr_core_alg = None
 # In-process cache: (abspath, mtime_ns, mod) -> result dict
 _sr_cache: dict[tuple, dict] = {}
 
-# Per-map rate -> SR registry for monotonicity enforcement.  The custom-rate
-# temp file quantizes hit times to integer ms, which can inject ~±0.07 SR of
-# noise at dense maps — enough to flip a dan near a narrow boundary.  We keep
-# the last computed SR per (map, mod, rate) and enforce SR non-decreasing in
-# rate via isotonic smoothing so 1.49x can never rank higher than 1.5x.
-_mono_registry: dict[tuple, dict] = {}
+# ── Deterministic monotone SR surrogate for custom (non-native) rates ─────────
+#
+# Sunny's SR-vs-rate response is intrinsically non-monotonic *between* the
+# native anchors (a "W" shape, verified with int and float-ms temp files).
+# The previous implementation clamped every new value against a per-session
+# registry of the rates already visited, which made the answer depend on the
+# user's navigation order: the same 1.15x query returned SR 11.3209 (Iota)
+# when 1.15x was visited first and SR 11.2347 (Theta) when 1.20x was visited
+# first (measured, pipeline.analyze_map on a benchmark map).  The clamp is now
+# a property of the BEATMAP, never of the session:
+#
+#   fixed rate grid -> raw SR per grid point (cached) -> isotonic (PAVA) fit
+#   inside each native-anchor bracket, anchors pinned to their engine value
+#   -> linear interpolation at the queried rate.
+#
+# The result is deterministic (same map + same rate => same value, always) and
+# non-decreasing in rate by construction.  Native rates (0.75 / 1.0 / 1.5) keep
+# the raw engine value untouched, so NM / HT / DT stay bit-identical.
+_NATIVE_RATES = (0.75, 1.00, 1.50)
+_NATIVE_RATE_MOD = {0.75: "HT", 1.00: "NM", 1.50: "DT"}
+# Interior grid points per native-anchor bracket (fixed => deterministic).
+_BRACKET_POINTS = {
+    (0.75, 1.00): (0.90,),
+    (1.00, 1.50): (1.10, 1.25, 1.40),
+    (1.50, 2.00): (1.75,),
+}
+_curve_cache: dict[tuple, tuple] = {}
+_raw_sr_cache: dict[tuple, float] = {}
 
 
 def _sr_cache_key(file_path: str, mod: str, rate: float = 1.0) -> tuple:
@@ -31,65 +53,119 @@ def _sr_cache_key(file_path: str, mod: str, rate: float = 1.0) -> tuple:
     return (os.path.abspath(file_path), mtime, mod, round(rate, 3))
 
 
-def _mono_key(file_path: str, mod: str) -> tuple:
+def _pava_monotone(values):
+    """Pool-adjacent-violators: closest non-decreasing fit of *values*."""
+    blocks = [[float(v)] for v in values]
+    i = 0
+    while i < len(blocks) - 1:
+        if (sum(blocks[i]) / len(blocks[i])) > (sum(blocks[i + 1]) / len(blocks[i + 1])):
+            blocks[i] = blocks[i] + blocks[i + 1]
+            del blocks[i + 1]
+            if i > 0:
+                i -= 1
+        else:
+            i += 1
+    out = []
+    for b in blocks:
+        out.extend([sum(b) / len(b)] * len(b))
+    return out
+
+
+def _is_native_rate(rate) -> bool:
+    try:
+        r = round(float(rate), 3)
+    except (TypeError, ValueError):
+        return False
+    return any(abs(r - n) < 1e-9 for n in _NATIVE_RATES)
+
+
+def _raw_sr_at_rate(file_path: str, rate: float) -> float:
+    """Raw Sunny SR at an arbitrary rate (timing-scaled temp file, no clamp)."""
+    key = _sr_cache_key(file_path, "NM", round(float(rate), 3))
+    hit = _raw_sr_cache.get(key)
+    if hit is not None:
+        return hit
+    alg = _import_sr_core()
+    tmp = _scale_osu_timings(file_path, float(rate))
+    try:
+        sr_val, _corners, _graph, _components = alg.calculate(tmp, "NM")
+    finally:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+    value = float(sr_val)
+    _raw_sr_cache[key] = value
+    return value
+
+
+def _bracket_for(rate: float):
+    """Native-anchor bracket containing *rate* (rates outside are clamped)."""
+    r = min(max(float(rate), _NATIVE_RATES[0]), 2.00)
+    lower = max([n for n in _NATIVE_RATES if n <= r + 1e-9], default=_NATIVE_RATES[0])
+    upper = min([n for n in _NATIVE_RATES if n > lower + 1e-9], default=2.00)
+    return lower, upper
+
+
+def _monotone_curve(file_path: str, lower: float, upper: float) -> tuple:
+    """Isotonic SR curve over one native-anchor bracket (cached per map)."""
     try:
         mtime = os.stat(file_path).st_mtime_ns
     except OSError:
         mtime = 0
-    return (os.path.abspath(file_path), mtime, mod)
+    key = (os.path.abspath(file_path), mtime, lower, upper)
+    hit = _curve_cache.get(key)
+    if hit is not None:
+        return hit
+
+    rates = [lower] + list(_BRACKET_POINTS.get((lower, upper), ())) + [upper]
+    vals = []
+    for r in rates:
+        if _is_native_rate(r):
+            anchor_mod = _NATIVE_RATE_MOD[round(r, 2)]
+            anchor = analyze_primary_sr(file_path, mod=anchor_mod, rate=None)
+            vals.append(float(anchor.get("sr", 0.0) or 0.0))
+        else:
+            vals.append(_raw_sr_at_rate(file_path, r))
+
+    fitted = _pava_monotone(vals)
+    # Pin the bracket ends to the engine's own anchor values, then re-isotonize
+    # the interior inside [start, end]: the curve stays non-decreasing and still
+    # passes through the native anchors exactly.
+    lo_val = vals[0]
+    hi_val = max(vals[-1], lo_val)
+    interior = [min(max(v, lo_val), hi_val) for v in fitted[1:-1]]
+    fitted = [lo_val] + (_pava_monotone(interior) if interior else []) + [hi_val]
+    curve = (tuple(rates), tuple(fitted))
+    _curve_cache[key] = curve
+    return curve
 
 
 def _enforce_monotonic_sr(file_path: str, mod: str, rate: float, sr: float) -> float:
-    """Isotonic CLAMP over the per-map rate->SR registry.
+    """Deterministic, order-independent monotone SR for a playback rate.
 
-    The Sunny algorithm's SR-vs-rate response is intrinsically non-monotonic
-    (a "W" shape) under timing scaling — verified with both integer-ms and
-    float-ms temp files, so it is not quantization noise.  We therefore
-    enforce monotonicity by clamping every computed SR against the rates
-    already seen for this (map, mod):
-
-      - SR(rate) must be >= the max SR of any LOWER rate seen (floor)
-      - SR(rate) must be <= the min SR of any HIGHER rate seen (ceiling)
-
-    This guarantees that, no matter the order the user slides the lazer
-    rate slider, a higher rate NEVER shows a lower SR than a lower rate
-    (and vice versa).  The raw value is preserved when it is consistent
-    with everything seen so far — only violators are clamped.
+    Native rates (0.75 / 1.0 / 1.5) return the raw engine value untouched, so
+    NM / HT / DT are bit-identical to the engine.  A custom rate is resolved on
+    the map's isotonic curve, so the answer depends only on the beatmap and the
+    rate — never on which rates were queried earlier in the session.
     """
     if rate is None:
         return sr
-    key = _mono_key(file_path, mod)
-    reg = _mono_registry.setdefault(key, {})
-
-    r = round(float(rate), 3)
-    reg[r] = sr
-
-    # floor = max SR of all known lower rates
-    floor_sr = 0.0
-    for x, v in reg.items():
-        if x < r and v > floor_sr:
-            floor_sr = v
-    # ceiling = min SR of all known higher rates
-    ceil_sr = float("inf")
-    for x, v in reg.items():
-        if x > r and v < ceil_sr:
-            ceil_sr = v
-
-    clamped = sr
-    if clamped < floor_sr:
-        clamped = floor_sr
-    if clamped > ceil_sr:
-        clamped = ceil_sr
-
-    # Store the clamped value so later comparisons use consistent data.
-    reg[r] = clamped
-
-    # Cap registry size per map (rates are visited densely; keep last 64)
-    if len(reg) > 64:
-        for stale in sorted(reg)[:-64]:
-            del reg[stale]
-
-    return float(clamped)
+    if _is_native_rate(rate):
+        return sr
+    r = float(rate)
+    lower, upper = _bracket_for(r)
+    rates, vals = _monotone_curve(file_path, lower, upper)
+    if r <= rates[0]:
+        return float(vals[0])
+    if r >= rates[-1]:
+        return float(vals[-1])
+    for i in range(len(rates) - 1):
+        if rates[i] <= r <= rates[i + 1]:
+            span = rates[i + 1] - rates[i]
+            t = 0.0 if span <= 0 else (r - rates[i]) / span
+            return float(vals[i] * (1.0 - t) + vals[i + 1] * t)
+    return float(vals[-1])
 
 
 def _import_sr_core():
@@ -317,7 +393,7 @@ def analyze_primary_sr(file_path, mod="NM", rate=None):
             strain_graph = None
 
         result = {
-            "sr": round(float(SR), 4),
+            "sr": round(_enforce_monotonic_sr(file_path, native_mod, _rate_for_key, float(SR)), 4),
             "jack_ratio": round(jack_ratio, 4),
             "jbar_max": round(jbar_max, 4),
             "pbar_max": round(pbar_max, 4),

@@ -21,6 +21,15 @@ __pycache__/
 backup_pre_cleanup.bat
 b64.txt
 
+# Backups relocated out of src\ and config\ (kept locally, never published).
+# The *.bak_* / *.rejected_* rules are the safety net for future edit backups.
+/backups/
+*.bak
+*.bak_*
+*.bak-*
+*.rejected_*
+*.orig
+
 # PyInstaller specs (generated into build\spec via --specpath; never tracked)
 *.spec
 

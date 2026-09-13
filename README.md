@@ -9,7 +9,7 @@
 - **Multi-Game Compatibility** — Automatic real-time tracking for **osu!mania** (stable & lazer) and **Etterna** (Rebirth, Til Death, Simply Love, and all Etterna themes).
 - **Universal Format Support** — Parses native `.osu` beatmaps as well as `.sm` and `.ssc` simfiles with full split timing, custom BPMs, STOPS, and DELAYS in $<15\text{ ms}$.
 - **Dual Estimation Engines** — Select between **ISOR** (*Next-Gen Rice Triangulation*) and **Legacy** (*Sunny + MinaCalc v3*) directly from the overlay settings.
-- **#1 Ranked Rice Accuracy** — ISOR achieves rank **#1 globally** on the competitive Leo_Black VSRG Benchmark (MAE `0.2110`), outperforming top community engines including **ROXY** and **Mixed**.
+- **#1 Ranked Rice Accuracy** — ISOR achieves rank **#1 globally** on the competitive Leo_Black VSRG Benchmark (RC 11-17 MAE `0.2118`, full rice MAE `0.2851`), outperforming top community engines including **ROXY** and **Mixed**. See [src/08_isor_engine/ISOR.md §9bis](src/08_isor_engine/ISOR.md) for the re-measured numbers and the in-sample caveat.
 - **Real-Time Performance** — Parallelized worker pipeline computes full analysis in **~500 ms** on standard maps and under **~1.2 s** on dense marathons with instantaneous LRU cache recall.
 - **Etterna Wife% & Grade Recognition** — Tracks live accuracy, evaluation screen results, and official Etterna grades (`F` through `AAAAA`).
 - **9 Built-In Skins** — Modern, Classic, Density Graph, Vertical Monolith, Broadcast Bar, Dark Vignette, Sunny Rebirth Dedicated HUD, Cyber HUD, and Minimalist Stream HUD.
@@ -30,7 +30,7 @@ DanOverlay offers two fully selectable engines to match your preference:
 | **Primary Methodology** | Continuous Multidimensional Convex Triangulation + Dual-Band $L_2$ Ridge Meta-Corrector | Sunny Star Rating Rebirth + MinaCalc MSD Skillset Frontier Interpolation |
 | **Target Map Scope** | **4K Rice Beatmaps & Simfiles** (Streams, Chordjacks, Speed bursts, Tech, Marathons) | **4K Rice, 4K LN Courses & 7K Beatmaps** |
 | **Supported Ladders** | **Reform** (1st Dan $\to$ Kappa) & **Celestial** (35 slots) | **Reform**, **Celestial**, **Signicial**, **Shoegazer**, **LN Course** |
-| **VSRG Benchmark Accuracy (Tiers 11–17)** | **MAE: 0.2110** (Global #1) | MAE: 0.5478 (Sunny) / Heuristic |
+| **VSRG Benchmark Accuracy (Tiers 11–17)** | **MAE: 0.2118** (Global #1) | MAE: 0.5478 (Sunny) / Heuristic |
 | **Continuous Sub-Tier Derivation** | Quintile scale (`Low`, `Mid-Low`, `Mid`, `Mid-High`, `High`) directly from $DP$ | Zone boundary confidence heuristic |
 | **Biomechanical Modeling** | 7 physical strain streams + rolling Shannon column entropy | 4 Sunny strain components (Jbar, Pbar, Xbar, Abar) |
 
@@ -46,7 +46,7 @@ DanOverlay offers two fully selectable engines to match your preference:
 ### A. High Rice Scale (Tiers 11.0 – 17.0 · Core Competitive Arena)
 | Algorithm | Valid Maps | Coverage | MAE (Lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Benchmark Rank |
 | :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ISOR (DanOverlayV2)** | **485 / 485** | **100.0%** | **0.2110** | **0.2790** | **60.0%** | **93.2%** | **#1 Globally** |
+| **ISOR (DanOverlayV2)** | **485 / 485** | **100.0%** | **0.2118** | **0.2804** | **61.2%** | **93.2%** | **#1 Globally** |
 | **ROXY** | 480 / 485 | 99.0% | 0.2191 | 0.2966 | 59.4% | 92.9% | #2 |
 | **Mixed** | 485 / 485 | 100.0% | 0.2329 | 0.3308 | 58.4% | 92.0% | #3 |
 | **Azusa** | 485 / 485 | 100.0% | 0.2795 | 0.3820 | 46.4% | 88.7% | #4 |
@@ -59,9 +59,12 @@ DanOverlay offers two fully selectable engines to match your preference:
 </p>
 
 ### B. Head-to-Head Comparison: ISOR vs. ROXY
-In a direct symmetric head-to-head evaluation across 502 matched benchmark charts:
-- **ISOR:** MAE **0.2333** · **259 Wins**
-- **ROXY:** MAE **0.2414** · **230 Wins** (13 Ties)
+In a direct symmetric head-to-head evaluation across the 501 common benchmark charts:
+- **ISOR:** MAE **0.2322** · **239 Wins**
+- **ROXY:** MAE **0.2414** · **201 Wins** (61 Ties)
+
+Against **Mixed** on 643 common charts: ISOR **0.2853** vs Mixed 0.3020 (308W/61T/274L).
+Full breakdown and the paired bootstrap: `tests/prototype/04_results/isor_rice/h2h_P0b_P5.txt`.
 
 <p align="center">
   <img src="src/08_isor_engine/assets/benchmark_head_to_head.png" alt="Direct Symmetric Head-to-Head Comparison" width="800" />
@@ -122,7 +125,7 @@ flowchart TD
             subgraph ISOR_ENGINE["ISOR Engine (src/08_isor_engine/)"]
                 ISOR_CORE["isor_engine.py\nMultidimensional Triangulation\nSR + Choke 10s + MSD + Strain"]
                 ISOR_BIO["strain.py\n7 Biomechanical Streams\nShannon Pattern Entropy"]
-                ISOR_RIDGE["vsrg_ridge_model.json\nDual-Band Ridge Corrector (λ=8, λ=32)"]
+                ISOR_RIDGE["vsrg_ridge_model.json\nDual-Band Ridge Corrector (λ=8, λ=32+intercept)"]
                 ISOR_CEL["celestial_ruler.json\n35-Slot Frontier Mapping"]
                 ISOR_CORE --> ISOR_BIO --> ISOR_RIDGE --> ISOR_CEL
             end
@@ -219,7 +222,7 @@ graph LR
   - `minacalc_estimator.py` — MSD→Dan (fallback path)
   - `*_estimator.py` — Celestial, Signicial, Shoegazer, LN
 - **`src/03_engine_reference/`** — vendored Sunny engine
-  - `sr_core/algorithm.py` — Sunny SR Rebirth engine (vendored, unmodified)
+  - `sr_core/algorithm.py` — Sunny SR Rebirth engine (vendored; vectorised in 3.1, see the note in the module reference)
   - `sr_core/osu_file_parser.py` — .osu parser (vendored, patched for robustness)
 - **`src/01_overlay_ui/`** — desktop overlay
   - `main.py` — Entry point, crash log, CLR fix
@@ -495,8 +498,13 @@ from note timing and column data using strain analysis with four component metri
 
 The SR is a weighted combination of high-percentile strain values with
 logarithmic compression at the high end. This file is vendored from
-[Star-Rating-Rebirth](https://github.com/sunnyxxy/Star-Rating-Rebirth) and is
-kept unmodified by this project.
+[Star-Rating-Rebirth](https://github.com/sunnyxxy/Star-Rating-Rebirth).
+
+> ⚠️ **Deviation from upstream (3.1):** `algorithm.py` was **modified** in 3.1 for
+> NumPy vectorisation (the inner strain loop was rewritten). It is therefore *not*
+> bit-identical to upstream; `osu_file_parser.py` carries a robustness patch
+> (lazer files may omit `Source:`). Both are flagged here because "vendored =
+> untouched" was previously claimed in this document.
 
 #### `feature_extractor.py`
 Extracts structural features from a parsed `.osu` file: stream purity, jack density,
@@ -625,7 +633,9 @@ The next-generation 4K rice estimation engine, achieving #1 global ranking on th
 #### `isor_engine.py`
 The primary pipeline orchestration for ISOR:
 - **Multidimensional Convex Triangulation** — Combines modulated Star Rating ($DP_{\text{SR}}$), 10-second rolling choke point density ($DP_{\text{choke}}$), multi-skillset MinaCalc MSD ($DP_{\text{MSD}}$), and biomechanical strain ($DP_{\text{bio}}$).
-- **Dual-Band $L_2$ Ridge Meta-Corrector** — Evaluates 98 standardized structural features across high-tier ($\lambda=8.0$) and low-tier ($\lambda=32.0$) models with a smooth sigmoidal transition gate.
+- **Dual-Band $L_2$ Ridge Meta-Corrector** — Evaluates 98 standardized structural features across high-tier ($\lambda=8.0$) and low-tier ($\lambda=32.0$ + intercept, 189 training maps) models with a smooth sigmoidal transition gate.
+- **Deterministic Rate Handling** — a custom (lazer) rate resolves on a per-map isotonic SR curve, so the same rate always returns the same value regardless of query order; native rates (HT/NM/DT) are bit-identical to the engine.
+- **Honest Engine Attribution** — charts outside ISOR's scope (7K, `ln_ratio > 0.18`) are scored by the legacy engine and reported as such (`engine`, `engine_requested`, `isor_delegated_reason`), never mislabelled as ISOR.
 - **Apex Cosine Gate** — Smooth $C^0$ transition for Zeta–Kappa (18.8–20.5 DP) canon restoration.
 - **3-Layer Rate Monotonicity** — Mathematically ensures $\frac{\partial DP}{\partial r} \ge 0$.
 

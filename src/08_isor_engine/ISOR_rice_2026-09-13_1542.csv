@@ -1,0 +1,747 @@
+bid,name,pattern,subPattern,expected,got,delta,deltaAbs
+,Grinding Of The Teeth x1.35,tech,stream tech,18,17.95,0.05,0.05
+,The Fate of x1.425,stamina,light jumpstream,18,17.54,0.46,0.46
+,Agoniya (Opium Remix)(theta) x1.1,speed,high stream,18,17.68,0.32,0.32
+,Rip Me Apart(theta) x1.075,jack,dense chordjack,17.8,18.13,-0.33,0.33
+,Exitium(eta),tech,stream tech,17.2,17.2,0.0,0.0
+,Intersect Thunderbolt-Remix,speed,mid stream,17.2,17.42,-0.22,0.22
+,Torment Payback,jack,high chordjack,17.2,17.64,-0.44,0.44
+,Collapse of Ego,stamina,dense jumpstream,16.8,16.42,0.38,0.38
+,Angel Dust (2016 Radio Mix)(zeta),jack,anchor chordjack,15.6,15.73,-0.13,0.13
+,northern limit(haku) x1.1,tech,stream tech,16.4,16.46,-0.06,0.06
+,Purgatorium(efv2) x1.14,tech,stream tech,16.4,16.85,-0.45,0.45
+,Angel Dust(spz),stamina,light handstream,16.4,16.32,0.08,0.08
+,Angel Dust (2016 Radio Mix)(zeta old),jack,high chordjack,16.4,16.24,0.16,0.16
+,Nijuu(zeta),stamina,dense handstream,16.2,15.94,0.26,0.26
+,Kizuato(efv3) x1.3,speed,staircase,16.2,16.4,-0.2,0.2
+,Apocalyptic Premonition x1.05,tech,stream tech,16,16.05,-0.05,0.05
+,NEURO-CLOUD-9(efv3),tech,stream tech,16,16.65,-0.65,0.65
+,Senkou no Furea(haku) x1.25,stamina,dense handstream,16,15.6,0.4,0.4
+,HIBACHI,speed,high stream,16,16.04,-0.04,0.04
+,Credens Justitiam(haku) x1.1,speed,mid stream,16,15.97,0.03,0.03
+,Double Universe x1.2,jack,mid chordjack,16,16.2,-0.2,0.2
+,Infinity Heaven(180bpm),jack,high chordjack,16,16.25,-0.25,0.25
+,Runengon(efv3),stamina,dense handstream,15.7,15.95,-0.25,0.25
+,Weird Autumn(spz) x1.4,tech,stream tech,15.6,15.67,-0.07,0.07
+,Vertex Beta(spz cut),jack,mid chordjack,15.6,15.51,0.09,0.09
+,Deadly force - Put an end,stamina,dense handstream,15.4,15.85,-0.45,0.45
+,Finixe(zeta) x1.1,speed,low stream,15.4,15.75,-0.35,0.35
+,Forgotten[Collab(2015)] x1.4,tech,jack tech,15.2,15.33,-0.13,0.13
+,Matusa Bomber x1.3,tech,stream tech,15,15.2,-0.2,0.2
+,Hitsugi to Futago x1.25,stamina,dense jumpstream,15,14.95,0.05,0.05
+,Ash Statues(wafles)[Inhuman],stamina,dense jumpstream,15,15.07,-0.07,0.07
+,Mario Point[D-Another],speed,low stream,15,15.43,-0.43,0.43
+,Shuuten,speed,high stream,15,15.11,-0.11,0.11
+,crazy_tek (DJ Noriken Remix)(e9v3),jack,high chordjack,15,15.03,-0.03,0.03
+,Rose Quartz(epsilon) x1.3,jack,high chordjack,15,15.21,-0.21,0.21
+,Nhelv(e9v3),tech,stream tech,14.8,15.18,-0.38,0.38
+,Kimi to bokueno sousouka,speed,Unsigned,14.8,14.84,-0.04,0.04
+,Shuu no hazama,tech,stream tech,14.7,14.71,-0.01,0.01
+,Paradigm Shift(e8v2) x1.15,speed,low stream,14.7,14.86,-0.16,0.16
+,Ash Statues(rachel),stamina,dense jumpstream,14.6,14.86,-0.26,0.26
+,CRIMSON FIGHTER x1.15,stamina,dense handstream,14.6,14.73,-0.13,0.13
+,Amatsukami x1.15,speed,high stream,14.6,14.67,-0.07,0.07
+,Lalala.Refrain(sp7v2) x1.1,speed,mid stream,14.6,14.56,0.04,0.04
+,Tactical Railroad(ATTang),speed,high stream,14.6,14.63,-0.03,0.03
+,Hayabusa(e8v3),jack,high chordjack,14.6,14.6,0.0,0.0
+,Search And Destroy(Ena) x1.25,stamina,dense handstream,14.6,14.7,-0.1,0.1
+3755310,Death Melody(e8v2) x1.25,stamina,dense handstream,14.5,14.68,-0.18,0.18
+,Stay Alive (Zekk Remix) x1.25,speed,mid stream,14.5,14.36,0.14,0.14
+,Paraclete -Miracle,speed,low stream,14.5,14.15,0.35,0.35
+,Alpha,tech,stream tech,14.4,14.35,0.05,0.05
+,Ankoku Butoukai,tech,mix tech,14.4,14.27,0.13,0.13
+,Kaguyahime(mintapril) x1.2,tech,mix tech,14.4,14.51,-0.11,0.11
+,Heaven's Fall(e7v3) x1.4,stamina,dense handstream,14.4,14.29,0.11,0.11
+,Ash Statues(wafles)[Passable],stamina,light jumpstream,14.4,14.34,0.06,0.06
+,STRONG 280(11bit),stamina,dense handstream,14.4,13.94,0.46,0.46
+,Pine Nut,speed,high stream,14.4,13.94,0.46,0.46
+,LiFE Garden(e7v3) x1.05,jack,high chordjack,14.4,14.07,0.33,0.33
+,Crescent Moon Boss Battle x1.05,tech,stream tech,14,14.01,-0.01,0.01
+,FUTURE DOMINATORS(delta) x1.3,stamina,dense handstream,14,13.9,0.1,0.1
+,Quadraphinix x1.5,stamina,dense handstream,14,14.34,-0.34,0.34
+,Volcanic(delta),speed,high stream,14,14.18,-0.18,0.18
+,STRONG 280(isxi),jack,dense chordjack,14,13.79,0.21,0.21
+,Aquaris(snover) x1.3,jack,low chordjack,14,13.99,0.01,0.01
+,Ascension to heaven(sp6v2) x0.975,speed,Unsigned,13.8,13.39,0.41,0.41
+,Nhelv(Guilhermeziat),tech,jack tech,13.6,13.14,0.46,0.46
+,Shadows of Cats(tachyon) x1.2,tech,stream tech,13.6,14.05,-0.45,0.45
+,The Empress(delta),stamina,dense handstream,13.6,13.52,0.08,0.08
+,Nopea,speed,mid stream,13.6,13.91,-0.31,0.31
+,Pastel Subliminal,speed,Unsigned,13.5,13.94,-0.44,0.44
+,Extraction,tech,Unsigned,13.4,12.9,0.5,0.5
+,Tornado [Devastation](interliser),tech,mix tech,13.4,12.9,0.5,0.5
+,Cyber Inductance(tachyon) x1.4,stamina,dense jumpstream,13.4,13.33,0.07,0.07
+3477045,Electric Angel(e5v3) x1.2,speed,high stream,13.4,13.24,0.16,0.16
+,Angel Dust(tachyon),speed,high stream,13.4,13.43,-0.03,0.03
+,Defeat awaken battle ship,jack,high chordjack,13.4,13.13,0.27,0.27
+,WE LUV LAMA(gamma) x1.2,stamina,dense jumpstream,13,13.19,-0.19,0.19
+,Reflec Streamz(gamma),speed,low stream,13,13.29,-0.29,0.29
+,Break(loved) x1.1,jack,high chordjack,13,13.07,-0.07,0.07
+,Sendan Life(OpakyL),jack,dense chordjack,13,12.73,0.27,0.27
+,Unsan-musho,tech,stream tech,12.8,12.89,-0.09,0.09
+,Sonesaki Shinju(sp5v2) x0.925,speed,Unsigned,12.7,12.63,0.07,0.07
+,Fastest Crash (gamma),tech,stream tech,12.6,12.72,-0.12,0.12
+,Shinbatsu o Tadori Kyoukotsu ni Itaru(evening),stamina,dense jumpstream,12.6,12.88,-0.28,0.28
+,The Truth Never Spoken,jack,mid chordjack,12.6,12.77,-0.17,0.17
+,Bring Our Ignition Back x1.1,jack,mid chordjack,12.6,12.42,0.18,0.18
+,Japanese Transformation(fullerene),stamina,dense jumpstream,12.5,12.7,-0.2,0.2
+,Crystal World -Fracture-,speed,Unsigned,12.5,13.04,-0.54,0.54
+,IMAGE -MATERIAL- Version 0(luminal),stamina,light handstream,12.4,12.25,0.15,0.15
+,Lolit Speed,stamina,dense jumpstream,12.4,11.14,1.26,1.26
+,Pure Ruby,speed,Unsigned,12.4,12.28,0.12,0.12
+,Odin(fullerene),speed,high stream,12.4,12.3,0.1,0.1
+,Mario Point[D-Hyper],speed,low stream,12.4,11.51,0.89,0.89
+,ZENITHALIZE,jack,high chordjack,12.4,12.83,-0.43,0.43
+,IMAGE -MATERIAL- Version 0(fullerene),stamina,light handstream,12.3,12.35,-0.05,0.05
+,YELL!(e4v2),speed,Unsigned,12.2,12.23,-0.03,0.03
+,Asymmetrical Grooves,tech,Unsigned,12,12.43,-0.43,0.43
+,Blue Planet,tech,stream tech,12,12.35,-0.35,0.35
+,Time to Say Goodbye(beta),stamina,dense jumpstream,12,11.85,0.15,0.15
+,Amber Starlight(beta),speed,low stream,12,11.65,0.35,0.35
+,Paradigm Shift(beta),jack,high chordjack,12,12.22,-0.22,0.22
+,Edison(e3v3) x1.15,jack,mid chordjack,12,11.83,0.17,0.17
+,Akasha(sp3v2) x0.88,speed,Unsigned,11.7,11.25,0.45,0.45
+,End Time(e3v2) x1.1,speed,Unsigned,11.5,11.2,0.3,0.3
+,INTERNET OVERDOSE x1.05,tech,stream tech,11.4,12.1,-0.7,0.7
+,Euthanasia x1.05,speed,Unsigned,11.2,11.56,-0.36,0.36
+,LazorBeamz,stamina,light jumpstream,11,10.89,0.11,0.11
+,Makiba(alpha),speed,low stream,11,11.19,-0.19,0.19
+,Dark Sambaland,jack,high chordjack,11,11.09,-0.09,0.09
+,Odoru Mizushibuki x1.1,tech,jack tech,10.8,10.84,-0.04,0.04
+,Towards the Horizon,tech,Unsigned,10.8,11.5,-0.7,0.7
+,P8107 x0.95,speed,low stream,10.8,12.01,-1.21,1.21
+,Message(e2v2),speed,low stream,10.7,11.02,-0.32,0.32
+,Moment x1.05,jack,high chordjack,10.6,10.48,0.12,0.12
+,Shin Takarajim(sp2v2),speed,Unsigned,10.5,10.9,-0.4,0.4
+,Torikago,speed,mid stream,10.4,10.67,-0.27,0.27
+,The Lost Dedicated(loved),jack,high chordjack,10.4,10.67,-0.27,0.27
+,Eiya no Parade x1.05,speed,low stream,10.3,10.5,-0.2,0.2
+,Dope Monkeys x1.02,speed,low stream,10.1,9.44,0.66,0.66
+,Tailin no Soul x1.2,tech,stream tech,10,9.71,0.29,0.29
+,Rave 7 [Hard] x1.1,tech,stream tech,10,10.82,-0.82,0.82
+,Chandelier(10),stamina,dense jumpstream,10,10.68,-0.68,0.68
+,Oh Curry! x0.9,speed,staircase,10,9.64,0.36,0.36
+,The Lost Dedicated(10),jack,high chordjack,10,10.7,-0.7,0.7
+,Cicadidae,tech,stream tech,9,9.24,-0.24,0.24
+,Firmament Castle Velier(9) x1.05,stamina,dense jumpstream,9,10.12,-1.12,1.12
+,Disconnected Trance(9),speed,low stream,9,8.73,0.27,0.27
+,Scorpion Dance,jack,high chordjack,9,9.98,-0.98,0.98
+,Can't Take my Eyes,jack,low chordjack,9,9.11,-0.11,0.11
+,RATO,tech,stream tech,8,7.82,0.18,0.18
+,Anguish(8),stamina,dense jumpstream,8,8.24,-0.24,0.24
+,Trickstarz,speed,staircase,8,8.75,-0.75,0.75
+,To The Limit(8),jack,high chordjack,8,8.38,-0.38,0.38
+,WAVE,tech,mix tech,7,6.94,0.06,0.06
+,Hymn,stamina,light jumpstream,7,7.28,-0.28,0.28
+,Last Chance,jack,Unsigned,7,6.77,0.23,0.23
+,Five Five Five Guys,speed,low stream,6.6,7.26,-0.66,0.66
+,M-A[Expert Lv.15],stamina,dense jumpstream,6.2,6.46,-0.26,0.26
+,The Bird's Midair Heatstroke,tech,Unsigned,6,5.98,0.02,0.02
+,Luv Lab 22ate!,speed,mid stream,6,6.84,-0.84,0.84
+,SOS,speed,mid stream,6,5.91,0.09,0.09
+,Sweet Cherry X,jack,Unsigned,6,6.09,-0.09,0.09
+,Back to the Gate[Lv.5100],stamina,dense jumpstream,6,6.68,-0.68,0.68
+,Brainfog,tech,Unsigned,5,4.8,0.2,0.2
+,Elektric U-Phoria,stamina,dense jumpstream,5,5.54,-0.54,0.54
+,Palette GAMMA[Abstract],speed,low stream,5,4.93,0.07,0.07
+,TDPDG,speed,low stream,5,5.03,-0.03,0.03
+,Energy Flower 3007,jack,Unsigned,5,4.73,0.27,0.27
+,Angel Of Darkness,stamina,light jumpstream,4.2,4.32,-0.12,0.12
+,Ephemera,tech,Unsigned,4,4.42,-0.42,0.42
+,Shannon's Theorem,tech,stream tech,4,4.11,-0.11,0.11
+,CrossOver,jack,Unsigned,4,3.55,0.45,0.45
+,Kirlian Shores,tech,Unsigned,3,2.19,0.81,0.81
+,True Blue,stamina,Unsigned,3,3.05,-0.05,0.05
+,Entelechia,speed,mid stream,3,2.56,0.44,0.44
+,Dimension Trippere!!!!,jack,Unsigned,3,2.6,0.4,0.4
+,Vermillion,tech,Unsigned,2,2.05,-0.05,0.05
+,Eternal Drain,stamina,Unsigned,2,1.76,0.24,0.24
+,Snow Storm,speed,Unsigned,2,2.23,-0.23,0.23
+,Flashes,jack,Unsigned,2,2.29,-0.29,0.29
+,Want U 2,tech,Unsigned,1,1.18,-0.18,0.18
+,Tommorow Perfume,stamina,Unsigned,1,1.91,-0.91,0.91
+,Shelter,speed,Unsigned,1,0.82,0.18,0.18
+,Miracle Chance,jack,Unsigned,1,1.1,-0.1,0.1
+3079544,Night Club Junkie x0.95,speed,low stream,14.6,14.61,-0.01,0.01
+3079545,Night Club Junkie,speed,low stream,15,15.15,-0.15,0.15
+3933034,kizuato x1.25,speed,staircase,15.8,15.5,0.3,0.3
+3933037,kizuato x1.3,speed,staircase,16.2,16.4,-0.2,0.2
+4692665,Everything Black x0.95,speed,high stream,14.8,14.77,0.03,0.03
+4692669,Everything Black,speed,high stream,15.2,15.01,0.19,0.19
+1455989,Moon Gate,speed,high stream,13,12.99,0.01,0.01
+5111540,angel dust,stamina,light handstream,16.4,16.24,0.16,0.16
+5195389,Lolit Speed x1.13,stamina,dense jumpstream,14,13.46,0.54,0.54
+1305297,Tornado,tech,jacky tech,13.4,12.9,0.5,0.5
+2196118,Kaguyahime x1.2,tech,jacky tech,14.4,14.51,-0.11,0.11
+1065834,Big Brother,tech,stream tech,10,10.14,-0.14,0.14
+2877294,STRONG 280,stamina,dense handstream,14.4,15.78,-1.38,1.38
+716700,slavik goblins,stamina,dense handstream,13.7,13.45,0.25,0.25
+1429738,star of andromeda,jack,low chordjack,11,10.66,0.34,0.34
+3150955,star of andromeda x1.1,jack,low chordjack,13,12.57,0.43,0.43
+3150957,star of andromeda x1.2,jack,low chordjack,14,13.95,0.05,0.05
+3150959,star of andromeda x1.3,jack,low chordjack,15,14.78,0.22,0.22
+3580775,star of andromeda x1.4,jack,low chordjack,16,15.47,0.53,0.53
+2552927,paranoia,jack,low chordjack,10,9.98,0.02,0.02
+3260902,The Truth Never Spoken,jack,mid chordjack,12.6,12.77,-0.17,0.17
+2308001,Vertex Beta,jack,mid chordjack,15.8,14.52,1.28,1.28
+4706643,EVERYTHING BLACK,jack,high chordjack,13.6,13.22,0.38,0.38
+3535951,Heaven's Fall x1.3,stamina,dense handstream,13.6,13.57,0.03,0.03
+3107371,Rude Buster (Camellia Remix),stamina,dense handstream,14,13.61,0.39,0.39
+3107368,Rude Buster (Camellia Remix) x1.1,stamina,dense handstream,15,14.55,0.45,0.45
+1937582,Love is War x1.3,stamina,dense handstream,13.6,13.82,-0.22,0.22
+2553924,ametsuchi x1.2,jack,low chordjack,8.6,8.46,0.14,0.14
+,Oceanus(xfpsb1),ln,hybrid,9.5,Invalid,,
+,Otenba Koimusume,ln,density,9.5,Invalid,,
+,Gunjou Infinity [Buffed] (Cut),ln,speed,9.5,Invalid,,
+,Orca [Broken-],ln,tech,9.5,Invalid,,
+,Hanatachi ni Kibouwo 1.15x,ln,hybrid,10.5,Invalid,,
+,Akasha 1.05x,ln,density,10.5,Invalid,,
+,Ano Yume o Nazotte (Cut) 1.15x,ln,speed,10.5,Invalid,,
+,Yoru ni Kakeru (xfpsb2 Cut) 1.05x,ln,tech,10.5,Invalid,,
+,L4.8TS,ln,hybrid,11.5,Invalid,,
+,Utakatayo Ikanaide [LN Edit] (Cut) 1.265x,ln,density,11.5,Invalid,,
+,bullet 1.15x,ln,speed,11.5,Invalid,,
+,HAMELN [Fanger] (Cut),ln,tech,11.5,Invalid,,
+,Aegleseeker [Galaxy+],ln,hybrid,12.5,Invalid,,
+,finorza (Cut),ln,density,12.5,Invalid,,
+,Kokoro no Shitsuryou (Edit),ln,speed,12.5,Invalid,,
+,Unmei no Haguruma (Edit),ln,tech,12.5,Invalid,,
+,ReviveR,ln,hybrid,13.5,Invalid,,
+,Unleashed World 1.075x,ln,density,13.5,Invalid,,
+,Kairikou 1.125x,ln,speed,13.5,Invalid,,
+,Identity Part 5 1.05x,ln,tech,13.5,Invalid,,
+,Exitium 1.025x,ln,hybrid,14.5,Invalid,,
+,Ultrasonic Anthem [Ultimate+] 1.1x,ln,density,14.5,Invalid,,
+,Decoy 1.025x,ln,speed,14.5,Invalid,,
+,Flamewall (Cut) [Edit] 1.15x,ln,tech,14.5,Invalid,,
+,Snow Drive (Cut) 1.225x,ln,hybrid,15.5,Invalid,,
+,Kaku mo Yuubi na Hi to Narite (Cut) 1.1x,ln,density,15.5,Invalid,,
+,Tojita Sekai (xfpsbF Cut),ln,speed,15.5,Invalid,,
+,Shuu no Hazama (xfpsbF Cut) 1.15x,ln,tech,15.5,Invalid,,
+4608742,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Doki Doki Literature Club! ~ 2nd ~ (Marathon)],ln,hybrid,2,Invalid,,
+4608744,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Hitorigoto ~ 1st ~ (Marathon)],ln,hybrid,1,Invalid,,
+4608739,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [aura ~ 3rd ~ (Marathon)],ln,hybrid,3,Invalid,,
+4608750,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Otenba Koimusume ~ 4th ~ (Marathon)],ln,hybrid,4,Invalid,,
+4608751,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Pink Gold ~ 5th ~ (Marathon)],ln,hybrid,5,Invalid,,
+4608745,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Koborezu no Negaigoto ~ 6th ~ (Marathon)],ln,hybrid,6,Invalid,,
+4608749,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Missing Banquet ~ 8th ~ (Marathon)],ln,hybrid,8,Invalid,,
+4608752,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Rock It ~ 7th ~ (Marathon)],ln,hybrid,7,Invalid,,
+4608741,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Dodger's Gadget ~ 9th ~ (Marathon)],ln,hybrid,9,Invalid,,
+4614499,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [towa no maigo 1.1x ~ 10th ~ (Marathon)],ln,hybrid,10,Invalid,,
+4608747,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Kyouki Ranmai ~ Yoru ~ (Marathon)],ln,hybrid,13,Invalid,,
+4608743,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Enigma 1.1x ~ Yoake ~ (Marathon)],ln,hybrid,11,Invalid,,
+4608740,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Carnation [ck remix] 1.05x ~ Yuugure ~ (Marathon)],ln,hybrid,12,Invalid,,
+4608753,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Protoflicker 1.25x ~ Yokaze ~ (Marathon)],ln,hybrid,16,Invalid,,
+4608748,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Mare Nectaris ~ Yami ~ (Marathon)],ln,hybrid,14,Invalid,,
+4608746,Various Artists - 4K LN Dan Courses v2 ~ Stage 1 Map Pack ~ [Kodoku no Kakurenbo 1.15x ~ Yume ~ (Marathon)],ln,hybrid,15,Invalid,,
+4608999,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Dango Daikazoku ~ 1st ~ (Marathon)],ln,release,1,Invalid,,
+4614497,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [SPF 420 ~ 2nd ~ (Marathon)],ln,release,2,Invalid,,
+4609008,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Power To Progress ~ 6th ~ (Marathon)],ln,release,6,Invalid,,
+4609001,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Gee ~ 4th ~ (Marathon)],ln,release,4,Invalid,,
+4609011,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [silver temple ~ 3rd ~ (Marathon)],ln,release,3,Invalid,,
+4609004,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [MilK ~ 5th ~ (Marathon)],ln,release,5,Invalid,,
+4609010,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Shotgun Senorita [Zardonic Remix] ~ 8th ~ (Marathon)],ln,release,8,Invalid,,
+4609007,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [On the FM ~ 7th ~ (Marathon)],ln,release,7,Invalid,,
+4609009,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Raijin no Hidariude ~ 9th ~ (Marathon)],ln,release,9,Invalid,,
+4609000,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Dopamine ~ 10th ~ (Marathon)],ln,release,10,Invalid,,
+4609006,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [No. 6 ~ Yuugure ~ (Marathon)],ln,tech,12,Invalid,,
+4608998,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Avalon no oka ~ Yoake ~ (Marathon)],ln,inverse,11,Invalid,,
+4609003,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Intersect Thunderbolt -Remix ~ Yoru ~ (Marathon)],ln,tech,13,Invalid,,
+4609002,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Inaiinai isonshou 1.25x ~ Yume ~ (Marathon)],ln,tech,15,Invalid,,
+4609005,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Nhelv 1.05x ~ Yami ~ (Marathon)],ln,tech,14,Invalid,,
+4609012,Various Artists - 4K LN Dan Courses v2 ~ Stage 2 Map Pack ~ [Cinderella Cage -Trancecore Mix- 1.6x ~ Yokaze ~ (Marathon)],ln,tech,16,Invalid,,
+4609086,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Nerevar Rising ~ 1st ~ (Marathon)],ln,inverse,1,Invalid,,
+4609080,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Heartbeats ~ 2nd ~ (Marathon)],ln,inverse,2,Invalid,,
+4609079,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [future gazer ~ 4th ~ (Marathon)],ln,inverse,4,Invalid,,
+4609081,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [i use raw expectation to unlock placebo. ~ 3rd ~ (Marathon)],ln,inverse,3,Invalid,,
+4609076,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [ 3 ~ 7th ~ (Marathon)],ln,inverse,7,Invalid,,
+4609085,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Mousou Express [Remix] ~ 6th ~ (Marathon)],ln,inverse,6,Invalid,,
+4609087,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Promise ~ 5th ~ (Marathon)],ln,inverse,5,Invalid,,
+4609088,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Sakase natsuzora koi no hana. ~ 8th ~ (Marathon)],ln,inverse,8,Invalid,,
+4609077,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [cold planet ~ 9th ~ (Marathon)],ln,inverse,9,Invalid,,
+4609084,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Love is War ~ Yoake ~ (Marathon)],ln,density,11,Invalid,,
+4609089,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Sakura Trip 1.15x ~ 10th ~ (Marathon)],ln,inverse,10,Invalid,,
+4609078,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [ENDYMION ~ Yuugure ~ (Marathon)],ln,density,12,Invalid,,
+4609083,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Literal Crystal In The Cyphisonia 1.15x ~ Yoru ~],ln,density,13,Invalid,,
+4609082,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Indomitable Spirit [Hommarju Remix] 1.5x ~ Yami ~ (Marathon)],ln,density,14,Invalid,,
+4614495,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [Lancelot -Flame of the Rebellion- 1.35x ~ Yokaze ~ (Marathon)],ln,density,16,Invalid,,
+4609090,Various Artists - 4K LN Dan Courses v2 ~ Stage 3 Map Pack ~ [White Hair Little Swords Girl 1.025x ~ Yume ~ (Marathon)],ln,density,15,Invalid,,
+4609231,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Trickl4sh 220 ~ 1st ~ (Marathon)],ln,density,1,Invalid,,
+4609229,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Rockhill ~ 2nd ~ (Marathon)],ln,density,2,Invalid,,
+4609227,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [OVERDRIVERS ~ 3rd ~ (Marathon)],ln,density,3,Invalid,,
+4609221,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Blacksphere ~ 5th ~ (Marathon)],ln,density,5,Invalid,,
+4609217,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [#FairyJoke #SDVX_Edit ~ 4th ~ (Marathon)],ln,density,4,Invalid,,
+4609220,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Berry Go!! ~ 6th ~ (Marathon)],ln,density,6,Invalid,,
+4609228,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Owari to Hajimari no Oto ~ 8th ~ (Marathon)],ln,density,8,Invalid,,
+4614493,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Tsumibito ~ 7th ~ (Marathon)],ln,density,7,Invalid,,
+4609226,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Ordinary world ~ 9th ~ (Marathon)],ln,density,9,Invalid,,
+4609222,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [Element of SPADA 1.1x ~ 10th ~ (Marathon)],ln,speed,12,Invalid,,
+4609219,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [asphyxia 1.05x ~ Yoake ~ (Marathon)],ln,speed,11,Invalid,,
+4609230,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [The lost ~ Yami ~ (Marathon)],ln,speed,14,Invalid,,
+4609225,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [NUCLEAR-STAR ~ Yume ~ (Marathon)],ln,speed,15,Invalid,,
+4609224,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [NEURO-CLOUD-9 ~ Yoru ~ (Marathon)],ln,speed,13,Invalid,,
+4609232,Various Artists - 4K LN Dan Courses v2 ~ Stage 4 Map Pack ~ [R U Still xxxx 1.15x ~ Yokaze ~ (Marathon)],ln,speed,16,Invalid,,
+4351661,Laur - Kokushi musou [World's Final End (17th edit)],ln,Unsigned,17,Invalid,,
+4517847,Ludicin - Onus Rēgulus [In Abyss],ln,Unsigned,17,Invalid,,
+5029140,Various Artist - 4K LN Dan Courses - EXTRA - [17th Dan - Yeehee (Marathon)],ln,Unsigned,17,Invalid,,
+5366651,Ludicin - Blossom of Ashes [Divination of Calamity],ln,density,14.5,Invalid,,
+5366777,takehirotei - 定时地狱 ~The Perpetual Chaotically Unsynced Pendulum~ [Convergence],ln,Unsigned,14,Invalid,,
+4824023,Laur - 国士無双 [LN bukbuk],ln,Unsigned,14.8,Invalid,,
+4732296,ウォルピスカーター - Oxalis [Imitation],ln,Unsigned,13.6,Invalid,,
+4652576,Xyris - Eviternity [LN Eviternity],ln,Unsigned,14.4,Invalid,,
+3793375,ああ…翡翠茶漬け… - stεganography [Cipher Encryption],ln,Unsigned,13.8,Invalid,,
+4398536,Various Artists - Begin's 4K LN Pack Level 3 [Nanahoshi Kangengakudan - Andromeda],ln,density,15.2,Invalid,,
+4398537,Various Artists - Begin's 4K LN Pack Level 3 [ROKINA - Icicle Stinger],ln,density,15.4,Invalid,,
+2808346,Dark Sambaland[Easy](mizuki) x1.05,jack,anchor chordjack,14.6,14.47,0.13,0.13
+3580764,Dark Sambaland[Easy](mizuki) x1.2,jack,anchor chordjack,16.4,16.05,0.35,0.35
+3245370,Martial Arts(xingren),jack,anchor chordjack,10.5,9.99,0.51,0.51
+3245369,Martial Arts(xingren) x1.05,jack,anchor chordjack,11,11.1,-0.1,0.1
+3245376,Martial Arts(xingren) x1.3,jack,anchor chordjack,14.6,14.62,-0.02,0.02
+3245375,Martial Arts(xingren) x1.35,jack,anchor chordjack,15,14.98,0.02,0.02
+3245377,Martial Arts(xingren) x1.4,jack,anchor chordjack,15.4,15.4,0.0,0.0
+3887441,Echo(ice v) x1.1,jack,anchor chordjack,14.5,14.34,0.16,0.16
+4485050,Deep Down(shibeplanet) x0.95,jack,anchor chordjack,12.4,12.6,-0.2,0.2
+4496828,Deep Down(shibeplanet),jack,anchor chordjack,13.4,13.36,0.04,0.04
+4485051,Deep Down(shibeplanet) x1.05,jack,anchor chordjack,13.8,13.91,-0.11,0.11
+3918921,Deep Down(shibeplanet) x1.1,jack,anchor chordjack,14.4,14.42,-0.02,0.02
+4485052,Deep Down(shibeplanet) x1.15,jack,anchor chordjack,15,14.85,0.15,0.15
+3918922,Deep Down(shibeplanet) x1.2,jack,anchor chordjack,15.4,15.5,-0.1,0.1
+4485053,Deep Down(shibeplanet) x1.25,jack,anchor chordjack,16,15.96,0.04,0.04
+1347529,Precious You(frolica) x1.1,jack,anchor chordjack,11,11.15,-0.15,0.15
+1347530,Precious You(frolica) x1.2,jack,anchor chordjack,12.8,13.0,-0.2,0.2
+1347531,Precious You(frolica) x1.3,jack,anchor chordjack,14,13.91,0.09,0.09
+3875257,Zillion Lights(rachel),jack,anchor chordjack,13.8,13.6,0.2,0.2
+3875255,Zillion Lights(rachel) x1.1,jack,anchor chordjack,14.5,14.67,-0.17,0.17
+3875256,Zillion Lights(rachel) x1.2,jack,anchor chordjack,15.5,15.78,-0.28,0.28
+1612787,Far in the blue sky[42](1nar) x0.9,jack,anchor chordjack,13,12.85,0.15,0.15
+2793588,Far in the blue sky[42](1nar) x0.95,jack,anchor chordjack,13.8,13.69,0.11,0.11
+2793593,Far in the blue sky[42](1nar),jack,anchor chordjack,14.4,14.31,0.09,0.09
+2793589,Far in the blue sky[42](2nar) x1.05,jack,anchor chordjack,14.7,14.85,-0.15,0.15
+2793590,Far in the blue sky[42](2nar) x1.1,jack,anchor chordjack,15.4,15.36,0.04,0.04
+2793591,Far in the blue sky[42](2nar) x1.15,jack,anchor chordjack,15.7,15.9,-0.2,0.2
+2793592,Far in the blue sky[42](2nar) x1.2,jack,anchor chordjack,16,16.32,-0.32,0.32
+2295003,Daichi ni Saku Senritsu(rachel) x1.1,jack,anchor chordjack,12,12.28,-0.28,0.28
+2295004,Daichi ni Saku Senritsu(rachel) x1.2,jack,anchor chordjack,13.6,13.58,0.02,0.02
+2295005,Daichi ni Saku Senritsu(rachel) x1.3,jack,anchor chordjack,14.4,14.47,-0.07,0.07
+2295006,Daichi ni Saku Senritsu(rachel) x1.4,jack,anchor chordjack,15.4,15.27,0.13,0.13
+3442422,PAM!!!(mongol) x1.1,jack,dense chordjack,13.4,13.33,0.07,0.07
+3442423,PAM!!!(mongol) x1.2,jack,dense chordjack,14.6,14.4,0.2,0.2
+3442424,PAM!!!(mongol) x1.3,jack,dense chordjack,15,15.24,-0.24,0.24
+3442426,PAM!!!(mongol),jack,dense chordjack,12,11.76,0.24,0.24
+3442425,PAM!!!(mongol) x1.4,jack,dense chordjack,16.2,16.08,0.12,0.12
+4405082,Onyx Veil(ltd),jack,dense chordjack,14.5,14.32,0.18,0.18
+4405077,Onyx Veil(ltd) x1.1,jack,dense chordjack,15.4,15.44,-0.04,0.04
+3749286,KING(ade maine) x0.95,jack,dense chordjack,14.6,14.95,-0.35,0.35
+3749289,KING(ade maine),jack,dense chordjack,15.4,15.62,-0.22,0.22
+3749288,KING(ade maine) x1.05,jack,dense chordjack,16,16.17,-0.17,0.17
+3110936,Sendan Life(opakyl) x1.2,jack,dense chordjack,15,14.94,0.06,0.06
+1889333,CG901B[impossible](rachel) x0.9,jack,dense chordjack,11,10.91,0.09,0.09
+1889340,CG902B[impossible](rachel),jack,dense chordjack,13.2,12.99,0.21,0.21
+1889336,CG903B[impossible](rachel) x1.1,jack,dense chordjack,14,14.2,-0.2,0.2
+1889338,CG904B[impossible](rachel) x1.2,jack,dense chordjack,15,15.23,-0.23,0.23
+2808366,Tsuki Ai Tsuki Yo(zino) x1.1,jack,dense chordjack,14.6,14.91,-0.31,0.31
+3321433,Exile(rachel),jack,dense chordjack,14.6,14.81,-0.21,0.21
+3321436,Mutwa(rachel),jack,dense chordjack,16,16.17,-0.17,0.17
+3249972,Why We Lose(ena) x1.3,jack,dense chordjack,12,12.03,-0.03,0.03
+3249973,Why We Lose(ena) x1.4,jack,dense chordjack,13.4,13.21,0.19,0.19
+2690149,Lemon Tree(lemmie),jack,dense chordjack,14,13.58,0.42,0.42
+3663002,STRONG 280(isxi) x1.25,jack,dense chordjack,16.4,15.78,0.62,0.62
+2827581,ch3rry(my angel koishi) x1.4,stamina,dense handstream,14,14.22,-0.22,0.22
+2486099,Sorairo Days(icyworld) x1.5,stamina,dense handstream,14,14.03,-0.03,0.03
+5195214,ANOMALY(lynessa) x1.31,stamina,dense handstream,14,13.85,0.15,0.15
+3123873,FUTURE DOMINATORS(icyworld),stamina,dense handstream,9,9.55,-0.55,0.55
+3123869,FUTURE DOMINATORS(icyworld) x1.1,stamina,dense handstream,11,11.73,-0.73,0.73
+3123870,FUTURE DOMINATORS(icyworld) x1.2,stamina,dense handstream,13.2,13.22,-0.02,0.02
+3123871,FUTURE DOMINATORS(icyworld) x1.3,stamina,dense handstream,14,14.03,-0.03,0.03
+3123872,FUTURE DOMINATORS(icyworld) x1.4,stamina,dense handstream,14.6,14.75,-0.15,0.15
+5430558,Cartoon Candy(lynessa) x1.05,stamina,dense handstream,14,13.96,0.04,0.04
+4681531,Cartoon Candy(lynessa) x1.2,stamina,dense handstream,15.2,15.38,-0.18,0.18
+3593323,Blackmagik Blazing(teradora),stamina,dense handstream,14,13.86,0.14,0.14
+3928951,Ragnarok(lynessa) x1.07,stamina,dense handstream,13.4,13.24,0.16,0.16
+4421699,H.A.R.D.C.O.R.E(dannypx),stamina,dense handstream,12.8,12.3,0.5,0.5
+1644635,Zenon(halogen) x1.5,stamina,dense handstream,14,14.08,-0.08,0.08
+3681222,CRIMSON FIGHTER[Armageddon](oxalicacid) x0.9,stamina,dense handstream,11.8,11.84,-0.04,0.04
+2168030,SILENT DESERT(teradora),stamina,dense handstream,14.4,14.01,0.39,0.39
+3755311,SILENT DESERT(e9v2) x1.2,stamina,dense handstream,16.4,16.62,-0.22,0.22
+3588134,Nibelungen(lynessa) x1.1,stamina,dense handstream,13,12.83,0.17,0.17
+3535954,Heavens Fall(teradora),stamina,dense handstream,9,9.1,-0.1,0.1
+3535945,Heavens Fall(teradora) x1.05,stamina,dense handstream,9.5,9.82,-0.32,0.32
+3535947,Heavens Fall(teradora) x1.1,stamina,dense handstream,10.5,10.68,-0.18,0.18
+3535946,Heavens Fall(teradora) x1.15,stamina,dense handstream,11.4,11.8,-0.4,0.4
+3535949,Heavens Fall(teradora) x1.2,stamina,dense handstream,12.5,12.49,0.01,0.01
+3535948,Heavens Fall(teradora) x1.25,stamina,dense handstream,13,13.23,-0.23,0.23
+3535950,Heavens Fall(teradora) x1.35,stamina,dense handstream,14,13.92,0.08,0.08
+3535952,Heavens Fall(teradora) x1.45,stamina,dense handstream,14.7,14.63,0.07,0.07
+4133253,Love is War(night bunny) x1.15,stamina,dense handstream,12.4,12.33,0.07,0.07
+5407219,Love is War(night bunny) x1.33,stamina,dense handstream,14,14.03,-0.03,0.03
+4632845,Dimension War(oceanus),stamina,dense handstream,15.4,14.93,0.47,0.47
+4758417,KOKUSHIMUSOU(oceanus) x0.95,stamina,dense handstream,15.4,15.57,-0.17,0.17
+4758412,KOKUSHIMUSOU(oceanus),stamina,dense handstream,16,16.08,-0.08,0.08
+1753421,Quadraphinix(xay) x1.3,stamina,dense handstream,12.4,12.42,-0.02,0.02
+1753422,Quadraphinix(xay) x1.4,stamina,dense handstream,13.5,13.82,-0.32,0.32
+5120065,MEGALOMANIA(omni),stamina,dense handstream,14,13.78,0.22,0.22
+2110279,MEGALOMANIA(rachel),stamina,dense handstream,14,13.81,0.19,0.19
+3850572,Perfect Cherry Storm(teradora) x1.45,stamina,dense handstream,14.6,15.22,-0.62,0.62
+4786209,Inner Universe(teradora) x1.885,stamina,dense handstream,16.6,16.46,0.14,0.14
+5370949,Inner Universe(teradora) x1.755,stamina,dense handstream,15.4,15.92,-0.52,0.52
+1304131,Chaoz Airflow(icyworld) x1.2,stamina,dense handstream,10.4,9.84,0.56,0.56
+4476886,Bluenation(xingyue) x1.2,stamina,dense handstream,11,11.1,-0.1,0.1
+4476891,Bluenation(xingyue) x1.4,stamina,dense handstream,13.6,13.67,-0.07,0.07
+4476908,Bluenation(xingyue) x1.45,stamina,dense handstream,14,14.0,0.0,0.0
+3850571,STRONG 280(sp7v2),stamina,dense handstream,14.6,14.94,-0.34,0.34
+2292214,Serment(xingyue) x1.3,stamina,dense handstream,13.7,13.48,0.22,0.22
+473228,FREEDOM DIVE(DIMENSIONS),stamina,dense jumpstream,10,10.91,-0.91,0.91
+3157010,Fragment(my angel koish) x1.4,stamina,dense jumpstream,13,13.42,-0.42,0.42
+1453293,Burst Linker(wafles) x1.3,stamina,dense jumpstream,12.6,12.63,-0.03,0.03
+5195395,Burst Linker(wafles) x1.47,stamina,dense jumpstream,14,14.18,-0.18,0.18
+1938168,Cyber Inductance(icyworld) x1.3,stamina,dense jumpstream,12,12.2,-0.2,0.2
+4589562,Cyber Inductance(icyworld) x1.47,stamina,dense jumpstream,14,13.88,0.12,0.12
+2196122,Cyber Inductance(icyworld) x1.7,stamina,dense jumpstream,15.4,15.5,-0.1,0.1
+4310620,Cyber Inductance(icyworld) x1.525,stamina,dense jumpstream,14.4,14.27,0.13,0.13
+1699290,Pacific Girls(icyworld) x1.5,stamina,dense jumpstream,15,14.9,0.1,0.1
+3854148,Over the Fullereneshift(fullerene) x1.4,stamina,dense jumpstream,13.8,13.65,0.15,0.15
+1425975,Japanese Transformation(fullerene) x1.2,stamina,dense jumpstream,14.5,14.58,-0.08,0.08
+787944,The Empress(underjoy) x1.05,stamina,dense jumpstream,14,14.12,-0.12,0.12
+2701198,Time to Say Goodbye(halogen) x1.15,stamina,dense jumpstream,14,13.77,0.23,0.23
+2701200,Time to Say Goodbye(halogen) x1.2,stamina,dense jumpstream,14.4,14.08,0.32,0.32
+2633097,Sakazuki(Rachel),jack,high chordjack,12.8,12.94,-0.14,0.14
+4597208,Sakazuki(Rachel) x1.05,jack,high chordjack,13.4,13.67,-0.27,0.27
+3630235,Sakazuki(Rachel) x1.1,jack,high chordjack,14,14.25,-0.25,0.25
+3630234,Sakazuki(Rachel) x0.9,jack,high chordjack,11.8,11.03,0.77,0.77
+3630236,Sakazuki(Rachel) x1.2,jack,high chordjack,14.8,15.13,-0.33,0.33
+3630237,Sakazuki(Rachel) x1.3,jack,high chordjack,16,16.11,-0.11,0.11
+3663000,Sakazuki(Rachel) x1.35,jack,high chordjack,16.5,16.43,0.07,0.07
+3521930,Hiasobi(focogamer) x1.1,jack,high chordjack,12.8,12.9,-0.1,0.1
+3521932,Hiasobi(focogamer) x1.2,jack,high chordjack,14,13.93,0.07,0.07
+3928116,Joker(Rachel),jack,high chordjack,15.4,15.37,0.03,0.03
+3887322,Dark Sambaland x1.2,jack,high chordjack,13.8,14.15,-0.35,0.35
+1705687,Flower Dance(hievery) x1.3,jack,high chordjack,10.6,10.21,0.39,0.39
+1705688,Flower Dance(hievery) x1.4,jack,high chordjack,12,11.54,0.46,0.46
+2121684,Hitogata(ice v),jack,high chordjack,13.6,13.55,0.05,0.05
+2727203,Hitogata(ice v) x1.05,jack,high chordjack,14.4,14.18,0.22,0.22
+4387971,Hitogata(ice v) x1.15,jack,high chordjack,15,15.35,-0.35,0.35
+3479384,I Love It(lynessa),jack,high chordjack,10.5,11.2,-0.7,0.7
+3479388,I Love It(lynessa) x1.2,jack,high chordjack,14,14.21,-0.21,0.21
+2808358,I Love It(lynessa) x1.3,jack,high chordjack,15,15.01,-0.01,0.01
+4584948,Dat Phonk(smokydoh),jack,high chordjack,13.6,13.81,-0.21,0.21
+4584946,Dat Phonk(smokydoh) x0.9,jack,high chordjack,12.4,12.27,0.13,0.13
+4072972,Dat Phonk(smokydoh) x1.1,jack,high chordjack,14.8,14.83,-0.03,0.03
+4072973,Dat Phonk(smokydoh) x1.15,jack,high chordjack,15.1,15.3,-0.2,0.2
+3841896,MURDER IN MY MIND x1.2,jack,high chordjack,13,12.78,0.22,0.22
+2802345,Hari no Sora(xingyue) x1.2,jack,high chordjack,13.6,13.52,0.08,0.08
+5430570,Hari no Sora(xingyue) x1.27,jack,high chordjack,14,14.15,-0.15,0.15
+3545958,Unmeiron(ena),jack,high chordjack,14.9,14.8,0.1,0.1
+3545959,Unmeiron(ena) x0.95,jack,high chordjack,14.6,14.27,0.33,0.33
+2818882,Hustler(xingyue),jack,high chordjack,12.8,13.0,-0.2,0.2
+3986998,Hustler(xingyue) x1.05,jack,high chordjack,13.4,13.64,-0.24,0.24
+3987000,Hustler(xingyue) x1.15,jack,high chordjack,14.6,14.61,-0.01,0.01
+3986995,Hustler(xingyue) x1.2,jack,high chordjack,15,15.03,-0.03,0.03
+3986999,Hustler(xingyue) x1.25,jack,high chordjack,15.4,15.49,-0.09,0.09
+3986997,Hustler(xingyue) x1.3,jack,high chordjack,16,15.99,0.01,0.01
+3509184,Seen(ena),jack,high chordjack,13.4,13.28,0.12,0.12
+3509180,Seen(ena) x1.05,jack,high chordjack,14,13.96,0.04,0.04
+3509181,Seen(ena) x1.15,jack,high chordjack,15,14.89,0.11,0.11
+3509183,Seen(ena) x1.2,jack,high chordjack,15.6,15.46,0.14,0.14
+3662982,Seen(ena) x1.25,jack,high chordjack,16,15.86,0.14,0.14
+3576374,Can't Give it Up(jhown),jack,high chordjack,13,12.76,0.24,0.24
+3576378,Can't Give it Up(jhown) x1.2,jack,high chordjack,15,14.95,0.05,0.05
+2357903,Triumphal Return(doudou0310) x1.2,jack,high chordjack,13.7,14.03,-0.33,0.33
+2357902,Triumphal Return(doudou0310) x1.25,jack,high chordjack,14.4,14.46,-0.06,0.06
+2357904,Triumphal Return(doudou0310) x1.3,jack,high chordjack,14.8,14.85,-0.05,0.05
+3526591,Triumphal Return(doudou0310) x1.4,jack,high chordjack,15.6,15.8,-0.2,0.2
+3182551,Dusk(mintapril),jack,high chordjack,8,8.37,-0.37,0.37
+3182552,Dusk(mintapril) x1.1,jack,high chordjack,11,11.03,-0.03,0.03
+3182553,Dusk(mintapril) x1.2,jack,high chordjack,12.6,12.94,-0.34,0.34
+3182554,Dusk(mintapril) x1.3,jack,high chordjack,13.6,13.81,-0.21,0.21
+4633597,Darling Dance(rachel),jack,high chordjack,14,13.98,0.02,0.02
+4633595,Darling Dance(rachel) x1.1,jack,high chordjack,15,15.0,0.0,0.0
+4633594,Darling Dance(rachel) x1.15,jack,high chordjack,15.4,15.62,-0.22,0.22
+4633596,Darling Dance(rachel) x1.2,jack,high chordjack,16.4,16.27,0.13,0.13
+4622294,KEEP IT UP(ltd) x1.4,jack,high chordjack,16.6,16.7,-0.1,0.1
+2808334,Deconstruction Star(xuecai),jack,high chordjack,13.6,14.01,-0.41,0.41
+3412538,Deconstruction Star(xuecai) x1.15,jack,high chordjack,15.6,15.62,-0.02,0.02
+4637635,YoiYoi Kokon(lynessa) x1.05,jack,high chordjack,13.6,13.26,0.34,0.34
+4408173,GOODTEK(signicial),jack,high chordjack,15.2,14.94,0.26,0.26
+2716033,The Light(blue potion),jack,high chordjack,13.6,14.22,-0.62,0.62
+2963655,The Light(blue potion) x1.1,jack,high chordjack,15.8,15.24,0.56,0.56
+4103082,Idol(laoxiao),jack,high chordjack,14,13.91,0.09,0.09
+3687776,Flowering(ena),jack,high chordjack,14,13.34,0.66,0.66
+3687774,Flowering(ena) x1.1,jack,high chordjack,14.5,14.41,0.09,0.09
+3687775,Flowering(ena) x1.2,jack,high chordjack,16,15.4,0.6,0.6
+4383327,Observation(jhown) x0.8,jack,high chordjack,14,13.97,0.03,0.03
+4383328,Observation(jhown) x0.85,jack,high chordjack,14.6,14.62,-0.02,0.02
+4383329,Observation(jhown) x0.9,jack,high chordjack,15.4,15.23,0.17,0.17
+4383330,Observation(jhown) x0.95,jack,high chordjack,16,15.79,0.21,0.21
+4383325,Observation(jhown),jack,high chordjack,16.4,16.37,0.03,0.03
+4794368,Rengetsu Outa(jhown),jack,high chordjack,14,13.12,0.88,0.88
+4794371,Rengetsu Outa(jhown) x1.05,jack,high chordjack,14.4,13.82,0.58,0.58
+4010382,Please(hikarnayo),jack,high chordjack,14.4,14.32,0.08,0.08
+3321435,Lost One no Goukoku(rachel),jack,high chordjack,15,14.86,0.14,0.14
+4387962,Break It(ice v),jack,high chordjack,15,14.84,0.16,0.16
+1066057,Break(loved),jack,high chordjack,11,11.26,-0.26,0.26
+3065264,Break(loved) x1.2,jack,high chordjack,14.4,14.09,0.31,0.31
+3065265,Break(loved) x1.3,jack,high chordjack,15,14.93,0.07,0.07
+3095005,Break(loved) x1.4,jack,high chordjack,16,15.92,0.08,0.08
+3816043,Bookmaker(rachel),jack,high chordjack,14.3,14.11,0.19,0.19
+2862626,Bookmaker(rachel) x1.05,jack,high chordjack,14.6,14.67,-0.07,0.07
+2289290,Anhedonia[38](8230),jack,high chordjack,15.2,15.37,-0.17,0.17
+3125227,Anhedonia[38](8230) x0.95,jack,high chordjack,14.7,14.8,-0.1,0.1
+3125228,Anhedonia[38](8230) x1.05,jack,high chordjack,15.6,15.97,-0.37,0.37
+2497871,Sky is the Limit(aeyeong),jack,high chordjack,13,13.11,-0.11,0.11
+1990238,Sky is the Limit(aeyeong) x1.1,jack,high chordjack,14.5,14.2,0.3,0.3
+4487955,OdoRobo(jinkill) x1.1,jack,high chordjack,14.1,13.93,0.17,0.17
+3476974,Don't let you down(rg8v3),jack,high chordjack,7.9,7.54,0.36,0.36
+3476968,Kikai Shoujo Gensou(rg9v3),jack,high chordjack,8.5,9.82,-1.32,1.32
+3824604,Hifumi Daisuki[Hard](Magikarp1234),jack,high chordjack,13.6,13.17,0.43,0.43
+4010826,Re Aoharu(magikarp),jack,high chordjack,4.8,5.06,-0.26,0.26
+4388484,hurricanic(stupud man),speed,high stream,14,14.15,-0.15,0.15
+3171267,hurricanic(stupud man) x1.05,speed,high stream,14.4,14.43,-0.03,0.03
+4388482,hurricanic(stupud man) x1.1,speed,high stream,15,14.78,0.22,0.22
+4388481,hurricanic(stupud man) x1.15,speed,high stream,15.4,15.43,-0.03,0.03
+4388483,hurricanic(stupud man) x1.2,speed,high stream,16,15.93,0.07,0.07
+3358944,Volcanic(attang) x0.8,speed,high stream,11,10.5,0.5,0.5
+3358945,Volcanic(attang) x0.9,speed,high stream,12.5,12.66,-0.16,0.16
+2808935,Volcanic(attang) x1.05,speed,high stream,14.4,14.49,-0.09,0.09
+3358946,Volcanic(attang) x1.1,speed,high stream,15,14.8,0.2,0.2
+2965239,Volcanic(attang) x1.15,speed,high stream,15.4,15.49,-0.09,0.09
+3358947,Volcanic(attang) x1.2,speed,high stream,16,15.92,0.08,0.08
+3321837,Yozakura(ska) x0.9,speed,high stream,13.6,12.99,0.61,0.61
+3321838,Yozakura(ska) x0.95,speed,high stream,14,13.65,0.35,0.35
+3321840,Yozakura(ska),speed,high stream,14.3,14.14,0.16,0.16
+3321839,Yozakura(ska) x1.05,speed,high stream,14.6,14.64,-0.04,0.04
+1455991,Moon Gate x1.2,speed,high stream,14.6,14.72,-0.12,0.12
+5255749,Moon Gate x1.25,speed,high stream,15,15.15,-0.15,0.15
+5195385,Blue Noah 2006[Lv.28](attang) 0.95,speed,high stream,14,14.05,-0.05,0.05
+1496206,Blue Noah 2006[Lv.28](attang),speed,high stream,14.6,14.45,0.15,0.15
+1644632,Blue Noah 2006[Lv.28](attang) x1.1,speed,high stream,15.4,15.11,0.29,0.29
+1990237,Angel Dust(tachyon) x1.1,speed,high stream,14.4,14.33,0.07,0.07
+3294543,Misery(signicial) x1.1,speed,high stream,14,14.39,-0.39,0.39
+3294542,Misery(signicial) x1.15,speed,high stream,14.6,14.7,-0.1,0.1
+3294546,Misery(signicial) x1.2,speed,high stream,15,15.05,-0.05,0.05
+3294544,Misery(signicial) x1.25,speed,high stream,15.4,15.26,0.14,0.14
+3294549,Misery(signicial) x1.3,speed,high stream,16,15.74,0.26,0.26
+3294547,Misery(signicial) x1.35,speed,high stream,16.4,16.4,0.0,0.0
+2875457,Angel's Salad(penguinosity),tech,jack tech,11,10.93,0.07,0.07
+2860220,Forgotten[Collab(2015)],tech,jack tech,11,10.29,0.71,0.71
+2860210,Forgotten[Collab(2015)] x1.05,tech,jack tech,12,11.29,0.71,0.71
+2860212,Forgotten[Collab(2015)] x1.1,tech,jack tech,12.4,12.17,0.23,0.23
+3755586,Odoru Mizushibuki x1.2,tech,jack tech,12.6,12.53,0.07,0.07
+3755587,Odoru Mizushibuki x1.3,tech,jack tech,13.6,13.52,0.08,0.08
+3755588,Odoru Mizushibuki x1.4,tech,jack tech,14.6,14.37,0.23,0.23
+3168876,Odoru Mizushibuki x1.43,tech,jack tech,15,14.65,0.35,0.35
+3824635,Usagi Flap[Tech](Magikarp1234),tech,jack tech,10.5,9.86,0.64,0.64
+4606873,Still Into You(ska) x1.16,tech,jack tech,13.4,13.54,-0.14,0.14
+3322182,BLUE ARMY[UNFORGIVING ASSAULT],stamina,light handstream,13.4,13.47,-0.07,0.07
+4610329,BLUE ARMY[UNFORGIVING ASSAULT] x1.06,stamina,light handstream,13.8,13.98,-0.18,0.18
+3645838,The Empress(underjoy) x1.1,stamina,light handstream,14.6,14.6,0.0,0.0
+3645837,The Empress(underjoy) x1.15,stamina,light handstream,15,15.04,-0.04,0.04
+5194163,Firmament Castle Velier x1.3,stamina,light handstream,14,13.69,0.31,0.31
+4589591,Speed of Link[Tachyon](shoegazer) 1.23,stamina,light jumpstream,14,13.81,0.19,0.19
+3348224,FAKE PROMISE(shoegazer) x1.4,stamina,light jumpstream,12.8,12.71,0.09,0.09
+2972845,Gekka Bijin(hylotl),stamina,light jumpstream,14.4,14.3,0.1,0.1
+2567896,The Fate of(blessia),stamina,light jumpstream,14,14.01,-0.01,0.01
+1887431,Aquaris(snover) x1.2,jack,low chordjack,13,13.06,-0.06,0.06
+1426702,Double Universe(hydria),jack,low chordjack,14,14.07,-0.07,0.07
+3476969,Koi Kou Enishi(rg3v3),jack,low chordjack,3.6,4.29,-0.69,0.69
+3476970,Umiyuri Kaiteitan(rg4v3),jack,low chordjack,4.1,4.49,-0.39,0.39
+3476971,Platinum Disco(rg5v3),jack,low chordjack,5,5.62,-0.62,0.62
+3476972,Chocolate Disco(rg6v3),jack,low chordjack,5.8,5.63,0.17,0.17
+3928690,Reflec Streamz(gamma) x1.15,speed,low stream,14.6,14.59,0.01,0.01
+3251778,Lalala.Refrain[HD](snowph),speed,low stream,13.8,13.68,0.12,0.12
+3251776,Lalala.Refrain[HD](snowph) x1.1,speed,low stream,14.6,14.62,-0.02,0.02
+3989159,Luminous Memory(super10killer),speed,low stream,14,14.0,0.0,0.0
+3989154,Luminous Memory(super11killer) x0.9,speed,low stream,13.4,12.88,0.52,0.52
+5430556,Gloom(jesen) x1.25,jack,mid chordjack,13.9,13.7,0.2,0.2
+1779696,Gloom(jesen) x1.3,jack,mid chordjack,14.4,14.17,0.23,0.23
+3211370,The Truth Never Spoken(rachel) x1.05,jack,mid chordjack,13.4,13.41,-0.01,0.01
+3260898,The Truth Never Spoken(rachel) x1.1,jack,mid chordjack,13.8,13.89,-0.09,0.09
+2308947,Vertex Beta(spz cut) x0.9,jack,mid chordjack,14.6,14.52,0.08,0.08
+3321440,Valkyrie Revolutia(rachel),jack,mid chordjack,16.4,16.34,0.06,0.06
+4704824,M-A[impossible jack](wllk2) x0.85,jack,mid chordjack,13.9,13.84,0.06,0.06
+5561111,manual of youth(tsumikiyuzu) x1.3,jack,mid chordjack,14,14.15,-0.15,0.15
+3476973,Don't Stop The Music(rg7v3),jack,mid chordjack,6.7,6.16,0.54,0.54
+4262736,oddloop(teradora),speed,mid stream,12.2,12.37,-0.17,0.17
+4670616,Toromi Hearts 2(rachel),speed,mid stream,14.6,14.59,0.01,0.01
+3163355,Palette(rachel) x1.2,speed,mid stream,14.6,14.58,0.02,0.02
+1631150,Green-Eyed Jealousy[True End](rachel),speed,mid stream,14.6,14.81,-0.21,0.21
+3824601,GGF(magikarp),speed,mid stream,10.9,10.92,-0.02,0.02
+4432306,Hyper Bass(11bit) x1.35,tech,mix tech,15,14.85,0.15,0.15
+4237589,KOKUSHIMUSOU(nate) x1.15,tech,mix tech,14.6,14.67,-0.07,0.07
+4432307,Looking for Edge of Ground(evening) x1.15,tech,mix tech,14.6,14.76,-0.16,0.16
+2162156,We Could Get More Machinegun Psystyle!(hydria),tech,mix tech,13.5,13.32,0.18,0.18
+3853701,We Could Get More Machinegun Psystyle!(hydria) x1.05,tech,mix tech,14,13.99,0.01,0.01
+5195211,K.Y.A.F.A[UNSTOPPABLE DOMINATION](evening) x1.227,tech,mix tech,14,13.9,0.1,0.1
+1699242,Trickstarz[STEPMANIA](hi19hi19) x1.3,speed,staircase,15,14.47,0.53,0.53
+3755273,Green-Eyed Jealousy(e9v2),speed,staircase,17.6,17.73,-0.13,0.13
+1158910,Shadows of Cats(wafles) x1.0,tech,stream tech,12.2,11.26,0.94,0.94
+5195273,Shadows of Cats(wafles) x1.25,tech,stream tech,14,14.53,-0.53,0.53
+4776927,Weird Autumn(emik) x1.2,tech,stream tech,14,13.93,0.07,0.07
+4776929,Weird Autumn(emik) x1.3,tech,stream tech,14.6,14.61,-0.01,0.01
+3053763,oddloop(ska),tech,stream tech,11.6,11.09,0.51,0.51
+3942033,oddloop(ska) x1.3,tech,stream tech,15,14.78,0.22,0.22
+1712332,northern_limit(underjoy),tech,stream tech,15.6,15.06,0.54,0.54
+3494225,Kimiyo[Agapimenoi](frolica),tech,stream tech,14.2,14.05,0.15,0.15
+3494228,Kimiyo[Eirini](frolica),tech,stream tech,13.6,13.58,0.02,0.02
+2981901,Acquaintance(skwid),tech,stream tech,10,9.87,0.13,0.13
+2981895,Acquaintance(skwid) x1.05,tech,stream tech,11,10.85,0.15,0.15
+2981897,Acquaintance(skwid) x1.1,tech,stream tech,12,12.4,-0.4,0.4
+2981896,Acquaintance(skwid) x1.15,tech,stream tech,13,13.02,-0.02,0.02
+2981899,Acquaintance(skwid) x1.2,tech,stream tech,13.5,13.05,0.45,0.45
+2981898,Acquaintance(skwid) x1.25,tech,stream tech,14,13.53,0.47,0.47
+2981900,Acquaintance(skwid) x1.3,tech,stream tech,14.3,13.98,0.32,0.32
+3942038,Acquaintance(skwid) x1.35,tech,stream tech,14.6,14.39,0.21,0.21
+4632118,Acquaintance(skwid) x1.4,tech,stream tech,15,14.68,0.32,0.32
+3090567,Crescent Moon Island(shoegazer) x0.9,tech,stream tech,12.2,11.84,0.36,0.36
+3090566,Crescent Moon Island(shoegazer) x0.95,tech,stream tech,13,12.84,0.16,0.16
+3262554,Crescent Moon Island(shoegazer) x1.0,tech,stream tech,13.6,13.45,0.15,0.15
+3090568,Crescent Moon Island(shoegazer) x1.05,tech,stream tech,14,14.01,-0.01,0.01
+3090570,Crescent Moon Island(shoegazer) x1.1,tech,stream tech,14.4,14.47,-0.07,0.07
+3090569,Crescent Moon Island(shoegazer) x1.15,tech,stream tech,14.8,14.92,-0.12,0.12
+3090571,Crescent Moon Island(shoegazer) x1.2,tech,stream tech,15.4,15.37,0.03,0.03
+5255752,Future Candy(leo137) x1.5,tech,stream tech,15,15.0,0.0,0.0
+4168392,Luminous Story(Magikarp1234),tech,stream tech,12.7,12.49,0.21,0.21
+3915895,Playing with Ruby(ska) x1.2,tech,stream tech,13.4,13.4,0.0,0.0
+4788540,The Poetic Edda(kilotek),tech,stream tech,14.6,14.65,-0.05,0.05
+4432318,Possessed By The Blood(ska) x1.25,tech,stream tech,15.2,15.42,-0.22,0.22
+3681342,Heikousen(lynessa) x1.15,tech,stream tech,14.6,14.5,0.1,0.1
+3681345,Heikousen(lynessa) x1.2,tech,stream tech,15,14.77,0.23,0.23
+3249835,Louder than steel(ska) x1.25,tech,stream tech,14.9,15.0,-0.1,0.1
+4507383,Bismuth[Singularity](ababa),tech,stream tech,14.6,15.1,-0.5,0.5
+5174997,Bismuth[Supernova](archaic),tech,stream tech,14.4,14.35,0.05,0.05
+5167720,Bismuth[Nebula](eclipse),tech,stream tech,11.4,11.52,-0.12,0.12
+3444323,Nostos2021(xingren),tech,stream tech,17,17.18,-0.18,0.18
+4130341,Re Aoharu(11bit),tech,stream tech,13.2,12.99,0.21,0.21
+,Various Artists - Dan ~ REFORM ~ 1st Pack (Thaumiel) [~ 1st ~ (Marathon)],course,rc course,1,1.55,-0.55,0.55
+,Various Artists - Dan ~ REFORM ~ 1st Pack (Thaumiel) [~ 2nd ~ (Marathon)],course,rc course,2,2.21,-0.21,0.21
+,Various Artists - Dan ~ REFORM ~ 1st Pack (Thaumiel) [~ 3rd ~ (Marathon)],course,rc course,3,2.97,0.03,0.03
+,Various Artists - Dan ~ REFORM ~ 1st Pack (Thaumiel) [~ 4th ~ (Marathon)],course,rc course,4,4.31,-0.31,0.31
+,Various Artists - Dan ~ REFORM ~ 1st Pack (Thaumiel) [~ 5th ~ (Marathon)],course,rc course,5,5.06,-0.06,0.06
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ 6th ~ (Marathon)],course,rc course,6,6.42,-0.42,0.42
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ 7th ~ (Marathon)],course,rc course,7,6.81,0.19,0.19
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ 8th ~ (Marathon)],course,rc course,8,8.14,-0.14,0.14
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ 9th ~ (Marathon)],course,rc course,9,9.94,-0.94,0.94
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ 10th ~ (Marathon)],course,rc course,10,10.59,-0.59,0.59
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ EXTRA-ALPHA ~ (Marathon)],course,rc course,11,11.46,-0.46,0.46
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ EXTRA-BETA ~ (Marathon)],course,rc course,12,12.49,-0.49,0.49
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ EXTRA-GAMMA ~ (Marathon)],course,rc course,13,13.14,-0.14,0.14
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ EXTRA-DELTA ~ (Marathon)],course,rc course,14,14.21,-0.21,0.21
+,Various Artists - Dan ~ REFORM ~ 2nd Pack (Thaumiel) [~ EXTRA-EPSILON ~ (Marathon)],course,rc course,15,15.24,-0.24,0.24
+,Various Artists - Dan ~ REFORM ~ FINAL ([GB]Thaumiel) [~ FINAL - ETA ~ ( Marathon )],course,rc course,17,17.12,-0.12,0.12
+5319863,Dan - Signicial's Courses[[4K] Stage III - Termination [3rd Dan] (Marathon)],course,rc course,3.1,2.45,0.65,0.65
+5319952,Dan - Signicial's Courses[[4K] Stage IV - Resuscitation [4th Dan] (Marathon)],course,rc course,3.7,4.06,-0.36,0.36
+5031832,Dan - Signicial's Courses[[4K] Stage V - Disturbance [5th Dan] (Marathon)],course,rc course,4.6,4.93,-0.33,0.33
+5031833,Dan - Signicial's Courses[[4K] Stage VI - Revitalization [6th Dan] (Marathon)],course,rc course,5.6,5.32,0.28,0.28
+5320775,Dan - Signicial's Courses[[4K] Stage VII - Motivation [7th Dan] (Marathon)],course,rc course,6.4,6.62,-0.22,0.22
+5320776,Dan - Signicial's Courses[[4K] Stage VIII - Misfortune [8th Dan] (Marathon)],course,rc course,7.5,7.19,0.31,0.31
+5320774,Dan - Signicial's Courses[[4K] Stage IX - Catastrophe [9th Dan] (Marathon)],course,rc course,8.7,8.35,0.35,0.35
+5031834,Dan - Signicial's Courses[[4K] Stage X - Finale [10th Dan] (Marathon)],course,rc course,9.6,9.52,0.08,0.08
+3216602,Dan - Signicial's Courses[[4K] Stage XI - Alpha [11th Dan] (Marathon)],course,rc course,10.5,10.64,-0.14,0.14
+5637760,Dan - Signicial's Courses[[4K] Special Stage I - Luminal [11.5th Dan] (Marathon)],course,rc course,11.1,10.98,0.12,0.12
+3216603,Dan - Signicial Courses[[4K] Stage XII - Beta [12th Dan] (Marathon)],course,rc course,11.8,12.14,-0.34,0.34
+3216604,Dan - Signicial's Courses[[4K] Stage XIII - Gamma [13th Dan] (Marathon)],course,rc course,12.7,12.77,-0.07,0.07
+3216606,Dan - Signicial's Courses[[4K] Stage XIV - Delta [14th Dan] (Marathon)],course,rc course,13.7,13.79,-0.09,0.09
+5442562,Dan - Signicial's Courses[[4K] Special Stage II - Tachyon [14.5th Dan] (Marathon)],course,rc course,14.3,14.3,0.0,0.0
+3216605,Dan - Signicial's Courses[[4K] Last Stage - Epsilon [15th Dan] (Marathon)],course,rc course,14.9,14.89,0.01,0.01
+5370092,Dan - Signicial's Courses[[4K] Extra Stage I - Zeta [16th Dan] (Marathon)],course,rc course,16.1,15.88,0.22,0.22
+5597992,Dan - Signicial's Courses[[4K] Extra Stage II - Eta [17th Dan] (Marathon)],course,rc course,17.1,17.01,0.09,0.09
+5680925,Dan - Signicial's Courses[[4K] Extra Stage III - Theta [18th Dan] (Marathon)],course,rc course,17.9,17.18,0.72,0.72
+5695357,Reincarnation(signicial dan),jack,low chordjack,2.9,1.88,1.02,1.02
+5695347,Backyun! - BAD GIRL -(signicial dan),jack,low chordjack,3.7,3.65,0.05,0.05
+5695360,air's gravity(signicial dan),jack,low chordjack,4.8,5.21,-0.41,0.41
+5695358,Another Medium(signicial dan),jack,low chordjack,5.6,5.57,0.03,0.03
+5695355,Saltwater Chicken & Duck Roasted Chicken & Duck(signicial dan),jack,low chordjack,6.6,6.56,0.04,0.04
+5695349,EVERGREEN(signicial dan),jack,mid chordjack,7.4,7.74,-0.34,0.34
+5695345,Alea jacta est(signicial dan),jack,low chordjack,8.4,7.74,0.66,0.66
+5695353,What is love(signicial dan),jack,high chordjack,9.1,8.63,0.47,0.47
+5695359,Count What You Have Now(signicial dan) x1.05,jack,high chordjack,10.3,10.14,0.16,0.16
+5590322,Cryonix(signicial dan),jack,low chordjack,11.5,10.98,0.52,0.52
+5695348,lost found melody(signicial dan),jack,low chordjack,11.8,12.05,-0.25,0.25
+5695354,The Safari(signicial dan),jack,anchor chordjack,12.6,12.76,-0.16,0.16
+5695350,Nijiiro Kekkai Gekkyou no Goku(signicial dan),jack,anchor chordjack,13.6,13.57,0.03,0.03
+5590317,Nijuu(signicial dan),jack,anchor chordjack,14.5,14.33,0.17,0.17
+5695352,Ragnarok(signicial dan) x0.9,jack,high chordjack,16.1,15.99,0.11,0.11
+5370048,Ambitious(signicial dan),tech,stream tech,3.3,2.64,0.66,0.66
+5370044,for Q(signicial dan),tech,stream tech,3.7,3.58,0.12,0.12
+5370045,kibou no tsuki(signicial dan),tech,jack tech,4.5,4.22,0.28,0.28
+5370043,BIRTH(signicial dan),tech,stream tech,5.7,4.79,0.91,0.91
+5370047,girls.exe(signicial dan),tech,stream tech,6.4,6.35,0.05,0.05
+5370050,Hestia(signicial dan),tech,stream tech,7.8,6.59,1.21,1.21
+5370046,T'Suramic(signicial dan),tech,stream tech,9.6,8.41,1.19,1.19
+5370036,Nowise(signicial dan),tech,jack tech,10.5,9.93,0.57,0.57
+5590320,Veins Resonance(signicial dan),tech,jack tech,10.7,9.78,0.92,0.92
+5370049,Rainshower(signicial dan),tech,jack tech,11.6,11.02,0.58,0.58
+5370039,Sulfide(signicial dan),tech,stream tech,13.5,13.54,-0.04,0.04
+5590318,sirens eye(signicial dan),tech,stream tech,14.4,14.29,0.11,0.11
+5370038,POLYBIUS GB SPEEDRUN(signicial dan) x1.2,tech,stream tech,14.8,14.92,-0.12,0.12
+5370037,NUCLEAR-STAR(signicial dan),tech,stream tech,16.2,16.39,-0.19,0.19
+5366872,Phi(signicial dan),speed,low stream,3.1,3.45,-0.35,0.35
+5375029,498 Tokio(signicial dan),speed,low stream,3.8,3.77,0.03,0.03
+5366871,The Wanderlast(signicial dan),speed,low stream,4.4,4.77,-0.37,0.37
+5366875,BREAK IT(signicial dan),speed,mid stream,5.8,5.92,-0.12,0.12
+5366877,Serendipity(signicial dan),speed,low stream,6.1,6.17,-0.07,0.07
+5366870,Eureka(signicial dan),speed,low stream,7.3,7.2,0.1,0.1
+5366868,Angel Halo(signicial dan),speed,high stream,9.1,8.69,0.41,0.41
+5366867,cold planet(signicial dan),speed,high stream,9.6,9.56,0.04,0.04
+5366873,NightTheater(signicial dan),speed,high stream,10.7,10.47,0.23,0.23
+5590323,Kyoumen no Nami(signicial dan),speed,mid stream,11.7,11.59,0.11,0.11
+5366863,DON'T GIVE A FUCK(signicial dan),speed,high stream,11.6,11.27,0.33,0.33
+5366874,Nirmiti(signicial dan),speed,high stream,12.9,12.94,-0.04,0.04
+5366864,Tojita Sekai(signicial dan),speed,low stream,13.9,14.27,-0.37,0.37
+5590321,Nevereverland(signicial dan) x1.05,speed,mid stream,14.5,14.74,-0.24,0.24
+5366865,Disconnected Trance(signicial dan) x1.05,speed,mid stream,14.9,15.05,-0.15,0.15
+5375823,Kouyou(signicial dan),stamina,light jumpstream,3.1,2.58,0.52,0.52
+5375826,Ouka Sange(signicial dan),stamina,light handstream,4.7,5.04,-0.34,0.34
+5375824,Blue Moon(signicial dan),stamina,dense handstream,5.9,5.67,0.23,0.23
+5375829,Synthesis.(signicial dan),stamina,light handstream,6.4,6.59,-0.19,0.19
+5375819,Literal Crystal in Cyphisonia(signicial dan),stamina,dense jumpstream,7.6,7.13,0.47,0.47
+5375831,CERCA-ESOTERICA(signicial dan),stamina,dense handstream,8.6,8.48,0.12,0.12
+5375820,Kisaragi(signicial dan),stamina,dense jumpstream,9.8,9.89,-0.09,0.09
+5375825,Sendan Life(signicial dan),stamina,light jumpstream,10.7,10.85,-0.15,0.15
+5590319,Chronicle(signicial dan),stamina,dense handstream,10.8,10.72,0.08,0.08
+5375822,The Limit Does Not Exist(signicial dan),stamina,dense jumpstream,12.2,12.37,-0.17,0.17
+5375821,[ns](signicial dan),stamina,dense jumpstream,12.6,12.77,-0.17,0.17
+5375845,Excuse Me But Could You Please RIP(signicial dan),stamina,dense handstream,13.8,14.03,-0.23,0.23
+5590316,Get into the Abyssmare(signicial dan) x1.2,stamina,dense handstream,14.2,14.1,0.1,0.1
+5375828,Juggernaut(signicial dan) x1.25,stamina,dense handstream,15,14.81,0.19,0.19
+5375817,LA MD(signicial dan) 0.9x,stamina,dense jumpstream,16.1,15.14,0.96,0.96
+5598212,SIVA(signicial dan),jack,high chordjack,17.2,17.28,-0.08,0.08
+5598211,silly-willy-nilly(signicial dan),tech,jack tech,16.6,16.56,0.04,0.04
+5600849,The Final Musical Dance I(signicial dan) x1.025,speed,low stream,17.3,17.57,-0.27,0.27
+5598209,EMPIRE OF FLAME(signicial) x1.15,stamina,dense handstream,17.4,16.26,1.14,1.14
+5680975,Heaven's Fall(signicial dan),jack,anchor chordjack,17.6,17.19,0.41,0.41
+5679828,Necrophagiatoast(signicial dan) x1.075,tech,stream tech,17.8,17.6,0.2,0.2
+5679829,Discharge(signicial) x1.15,speed,low stream,18,17.54,0.46,0.46
+5680977,It Has To Be This Way(signicial dan),stamina,dense handstream,18.3,17.74,0.56,0.56
+5253584,Life Garden(follow speed dan),speed,low stream,10.3,10.46,-0.16,0.16
+5253560,Elsa de la bibliotheque(follow speed dan),speed,mid stream,10.3,10.41,-0.11,0.11
+5253572,Chou Aoshiyounen no Tame no Choutan na Choukoten Choubukyoku(follow speed dan),speed,high stream,10.3,10.41,-0.11,0.11
+5253585,Hoshi ga Furanai Machi(follow speed dan),speed,high stream,10.4,10.26,0.14,0.14
+5253561,Scarlet Tempest(follow speed dan),speed,mid stream,10.4,10.51,-0.11,0.11
+5253573,Otenba Renjyo(follow speed dan),speed,high stream,10.4,11.3,-0.9,0.9
+5253586,Flower Dance(follow speed dan),speed,high stream,11.2,10.66,0.54,0.54
+5253562,Hymn(follow speed dan),speed,mid stream,11.2,10.96,0.24,0.24
+5253574,yo ma ya ko(follow speed dan),speed,high stream,11.2,10.61,0.59,0.59
+5253587,The Crimson Empire(follow speed dan),speed,high stream,12.4,12.42,-0.02,0.02
+5253563,Anhedonia(follow speed dan),speed,mid stream,12.4,12.91,-0.51,0.51
+5253575,Sora no Hajimaru Basho(follow speed dan),speed,high stream,12.4,12.49,-0.09,0.09
+5253588,ntelecheia(follow speed dan),speed,high stream,13.4,13.05,0.35,0.35
+5253564,Imitation of fragrance(follow speed dan),speed,mid stream,13.4,13.12,0.28,0.28
+5253576,Brionac Lugh Lamhfhata(follow speed dan),speed,high stream,13.4,13.08,0.32,0.32
+5253589,End Time(follow speed dan),speed,high stream,13.6,13.51,0.09,0.09
+5253565,AIR(follow speed dan),speed,mid stream,13.6,13.25,0.35,0.35
+5253577,Akasha(follow speed dan),speed,high stream,13.6,13.61,-0.01,0.01
+5253590,Metheus(follow speed dan),speed,high stream,14,13.88,0.12,0.12
+5253566,BABYLON(follow speed dan),speed,mid stream,14,14.15,-0.15,0.15
+5253578,weenywalker(follow speed dan),speed,low stream,14,14.07,-0.07,0.07
+5253591,osanagokoro chi no uchouten(follow speed dan),speed,high stream,14.4,14.22,0.18,0.18
+5253567,hiiro gekka kyosakinoze(follow speed dan),speed,mid stream,14.4,13.88,0.52,0.52
+5253579,Dark Flight Dreamer(follow speed dan),speed,high stream,14.4,14.31,0.09,0.09
+5253592,Love Lie(follow speed dan),speed,high stream,14.6,14.42,0.18,0.18
+5253568,Palette(follow speed dan),speed,mid stream,14.6,14.44,0.16,0.16
+5253580,M-A(follow speed dan),speed,mid stream,14.6,14.35,0.25,0.25
+5253583,kori metsuno 135 shosetsu(follow speed dan),speed,high stream,15,15.04,-0.04,0.04
+5253559,Nibelungen(follow speed dan),speed,mid stream,15,15.09,-0.09,0.09
+5253571,Fake(follow speed dan),speed,high stream,15,14.79,0.21,0.21
+5253594,Regression(follow speed dan),speed,high stream,15.4,15.15,0.25,0.25
+5253570,Kinki to Hiiro Gensou -The Primary Plasm-(follow speed dan),speed,mid stream,15.4,15.24,0.16,0.16
+5253582,Decoy(follow speed dan),speed,high stream,15.4,15.28,0.12,0.12
