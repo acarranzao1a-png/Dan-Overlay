@@ -14,7 +14,7 @@ rem    build.bat --no-audio- compile without ffmpeg (not recommended)
 rem ============================================================
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=3.1.0"
+set "APP_VERSION=3.2.0-beta"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
 set "ENTRY=%CD%\src\01_overlay_ui\main.py"
 

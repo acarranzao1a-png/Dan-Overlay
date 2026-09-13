@@ -76,10 +76,10 @@ def _validate_startup():
 # ── Window modes ────────────────────────────────────────────────────────
 
 # Opened on first launch; user picks resize behavior in the UI.
-_APP_VERSION = "3.1.0"
-_APP_TITLE = f"DanOverlay {_APP_VERSION} — by 8DOUL (discord: agent_ale)"
+_APP_VERSION = "3.2.0-beta"
+_APP_TITLE = f"DanOverlay {_APP_VERSION} — Open Beta Testing — by 8DOUL (discord: agent_ale)"
 _DEFAULT_MODE = {
-    "label":    f"DanOverlay {_APP_VERSION}",
+    "label":    f"DanOverlay {_APP_VERSION} — Open Beta Testing",
     "width":    700, "height": 320, "min_size": (250, 100),
 }
 
