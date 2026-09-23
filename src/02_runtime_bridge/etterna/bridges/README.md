@@ -6,7 +6,7 @@ DanOverlay connects universally and **theme-independently** with Etterna through
 
 ## 1. How the Etterna Bridge Works
 
-Unlike osu!mania which relies on memory reading via `tosu.app`, Etterna communicates with DanOverlay via **non-invasive file-based IPC**:
+Etterna communicates with DanOverlay via **non-invasive file-based IPC** — no memory reading and no external process required (unlike osu!mania, which uses `tosu.app`):
 
 ```mermaid
 flowchart LR
@@ -63,6 +63,8 @@ DanOverlay includes a built-in **automatic installer**:
 
 ### B. Manual Installation (Fallback for Custom / Modified Themes)
 If you are using a heavily modified or non-standard custom theme where automatic detection did not inject the bridge lines, you can install the scripts manually:
+
+> Only the three Lua files below are required — one per screen (`ScreenSelectMusic`, `ScreenGameplay`, `ScreenEvaluation`). No other actor is needed.
 
 #### 1. Song Selection Bridge (`ScreenSelectMusic`)
 1. Copy `dan_overlay_bridge.lua` to:
