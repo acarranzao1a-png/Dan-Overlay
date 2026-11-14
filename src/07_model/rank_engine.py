@@ -54,11 +54,15 @@ _GENERAL_SR_MEANS, _SKILLSET_SR_MEANS = _load_sr_means()
 # so a DP ending in .40 is unambiguously Mid-Low (never 50/50 with Mid).
 
 _SUBLEVEL_LABELS = [
-    (0.00, 0.20, "Low"),
-    (0.20, 0.40, "Mid-Low"),
+    (0.00, 0.10, "Bottom"),
+    (0.10, 0.20, "Bottom-Low"),
+    (0.20, 0.30, "Low"),
+    (0.30, 0.40, "Low-Mid"),
     (0.40, 0.60, "Mid"),
-    (0.60, 0.80, "Mid-High"),
-    (0.80, 1.00, "High"),
+    (0.60, 0.70, "Mid-High"),
+    (0.70, 0.80, "High"),
+    (0.80, 0.90, "High-Peak"),
+    (0.90, 1.00, "Peak"),
 ]
 
 # ── LN confidence multipliers ────────────────────────────────────────
