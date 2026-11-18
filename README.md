@@ -9,10 +9,10 @@
 - **Multi-Game Compatibility** — Automatic real-time tracking for **osu!mania** (stable & lazer) and **Etterna** (Rebirth, Til Death, Simply Love, and all Etterna themes).
 - **Universal Format Support** — Parses native `.osu` beatmaps as well as `.sm` and `.ssc` simfiles with full split timing, custom BPMs, STOPS, and DELAYS in $<15\text{ ms}$.
 - **Dual Estimation Engines** — Select between **ISOR** (*Next-Gen Rice Triangulation*) and **Legacy** (*Sunny + MinaCalc v3*) directly from the overlay settings.
-- **#1 Ranked Rice Accuracy** — ISOR achieves rank **#1 globally** on the competitive Leo_Black VSRG Benchmark (RC 11-17 MAE `0.2118`, full rice MAE `0.2851`), outperforming top community engines including **ROXY** and **Mixed**. See [src/08_isor_engine/ISOR.md §9bis](src/08_isor_engine/ISOR.md) for the re-measured numbers and the in-sample caveat.
+- **Top-Tier Rice Accuracy** — ISOR holds the **highest exact-tier rate of any estimator** on the competitive Leo_Black VSRG Benchmark: **71.9 %** of the 1103 maps in the 11-17 band land within ±0.20 dan, ahead of Koishi, Mixed and ROXY, with **100 % coverage**. It ranks fourth on mean absolute error, a gap that comes from a heavier tail rather than a worse average fit. See [the engine README](src/08_isor_engine/README.md) for the out-of-fold numbers and the in-sample caveat.
 - **Real-Time Performance** — Parallelized worker pipeline computes full analysis in **~500 ms** on standard maps and under **~1.2 s** on dense marathons with instantaneous LRU cache recall.
 - **Etterna Wife% & Grade Recognition** — Tracks live accuracy, evaluation screen results, and official Etterna grades (`F` through `AAAAA`).
-- **9 Built-In Skins** — Modern, Classic, Density Graph, Vertical Monolith, Broadcast Bar, Dark Vignette, Sunny Rebirth Dedicated HUD, Cyber HUD, and Minimalist Stream HUD.
+- **12 Built-In Skins** — Modern, Classic, Density Graph, Vertical Monolith, Broadcast Bar, Dark Vignette, Sunny Rebirth Dedicated HUD, Cyber HUD, Minimalist Stream HUD, Dynamic Orbital Island, Chrono-Tachometer Blade and Swiss Brutalist Ticker.
 - **Multiple Estimation Ladders**:
   - **ISOR Engine:** **Reform** (20-tier continuous scale: 1st Dan $\to$ Kappa) and **Celestial** (35 discrete rank slots across 7 tiers).
   - **Legacy Engine:** **Reform**, **Celestial**, **Signicial** (18 stages), **Shoegazer** (12 stages), and **LN Course** (16 stages).
@@ -30,7 +30,7 @@ DanOverlay offers two fully selectable engines to match your preference:
 | **Primary Methodology** | Continuous Multidimensional Convex Triangulation + Dual-Band $L_2$ Ridge Meta-Corrector | Sunny Star Rating Rebirth + MinaCalc MSD Skillset Frontier Interpolation |
 | **Target Map Scope** | **4K Rice Beatmaps & Simfiles** (Streams, Chordjacks, Speed bursts, Tech, Marathons) | **4K Rice, 4K LN Courses & 7K Beatmaps** |
 | **Supported Ladders** | **Reform** (1st Dan $\to$ Kappa) & **Celestial** (35 slots) | **Reform**, **Celestial**, **Signicial**, **Shoegazer**, **LN Course** |
-| **VSRG Benchmark Accuracy (Tiers 11–17)** | **MAE: 0.2118** (Global #1) | MAE: 0.5478 (Sunny) / Heuristic |
+| **VSRG Benchmark, Tiers 11–17** | **Exact rate 71.9 % (best of any estimator)** · MAE 0.1722 · coverage 1103/1103 | MAE 0.5478 (Sunny) / heuristic |
 | **Continuous Sub-Tier Derivation** | Quintile scale (`Low`, `Mid-Low`, `Mid`, `Mid-High`, `High`) directly from $DP$ | Zone boundary confidence heuristic |
 | **Biomechanical Modeling** | 7 physical strain streams + rolling Shannon column entropy | 4 Sunny strain components (Jbar, Pbar, Xbar, Abar) |
 
@@ -38,39 +38,59 @@ DanOverlay offers two fully selectable engines to match your preference:
 
 ---
 
-## VSRG Benchmark Results (Leo_Black Benchmark & ROXY Head-to-Head)
+## VSRG Benchmark Results (Leo_Black Benchmark)
 
 > **Evaluation Methodology & Transparency:**  
-> The benchmark metrics presented below were evaluated through rigorous **local testing** using the official reference dataset and scoring criteria established in [Leo_Black's VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark). To guarantee full reproducibility and transparency, the complete raw predictions for all 746 benchmark beatmaps are provided in [src/08_isor_engine/ISOR.csv](src/08_isor_engine/ISOR.csv).
+> The benchmark metrics presented below were evaluated through rigorous **local testing** using the official reference dataset and scoring criteria established in [Leo_Black's VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark). To guarantee full reproducibility and transparency, the complete raw predictions for all 1364 benchmark beatmaps are provided in [src/08_isor_engine/ISOR.csv](src/08_isor_engine/ISOR.csv).
+>
+> **On reading these tables.** The benchmark's own disclaimer states that its results are
+> *statistical references and do not represent a conclusion that one algorithm is absolutely
+> better or worse*. Two columns matter, and they disagree: the **exact-tier rate** counts maps
+> landed within ±0.20 dan, and the **MAE** measures the average size of the miss. ISOR leads the
+> exact rate and carries a heavier tail, which is what separates the two rankings.
 
-### A. High Rice Scale (Tiers 11.0 – 17.0 · Core Competitive Arena)
-| Algorithm | Valid Maps | Coverage | MAE (Lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Benchmark Rank |
-| :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ISOR (DanOverlayV2)** | **485 / 485** | **100.0%** | **0.2118** | **0.2804** | **61.2%** | **93.2%** | **#1 Globally** |
-| **ROXY** | 480 / 485 | 99.0% | 0.2191 | 0.2966 | 59.4% | 92.9% | #2 |
-| **Mixed** | 485 / 485 | 100.0% | 0.2329 | 0.3308 | 58.4% | 92.0% | #3 |
-| **Azusa** | 485 / 485 | 100.0% | 0.2795 | 0.3820 | 46.4% | 88.7% | #4 |
-| **Daniel** | 481 / 485 | 99.2% | 0.3116 | 0.4535 | 46.4% | 83.6% | #5 |
-| **Companella** | 485 / 485 | 100.0% | 0.4409 | 0.6120 | 35.5% | 70.1% | #6 |
-| **Sunny (Native)** | 485 / 485 | 100.0% | 0.5478 | 0.7517 | 32.2% | 56.9% | #7 |
+### A. High Rice Scale (Tiers 11.0 – 17.0 · 1103 Maps) — *Core Competitive Arena*
+| Algorithm | Valid Maps | Coverage | MAE (lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Rank by MAE | Rank by exact |
+| :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Koishi** | 1096 / 1103 | 99.4% | **0.1510** | **0.1996** | 71.53% | **97.99%** | **#1** | #2 |
+| **Mixed** | 1103 / 1103 | 100.0% | 0.1699 | 0.2275 | 69.72% | 96.01% | #2 | #3 |
+| **XDC1** | 1102 / 1103 | 99.9% | 0.1717 | 0.2314 | 67.97% | 95.74% | #3 | #4 |
+| **ISOR (DanOverlay 3.2)** | **1103 / 1103** | **100.0%** | 0.1722 | 0.2499 | **71.89%** | 95.38% | #4 | **#1** |
+| **Roxy** | 1096 / 1103 | 99.4% | 0.1980 | 0.2740 | 63.78% | 94.98% | #5 | #5 |
+| **Azusa** | 1101 / 1103 | 99.8% | 0.2183 | 0.3085 | 59.13% | 93.28% | #6 | #6 |
+| **Companella** | 1103 / 1103 | 100.0% | 0.3666 | 0.5061 | 38.98% | 76.97% | #7 | #7 |
+| **Daniel** | 1099 / 1103 | 99.6% | 0.4088 | 0.4809 | 23.38% | 67.52% | #8 | #9 |
+| **Sunny (Native)** | 1103 / 1103 | 100.0% | 0.5156 | 0.6797 | 36.17% | 57.21% | #9 | #8 |
+
+**ISOR has the highest exact rate of any estimator in this band** (71.89 %, ahead of Koishi's
+71.53 %) **and full coverage**, while ranking fourth on mean error. The wider 1262-map ladder,
+which includes the low tiers most estimators decline, is documented in
+[the engine README](src/08_isor_engine/README.md#5bis-verified-state-of-the-current-build).
 
 <p align="center">
   <img src="src/08_isor_engine/assets/benchmark_accuracy_breakdown.png" alt="Benchmark Accuracy Breakdown" width="820" />
 </p>
 
-### B. Head-to-Head Comparison: ISOR vs. ROXY
-In a direct symmetric head-to-head evaluation across the 501 common benchmark charts:
-- **ISOR:** MAE **0.2322** · **239 Wins**
-- **ROXY:** MAE **0.2414** · **201 Wins** (61 Ties)
+### B. Head-to-Head Comparison
+Direct symmetric comparison on the charts each pair has in common, with a tie defined as a
+per-map difference of 0.005:
 
-Against **Mixed** on 643 common charts: ISOR **0.2853** vs Mixed 0.3020 (308W/61T/274L).
-Full breakdown and the paired bootstrap: `tests/prototype/04_results/isor_rice/h2h_P0b_P5.txt`.
+| Algorithm | Common Maps | ISOR MAE | Algorithm MAE | Wins | Losses | Ties |
+| :---| :---: | :---: | :---: | :---: | :---: | :---: |
+| **Koishi** | 1096 | 0.1710 | 0.1510 | 503 | 556 | 37 |
+| **XDC1** | 1102 | 0.1721 | 0.1717 | 528 | 525 | 49 |
+| **Mixed** | 1103 | 0.1722 | 0.1699 | 543 | 517 | 43 |
+| **Roxy** | 1096 | 0.1701 | 0.1980 | 603 | 452 | 41 |
+
+**ISOR wins three of the four pairwise matchups and loses to Koishi** (556–503), which is the one
+case where the MAE advantage overcomes the exact-rate advantage.
 
 <p align="center">
   <img src="src/08_isor_engine/assets/benchmark_head_to_head.png" alt="Direct Symmetric Head-to-Head Comparison" width="800" />
 </p>
 
-**For the complete mathematical specification, 98-D feature vector, LaTeX formulations, and full pattern breakdown, read [src/08_isor_engine/ISOR.md](src/08_isor_engine/ISOR.md).**
+**For the complete mathematical specification, the 124-column model input, the LaTeX formulations
+and the full pattern breakdown, read [src/08_isor_engine/README.md](src/08_isor_engine/README.md).**
 
 ---
 
@@ -159,7 +179,7 @@ flowchart TD
         WV["WebView2\nChromium renderer"]
         JS["overlay.js\nstate machine\nScoring modes\nEngine selector"]
 
-        subgraph SKINS["9 Built-In Skins"]
+        subgraph SKINS["12 Built-In Skins"]
             S1["ui-1 Modern"]
             S2["ui-2 Classic"]
             S3["ui-3 Density Graph"]
@@ -169,6 +189,9 @@ flowchart TD
             S7["ui-7 Sunny Rebirth"]
             S8["ui-8 Cyber HUD"]
             S9["ui-9 Stream HUD"]
+            S10["ui-10 Orbital Island"]
+            S11["ui-11 Tachometer"]
+            S12["ui-12 Brutalist Ticker"]
         end
 
         AV["audio_visualizer.py\nffmpeg decode\nFFT bands"]
@@ -205,8 +228,8 @@ graph LR
 - **`src/08_isor_engine/`** — next-generation 4K rice estimation engine
   - `isor_engine.py` — Triangulation pipeline, dual-band Ridge meta-layer, apex gate
   - `strain.py` — 7 physiological strain streams, Shannon pattern entropy, quantile aggregation
-  - `ISOR.csv` — Full local benchmark evaluation predictions (746 maps)
-  - `ISOR.md` — Full technical documentation & LaTeX mathematical formulations
+  - `ISOR.csv` — Full local benchmark evaluation predictions (1364 maps)
+  - `README.md` — Full technical documentation & LaTeX mathematical formulations
 - **`src/02_runtime_bridge/`** — runtime data flow
   - `tosu_source.py` — Client that reads tosu JSON, emits events
   - `analysis_coordinator.py` — Single-worker scheduling, LRU cache, hot-swappable engine selection
@@ -645,7 +668,7 @@ Biomechanical physical modeling module:
 - **Rolling Shannon Entropy** — Measures active column state distribution complexity across 750 ms sliding windows.
 - **Weighted Quantile Aggregation** — Multi-quantile fusion ($q_{97}, q_{90}, \mu_{\text{tail}}, q_{75}, \mu_{\text{pow}}, q_{50}$) for robust long-chart evaluation.
 
-#### `ISOR.md`
+#### `README.md`
 Exhaustive technical documentation, LaTeX formulations, 98-D feature specifications, and benchmark breakdown.
 
 ### Overlay (`src/01_overlay_ui/`)
@@ -661,7 +684,7 @@ Entry point. Sets up:
 
 #### `overlay_host.py`
 Window launcher. Creates the pywebview window with:
-- **9 built-in skins** — reads `skin` from `%APPDATA%/DanOverlay/settings.json`
+- **12 built-in skins** — reads `skin` from `%APPDATA%/DanOverlay/settings.json`
 - **Dynamic engine switching** — live coordination with `AnalysisCoordinator.set_engine()`
 - **Frameless toggle** — Win32 `SetWindowLong` to remove/add title bar
 - **Aspect-ratio lock** — subclasses the Win32 WndProc to intercept `WM_SIZING`

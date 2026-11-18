@@ -331,7 +331,379 @@ def extract_features(parsed):
         "nps_curve":           nps_curve,
         # LN features (from note_events)
         **_extract_ln_features(parsed),
+        # Column-level movement features (4K)
+        **_extract_motion_features(parsed),
+        # Multi-resolution, peak, per-hand and ergonomic blocks
+        **_extract_multiscale(parsed),
+        **_extract_peak_stats(parsed),
+        **_extract_per_hand(parsed),
+        **_extract_ergonomics(parsed),
     }
+
+
+# ── Multi-resolution, peak, per-hand and ergonomic blocks ───────────────────
+#
+# The engine's remaining error is dispersion rather than offset: its bias is
+# effectively zero while its exact rate lags the reference by several points.
+# Narrowing dispersion needs signals the density statistics above do not carry,
+# so these four blocks describe the chart at resolutions and from viewpoints the
+# aggregate features cannot express:
+#
+#   multiscale   the same pattern statistics at four resolutions, reduced by a
+#                peak percentile, because the hardest section sets the tier
+#   peak         the shape of the per-second density distribution
+#   per_hand     a chart is as hard as its weaker hand
+#   ergonomics   what the fingers do: travel between columns, holds, cutting
+
+
+def _row_arrays(parsed):
+    rows = sorted((parsed.get("rows") or []), key=lambda r: r.get("t") or 0)
+    times = [float(r.get("t") or 0.0) for r in rows]
+    cols = [tuple(sorted(r.get("cols") or ())) for r in rows]
+    return times, cols
+
+
+def _pct(values, q):
+    if not values:
+        return 0.0
+    s = sorted(values)
+    idx = min(len(s) - 1, max(0, int(round((q / 100.0) * (len(s) - 1)))))
+    return float(s[idx])
+
+
+def _extract_multiscale(parsed):
+    """Pattern statistics at four resolutions, reduced by a peak percentile."""
+    out = {}
+    times, cols = _row_arrays(parsed)
+    n = len(cols)
+    scales = (8, 16, 32, 64)
+    if n < 64:
+        for w in scales:
+            for name in ("chord", "jack", "hand", "anchor", "dens"):
+                out["ms%d_%s_p95" % (w, name)] = 0.0
+                out["ms%d_%s_p50" % (w, name)] = 0.0
+        return out
+    for w in scales:
+        stride = max(1, w // 2)
+        chord_v, jack_v, hand_v, anc_v, dens_v = [], [], [], [], []
+        pairs = w - 1
+        for s in range(0, n - w + 1, stride):
+            seg = cols[s:s + w]
+            chord_v.append(sum(len(c) for c in seg) / w)
+            shared = 0
+            anchor = 0
+            for a, b in zip(seg, seg[1:]):
+                if set(a) & set(b):
+                    shared += 1
+                    if a != b:
+                        anchor += 1
+            jack_v.append(shared / pairs)
+            anc_v.append(anchor / pairs)
+            hand_v.append(sum(1 for c in seg if len(c) >= 3) / w)
+            dt = (times[s + w - 1] - times[s]) / 1000.0
+            dens_v.append(sum(len(c) for c in seg) / dt if dt > 0.02 else 0.0)
+        for name, vals in (("chord", chord_v), ("jack", jack_v), ("hand", hand_v),
+                           ("anchor", anc_v), ("dens", dens_v)):
+            out["ms%d_%s_p95" % (w, name)] = round(_pct(vals, 95), 4)
+            out["ms%d_%s_p50" % (w, name)] = round(_pct(vals, 50), 4)
+    return out
+
+
+def _extract_peak_stats(parsed):
+    """Shape of the per-second density distribution."""
+    out = {"peak_p50": 0.0, "peak_p90": 0.0, "peak_p95": 0.0, "peak_p98": 0.0,
+           "peak_max": 0.0, "peak_cv": 0.0, "peak_top10": 0.0, "peak_p95_over_mean": 0.0}
+    times, cols = _row_arrays(parsed)
+    if len(times) < 60:
+        return out
+    first, last = times[0], times[-1]
+    span = (last - first) / 1000.0
+    if span < 5.0:
+        return out
+    buckets = [0.0] * int(span) + [0.0]
+    for t, c in zip(times, cols):
+        idx = int((t - first) / 1000.0)
+        if 0 <= idx < len(buckets):
+            buckets[idx] += len(c)
+    active = [b for b in buckets if b > 0]
+    if len(active) < 10:
+        return out
+    mean = sum(active) / len(active)
+    sd = math.sqrt(sum((b - mean) ** 2 for b in active) / len(active))
+    total = sum(active)
+    top = max(1, len(active) // 10)
+    out["peak_p50"] = round(_pct(active, 50), 3)
+    out["peak_p90"] = round(_pct(active, 90), 3)
+    out["peak_p95"] = round(_pct(active, 95), 3)
+    out["peak_p98"] = round(_pct(active, 98), 3)
+    out["peak_max"] = round(max(active), 3)
+    out["peak_cv"] = round(sd / mean, 4) if mean > 0 else 0.0
+    out["peak_top10"] = round(sum(sorted(active)[-top:]) / total, 4) if total > 0 else 0.0
+    out["peak_p95_over_mean"] = round(_pct(active, 95) / mean, 4) if mean > 0 else 0.0
+    return out
+
+
+def _extract_per_hand(parsed):
+    """Left/right split: a chart is as hard as its weak hand."""
+    keys = ("ph_dens_l", "ph_dens_r", "ph_chord_l", "ph_chord_r",
+            "ph_jack_l", "ph_jack_r", "ph_imbalance", "ph_weak_dens",
+            "ph_strong_dens", "ph_weak_jack", "ph_weak_chord",
+            "ph_switch_rate", "ph_weak_over_strong")
+    out = {k: 0.0 for k in keys}
+    times, cols = _row_arrays(parsed)
+    n = len(cols)
+    if n < 60:
+        return out
+    span = (times[-1] - times[0]) / 1000.0
+    if span < 5.0:
+        return out
+    notes_l = notes_r = chord_l = chord_r = 0
+    jack_l = jack_r = switches = 0
+    prev_l = prev_r = None
+    for c in cols:
+        left = [x for x in c if x < 2]
+        right = [x for x in c if x >= 2]
+        notes_l += len(left)
+        notes_r += len(right)
+        if len(left) >= 2:
+            chord_l += 1
+        if len(right) >= 2:
+            chord_r += 1
+        if prev_l is not None and set(left) & prev_l:
+            jack_l += 1
+        if prev_r is not None and set(right) & prev_r:
+            jack_r += 1
+        prev_l, prev_r = set(left), set(right)
+        if left and right:
+            continue
+    for a, b in zip(cols, cols[1:]):
+        if a and b and (a[0] < 2) != (b[0] < 2):
+            switches += 1
+    dens_l = notes_l / span
+    dens_r = notes_r / span
+    out["ph_dens_l"] = round(dens_l, 3)
+    out["ph_dens_r"] = round(dens_r, 3)
+    out["ph_chord_l"] = round(chord_l / n, 4)
+    out["ph_chord_r"] = round(chord_r / n, 4)
+    denom = max(1, n - 1)
+    out["ph_jack_l"] = round(jack_l / denom, 4)
+    out["ph_jack_r"] = round(jack_r / denom, 4)
+    tot = notes_l + notes_r
+    out["ph_imbalance"] = round(abs(notes_l - notes_r) / tot, 4) if tot else 0.0
+    out["ph_weak_dens"] = round(min(dens_l, dens_r), 3)
+    out["ph_strong_dens"] = round(max(dens_l, dens_r), 3)
+    out["ph_weak_jack"] = round(min(out["ph_jack_l"], out["ph_jack_r"]), 4)
+    out["ph_weak_chord"] = round(min(out["ph_chord_l"], out["ph_chord_r"]), 4)
+    out["ph_switch_rate"] = round(switches / denom, 4)
+    strong = max(dens_l, dens_r)
+    out["ph_weak_over_strong"] = round(min(dens_l, dens_r) / strong, 4) if strong > 0 else 0.0
+    return out
+
+
+def _extract_ergonomics(parsed):
+    """What the fingers do: travel between columns, holds, cutting."""
+    keys = ("erg_travel_mean", "erg_travel_p95", "erg_travel_max",
+            "erg_cut_rate", "erg_hold_ratio", "erg_release_density",
+            "erg_same_col_rate", "erg_adjacent_rate")
+    out = {k: 0.0 for k in keys}
+    times, cols = _row_arrays(parsed)
+    singles = [c[0] for c in cols if len(c) == 1]
+    if len(singles) < 25:
+        return out
+    steps = [abs(b - a) for a, b in zip(singles, singles[1:])]
+    if not steps:
+        return out
+    out["erg_travel_mean"] = round(sum(steps) / len(steps), 4)
+    out["erg_travel_p95"] = round(_pct(steps, 95), 4)
+    out["erg_travel_max"] = round(max(steps), 4)
+    out["erg_cut_rate"] = round(sum(1 for s in steps if s >= 2) / len(steps), 4)
+    out["erg_same_col_rate"] = round(sum(1 for s in steps if s == 0) / len(steps), 4)
+    out["erg_adjacent_rate"] = round(sum(1 for s in steps if s == 1) / len(steps), 4)
+    span = (times[-1] - times[0]) / 1000.0
+    total = len(parsed.get("notes") or [])
+    if span > 1.0 and total > 0:
+        holds = int(parsed.get("ln_count") or 0)
+        out["erg_hold_ratio"] = round(holds / total, 4)
+        out["erg_release_density"] = round(holds / span, 4)
+    return out
+
+
+# ── Motion features ────────────────────────────────────────────────────────
+#
+# Adapted from mania-hub (https://github.com/aleju03/mania-hub), file
+# algorithms/classification/motion-features.ts.
+# MIT licence, copyright (c) 2026 aleju03.
+#
+# These describe what the hands do between consecutive rows, which aggregate
+# density statistics cannot: two charts with identical NPS and stream purity can
+# still be a cross-hand trill pattern and a plain stream.
+#
+# The window constants are kept identical to the reference so the definitions
+# stay comparable.  No model, weight or output from that project is used here.
+
+_MOTION_MIN_GAP_MS = 25.0
+_MOTION_MAX_GAP_MS = 400.0
+_MOTION_MIN_ROWS = 24
+_MOTION_PACE_QUANTILE = 0.25
+_MOTION_PACE_SLACK = 1.6
+_MOTION_PACE_CONTEXT = 8
+# Interval ratios that read as musical subdivisions of the beat.  Anything
+# outside these is a rhythm break, which is one of tech's signatures.
+_MOTION_MUSICAL_RATIOS = (1.0, 2.0, 0.5, 1.5, 2.0 / 3.0, 3.0, 1.0 / 3.0, 4.0, 0.25)
+
+_MOTION_KEYS = (
+    "motion_same_hand", "motion_minijack", "motion_anchor",
+    "motion_one_hand_trill", "motion_cross_trill", "motion_roll4",
+    "motion_rhythm_break", "motion_chord_swing", "motion_density_swing",
+)
+
+
+def _motion_hand(column):
+    """0 for the left hand, 1 for the right (4K only)."""
+    return 0 if column < 2 else 1
+
+
+def _motion_ratio_is_musical(ratio):
+    for target in _MOTION_MUSICAL_RATIOS:
+        if abs(ratio - target) <= target * 0.08:
+            return True
+    return False
+
+
+def _motion_at_pace(gaps):
+    """Which gaps are played 'at pace', so slow sections do not dilute ratios.
+
+    A gap counts when the local median gap sits within 1.6x the 25th percentile
+    of all gaps: the chart is compared against its own fast sections, not
+    against a global average.
+    """
+    if not gaps:
+        return []
+    valid = sorted(g for g in gaps if 0 < g <= _MOTION_MAX_GAP_MS)
+    if not valid:
+        return [False] * len(gaps)
+    pace = valid[min(len(valid) - 1, int(len(valid) * _MOTION_PACE_QUANTILE))]
+    limit = pace * _MOTION_PACE_SLACK
+    out = []
+    for i in range(len(gaps)):
+        lo = max(0, i - _MOTION_PACE_CONTEXT)
+        hi = min(len(gaps) - 1, i + _MOTION_PACE_CONTEXT)
+        around = [gaps[j] for j in range(lo, hi + 1)
+                  if 0 < gaps[j] <= _MOTION_MAX_GAP_MS]
+        if not around:
+            out.append(False)
+            continue
+        around.sort()
+        out.append(around[len(around) // 2] <= limit)
+    return out
+
+
+def _extract_motion_features(parsed):
+    """Hand/foot movement shares for 4K.  Zeros when not applicable."""
+    out = {key: 0.0 for key in _MOTION_KEYS}
+    try:
+        if int(parsed.get("keycount_output") or 0) != 4:
+            return out
+    except (TypeError, ValueError):
+        return out
+    rows = sorted((parsed.get("rows") or []), key=lambda r: r.get("t") or 0)
+    if len(rows) < _MOTION_MIN_ROWS:
+        return out
+
+    times = [float(r.get("t") or 0.0) for r in rows]
+    cols = [tuple(sorted(r.get("cols") or ())) for r in rows]
+    n = len(rows)
+    gaps = [times[i + 1] - times[i] for i in range(n - 1)]
+    in_pace = _motion_at_pace(gaps)
+
+    def weight(gap):
+        return 1.0 / max(gap, _MOTION_MIN_GAP_MS)
+
+    pair_w = same_hand_w = minijack_w = anchor_w = chord_swing_w = 0.0
+    trip_w = trill_w = cross_trill_w = 0.0
+    quad_w = roll4_w = 0.0
+    rhythm_w = rhythm_break_w = 0.0
+
+    for i in range(n - 1):
+        gap = gaps[i]
+        if gap <= 0 or gap > _MOTION_MAX_GAP_MS or not in_pace[i]:
+            continue
+        w = weight(gap)
+        a, b = cols[i], cols[i + 1]
+        pair_w += w
+        if len(a) != len(b):
+            chord_swing_w += w
+        if len(a) == 1 and len(b) == 1:
+            ca, cb = a[0], b[0]
+            if ca == cb:
+                minijack_w += w
+            elif _motion_hand(ca) == _motion_hand(cb):
+                same_hand_w += w
+        elif set(a) & set(b):
+            identical = len(a) == len(b) and a == b
+            if not identical:
+                anchor_w += w
+
+    for i in range(n - 2):
+        g0, g1 = gaps[i], gaps[i + 1]
+        if g0 <= 0 or g1 <= 0 or g0 > _MOTION_MAX_GAP_MS or g1 > _MOTION_MAX_GAP_MS:
+            continue
+        if not in_pace[i]:
+            continue
+        w = weight(max(g0, g1))
+        rhythm_w += w
+        if not _motion_ratio_is_musical(g1 / g0):
+            rhythm_break_w += w
+        a, b, c = cols[i], cols[i + 1], cols[i + 2]
+        if len(a) != 1 or len(b) != 1 or len(c) != 1:
+            continue
+        trip_w += w
+        ca, cb, cc = a[0], b[0], c[0]
+        if ca == cc and ca != cb:
+            if _motion_hand(ca) == _motion_hand(cb):
+                trill_w += w
+            else:
+                cross_trill_w += w
+
+    for i in range(n - 3):
+        gs = (gaps[i], gaps[i + 1], gaps[i + 2])
+        if any(g <= 0 or g > _MOTION_MAX_GAP_MS for g in gs) or not in_pace[i]:
+            continue
+        window = cols[i:i + 4]
+        if any(len(c) != 1 for c in window):
+            continue
+        w = weight(max(gs))
+        quad_w += w
+        series = [c[0] for c in window]
+        steps = [series[k + 1] - series[k] for k in range(3)]
+        if all(s == 1 for s in steps) or all(s == -1 for s in steps):
+            roll4_w += w
+
+    first, last = times[0], times[-1]
+    seconds = max(1, int(math.ceil((last - first) / 1000.0)))
+    per_second = [0] * seconds
+    for i in range(n):
+        idx = min(seconds - 1, int((times[i] - first) / 1000.0))
+        per_second[idx] += len(cols[i])
+    active = [v for v in per_second if v > 0]
+    if active:
+        mean = sum(active) / len(active)
+        if mean > 0:
+            variance = sum((v - mean) ** 2 for v in active) / len(active)
+            out["motion_density_swing"] = round(math.sqrt(variance) / mean, 4)
+
+    def share(numerator, denominator):
+        return round(numerator / denominator, 4) if denominator > 0 else 0.0
+
+    out["motion_same_hand"] = share(same_hand_w, pair_w)
+    out["motion_minijack"] = share(minijack_w, pair_w)
+    out["motion_anchor"] = share(anchor_w, pair_w)
+    out["motion_one_hand_trill"] = share(trill_w, trip_w)
+    out["motion_cross_trill"] = share(cross_trill_w, trip_w)
+    out["motion_roll4"] = share(roll4_w, quad_w)
+    out["motion_rhythm_break"] = share(rhythm_break_w, rhythm_w)
+    out["motion_chord_swing"] = share(chord_swing_w, pair_w)
+    return out
 
 
 # ── LN features ────────────────────────────────────────────────────────────

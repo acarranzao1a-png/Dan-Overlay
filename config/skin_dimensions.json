@@ -1,0 +1,347 @@
+{
+  "skins": {
+    "1": {
+      "name": "Modern",
+      "zoom": 1.0,
+      "layouts": {
+        "complete": {
+          "viewport": {
+            "w": 684,
+            "h": 281
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 320
+          }
+        },
+        "simplified": {
+          "viewport": {
+            "w": 684,
+            "h": 181
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 220
+          }
+        },
+        "compact": {
+          "viewport": {
+            "w": 684,
+            "h": 37
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 76
+          }
+        }
+      }
+    },
+    "2": {
+      "name": "Classic",
+      "zoom": 1.0,
+      "layouts": {
+        "complete": {
+          "viewport": {
+            "w": 684,
+            "h": 281
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 320
+          }
+        },
+        "simplified": {
+          "viewport": {
+            "w": 684,
+            "h": 181
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 220
+          }
+        },
+        "compact": {
+          "viewport": {
+            "w": 684,
+            "h": 37
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 76
+          }
+        }
+      }
+    },
+    "3": {
+      "name": "Graph",
+      "zoom": 1.0,
+      "layouts": {
+        "complete": {
+          "viewport": {
+            "w": 684,
+            "h": 281
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 320
+          }
+        },
+        "simplified": {
+          "viewport": {
+            "w": 684,
+            "h": 181
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 220
+          }
+        },
+        "compact": {
+          "viewport": {
+            "w": 684,
+            "h": 37
+          },
+          "window_outer": {
+            "w": 700,
+            "h": 76
+          }
+        }
+      }
+    },
+    "4": {
+      "name": "Vertical Monolith",
+      "zoom": 0.61,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 268,
+            "h": 296
+          },
+          "window_outer": {
+            "w": 284,
+            "h": 335
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 268,
+            "h": 427
+          },
+          "window_outer": {
+            "w": 284,
+            "h": 466
+          }
+        }
+      }
+    },
+    "5": {
+      "name": "Broadcast Bar",
+      "zoom": 0.75,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 573,
+            "h": 131
+          },
+          "window_outer": {
+            "w": 589,
+            "h": 170
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 573,
+            "h": 233
+          },
+          "window_outer": {
+            "w": 589,
+            "h": 272
+          }
+        }
+      }
+    },
+    "6": {
+      "name": "Dark Vignette",
+      "zoom": 0.73,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 629,
+            "h": 172
+          },
+          "window_outer": {
+            "w": 645,
+            "h": 211
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 629,
+            "h": 258
+          },
+          "window_outer": {
+            "w": 645,
+            "h": 297
+          }
+        }
+      }
+    },
+    "7": {
+      "name": "Sunny Rebirth",
+      "zoom": 1.0,
+      "layouts": {
+        "default": {
+          "viewport": {
+            "w": 784,
+            "h": 301
+          },
+          "window_outer": {
+            "w": 800,
+            "h": 340
+          }
+        }
+      }
+    },
+    "8": {
+      "name": "Hero-Dan Lazer",
+      "zoom": 0.94,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 578,
+            "h": 99
+          },
+          "window_outer": {
+            "w": 594,
+            "h": 138
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 578,
+            "h": 195
+          },
+          "window_outer": {
+            "w": 594,
+            "h": 234
+          }
+        }
+      }
+    },
+    "9": {
+      "name": "Josh type shit",
+      "zoom": 1.0,
+      "layouts": {
+        "complete": {
+          "viewport": {
+            "w": 524,
+            "h": 146
+          },
+          "window_outer": {
+            "w": 540,
+            "h": 185
+          }
+        },
+        "simplified": {
+          "viewport": {
+            "w": 409,
+            "h": 129
+          },
+          "window_outer": {
+            "w": 425,
+            "h": 168
+          }
+        },
+        "compact": {
+          "viewport": {
+            "w": 323,
+            "h": 93
+          },
+          "window_outer": {
+            "w": 339,
+            "h": 132
+          }
+        }
+      }
+    },
+    "10": {
+      "name": "Dynamic Orbital Island",
+      "zoom": 1.0,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 661,
+            "h": 122
+          },
+          "window_outer": {
+            "w": 677,
+            "h": 161
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 661,
+            "h": 252
+          },
+          "window_outer": {
+            "w": 677,
+            "h": 291
+          }
+        }
+      }
+    },
+    "11": {
+      "name": "Chrono-Tachometer Blade",
+      "zoom": 1.0,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 784,
+            "h": 197
+          },
+          "window_outer": {
+            "w": 800,
+            "h": 236
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 784,
+            "h": 213
+          },
+          "window_outer": {
+            "w": 800,
+            "h": 252
+          }
+        }
+      }
+    },
+    "12": {
+      "name": "Swiss Brutalist Ticker",
+      "zoom": 0.77,
+      "layouts": {
+        "collapsed": {
+          "viewport": {
+            "w": 630,
+            "h": 132
+          },
+          "window_outer": {
+            "w": 646,
+            "h": 171
+          }
+        },
+        "expanded": {
+          "viewport": {
+            "w": 630,
+            "h": 163
+          },
+          "window_outer": {
+            "w": 646,
+            "h": 202
+          }
+        }
+      }
+    }
+  },
+  "comment": "DanOverlay skin dimensions reference. For every skin and layout: viewport is the inner size the UI is laid out at, window_outer is view size including the OS frame (16 px width, 39 px height). zoom is the CSS zoom the skin runs at."
+}

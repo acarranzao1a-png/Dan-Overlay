@@ -175,6 +175,49 @@ const LN_COURSE_PALETTES = {
   "Yokaze": ["rgb(160,200,240)", "rgb(40,60,100)", "rgb(200,220,255)"],  // Night wind
 };
 
+// ── Sunny Star Rating Color Interpolation (osu! standard) ───────────────────
+const STAR_BG_STOPS = [
+  { sr: 0.0, color: [170, 170, 170] },
+  { sr: 0.9, color: [75, 179, 253] },
+  { sr: 2.0, color: [79, 255, 213] },
+  { sr: 3.0, color: [211, 245, 87] },
+  { sr: 4.0, color: [253, 162, 101] },
+  { sr: 5.0, color: [249, 77, 121] },
+  { sr: 6.0, color: [182, 76, 193] },
+  { sr: 7.0, color: [86, 84, 202] },
+  { sr: 8.0, color: [20, 17, 125] },
+  { sr: 9.0, color: [0, 0, 0] },
+  { sr: 15.0, color: [0, 0, 0] }
+];
+
+function getStarBgColor(sr) {
+  const n = Number(sr) || 0;
+  if (n <= 0) return 'rgb(170, 170, 170)';
+  if (n >= 9) return 'rgb(0, 0, 0)';
+  for (let i = 0; i < STAR_BG_STOPS.length - 1; i++) {
+    const s1 = STAR_BG_STOPS[i];
+    const s2 = STAR_BG_STOPS[i + 1];
+    if (n >= s1.sr && n <= s2.sr) {
+      const t = (n - s1.sr) / (s2.sr - s1.sr);
+      const r = Math.round(s1.color[0] + t * (s2.color[0] - s1.color[0]));
+      const g = Math.round(s1.color[1] + t * (s2.color[1] - s1.color[1]));
+      const b = Math.round(s1.color[2] + t * (s2.color[2] - s1.color[2]));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+  return 'rgb(0, 0, 0)';
+}
+
+function getStarTextColor(sr) {
+  const n = Number(sr) || 0;
+  if (n < 6.5) return '#000000';
+  if (n < 9.0) return '#ffd966';
+  if (n < 10.0) return '#f6f05c';
+  if (n < 11.0) return '#ff7a69';
+  if (n < 12.0) return '#e74a95';
+  return '#6563de';
+}
+
 const ui = {
   panel: document.getElementById("danPanel") || document.getElementById("overlay"),
   line: document.getElementById("danLine"),
@@ -262,6 +305,18 @@ let vizLogicalH = 0;
 let vizRenderScale = 1;
 let vizLastFrameAt = 0;
 
+// Render-on-demand: the rAF loop stays alive only while there is something to
+// animate.  With no music playing the bars decay to zero and the loop stops,
+// so an idle overlay costs zero frames instead of 60/s forever.
+let vizRunning = false;
+
+function vizKick() {
+  if (vizRunning || !vizCtx) return;
+  vizRunning = true;
+  vizLastFrameAt = 0;
+  requestAnimationFrame(vizRender);
+}
+
 // ── Mini-viz (small bars beside duration) ───────────────────────────
 const MINI_VIZ_BARS = 12;
 let miniVizEls = [];
@@ -288,11 +343,12 @@ function initVisualizer() {
       ui.vizCanvas.width = Math.max(1, Math.round(w * vizRenderScale));
       ui.vizCanvas.height = Math.max(1, Math.round(h * vizRenderScale));
       vizGradient = null;
+      vizKick();
     }
   });
   ro.observe(ui.vizCanvas);
 
-  requestAnimationFrame(vizRender);
+  vizKick();
 }
 
 function initMiniViz() {
@@ -323,26 +379,39 @@ function syncVisualizerCanvasSize() {
 }
 
 function vizRender(now = 0) {
-  requestAnimationFrame(vizRender);
-  if (!vizCtx) return;
+  if (!vizCtx) { vizRunning = false; return; }
 
   const { w, h } = syncVisualizerCanvasSize();
-  if (!w || !h) return;
+  if (!w || !h) { vizRunning = false; return; }
 
   const maxFps = w >= 900 ? 45 : 60;
   const frameInterval = 1000 / maxFps;
-  if (now - vizLastFrameAt < frameInterval) return;
+  if (now - vizLastFrameAt < frameInterval) { requestAnimationFrame(vizRender); return; }
   vizLastFrameAt = now;
 
   // ─ lerp smoothing ─────────────────────────────────────────────
   const lerpUp = 0.70;  // fast but smooth rise — masks the 30fps data rate cleanly at 60fps rAF
   const lerpDown = 0.25;  // fast decay — tight without flickering
+  let animating = false;
   for (let i = 0; i < vizSmooth.length; i++) {
     const t = vizTarget[i];
     const rate = t > vizSmooth[i] ? lerpUp : lerpDown;
     vizSmooth[i] += (t - vizSmooth[i]) * rate;
     if (vizSmooth[i] < 0.002) vizSmooth[i] = 0;
+    if (vizSmooth[i] > 0 || t > 0) animating = true;
   }
+
+  if (!animating) {
+    // Nothing left to animate: wipe the canvas once and let the loop die.
+    // vizKick() revives it when new band data arrives or the canvas resizes.
+    updateMiniViz();
+    vizCtx.setTransform(1, 0, 0, 1, 0, 0);
+    vizCtx.clearRect(0, 0, ui.vizCanvas.width, ui.vizCanvas.height);
+    vizRunning = false;
+    return;
+  }
+
+  requestAnimationFrame(vizRender);
 
   // Update mini-viz sidebar bars from the same smooth data
   updateMiniViz();
@@ -457,15 +526,18 @@ const _KEYBIND_LABELS = {
 const _DEF_BLUR = 40;
 const _DEF_BRIGHT = 82.35;
 
-const _CURRENT_SKIN = window.location.href.includes("/ui-9/") ? "9"
-  : window.location.href.includes("/ui-8/") ? "8"
-    : window.location.href.includes("/ui-7/") ? "7"
-      : window.location.href.includes("/ui-6/") ? "6"
-        : window.location.href.includes("/ui-5/") ? "5"
-          : window.location.href.includes("/ui-4/") ? "4"
-            : window.location.href.includes("/ui-3/") ? "3"
-              : window.location.href.includes("/ui-2/") ? "2"
-                : "1";
+const _CURRENT_SKIN = window.location.href.includes("/ui-12/") ? "12"
+  : window.location.href.includes("/ui-11/") ? "11"
+    : window.location.href.includes("/ui-10/") ? "10"
+      : window.location.href.includes("/ui-9/") ? "9"
+        : window.location.href.includes("/ui-8/") ? "8"
+          : window.location.href.includes("/ui-7/") ? "7"
+            : window.location.href.includes("/ui-6/") ? "6"
+              : window.location.href.includes("/ui-5/") ? "5"
+                : window.location.href.includes("/ui-4/") ? "4"
+                  : window.location.href.includes("/ui-3/") ? "3"
+                    : window.location.href.includes("/ui-2/") ? "2"
+                      : "1";
 
 let _settings = {
   engine: "isor", // "isor" (Isotonic Strain Organic Residual) | "legacy" (Sunny + MinaCalc v3)
@@ -479,7 +551,6 @@ let _settings = {
   broadcastBorderBright: 75, // 0-100; border opacity in broadcast skin
   broadcastBorderThick: 1,   // 0-10px; border width in broadcast skin
   greenScreen: false, // replace map background with solid #00ff00 for chroma key
-  frameless: false,   // remove OS title bar for clean OBS capture (requires restart)
   ui6_no_vignette: false,
   ui6_simple_mode: false,
   ui6_outlines: false,
@@ -500,6 +571,38 @@ async function _waitForPywebviewMethod(methodName, timeoutMs = 2000) {
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
   return null;
+}
+
+// ── Window sizes ────────────────────────────────────────────────────────
+// Window sizes come from config/skin_dimensions.json; the values
+// under the "viewport" key are the viewport sizes the frame is added to.
+// The callers keep their inline numbers as fallbacks, so an install without the
+// config file still sizes the window exactly as it always did.
+let _SKIN_DIMS = null;
+
+async function _loadSkinDimensions() {
+  try {
+    const api = await _waitForPywebviewMethod("get_skin_dimensions");
+    if (!api) return;
+    const data = await api();
+    _SKIN_DIMS = (data && data.skins) ? data.skins : null;
+  } catch (_) { }
+}
+
+// Size for one skin layout in a specific window style, or null when unknown.
+function _dimsFor(skin, layout, style) {
+  if (!_SKIN_DIMS) return null;
+  const entry = _SKIN_DIMS[String(skin)];
+  const dims = entry && entry.layouts && entry.layouts[layout];
+  const chosen = dims && dims[style];
+  return chosen ? [chosen.w, chosen.h] : null;
+}
+
+// Size for a skin layout.  Always the viewport size: the window's frame is added
+// on the host side (AdjustWindowRectEx), so the same number is correct whether
+// the window has chrome or not.
+function _windowSize(skin, layout, fallbackW, fallbackH) {
+  return _dimsFor(skin, layout, "viewport") || [fallbackW, fallbackH];
 }
 
 async function _loadSettings() {
@@ -526,8 +629,7 @@ async function _loadSettings() {
     if (typeof saved.logoOpacity === "number") _settings.logoOpacity = Math.max(0, Math.min(100, saved.logoOpacity));
     if (typeof saved.danScale === "number") _settings.danScale = Math.max(0, Math.min(100, saved.danScale));
     if (typeof saved.greenScreen === "boolean") _settings.greenScreen = saved.greenScreen;
-    if (typeof saved.frameless === "boolean") _settings.frameless = saved.frameless;
-    if (typeof saved.ui6_no_vignette === "boolean") _settings.ui6_no_vignette = saved.ui6_no_vignette;
+      if (typeof saved.ui6_no_vignette === "boolean") _settings.ui6_no_vignette = saved.ui6_no_vignette;
     if (typeof saved.ui6_simple_mode === "boolean") _settings.ui6_simple_mode = saved.ui6_simple_mode;
     if (typeof saved.ui6_outlines === "boolean") _settings.ui6_outlines = saved.ui6_outlines;
     if (typeof saved.neverShowTutorial === "boolean") _settings.neverShowTutorial = saved.neverShowTutorial;
@@ -602,6 +704,7 @@ function _applySettings() {
     if (bg) bg.style.opacity = bg.dataset.prevOpacity || "";
   }
 
+
   const ui6SettingsWrap = document.getElementById("cfgUi6Settings");
   if (ui6SettingsWrap) {
     ui6SettingsWrap.style.display = _settings.skin === "6" ? "block" : "none";
@@ -627,8 +730,8 @@ const _LAYOUT_HEIGHTS = { complete: 320, simplified: 220, compact: 76 };
 let _layoutMode = "complete";
 
 function _applyLayoutMode(skipResize) {
-  // Classic skin and new skins (4-8) have fixed layouts; JS layout modes are not applicable.
-  if (_CURRENT_SKIN === "2" || _CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "7" || _CURRENT_SKIN === "8") return;
+  // Classic skin, new skins (4-8) and proposal skins (10-12) have fixed or specialized layouts.
+  if (_CURRENT_SKIN === "2" || _CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "7" || _CURRENT_SKIN === "8" || _CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12") return;
 
   if (_CURRENT_SKIN === "9") {
     const overlayEl = document.getElementById("overlay");
@@ -638,11 +741,19 @@ function _applyLayoutMode(skipResize) {
       overlayEl.classList.add(viewClass);
       overlayEl.classList.add("layout-" + _layoutMode);
     }
+    const fallbackH = _layoutMode === "complete" ? 146 : (_layoutMode === "simplified" ? 129 : 93);
+    const fallbackW = _layoutMode === "complete" ? 524 : (_layoutMode === "simplified" ? 409 : 323);
+    const [targetW, targetH] = _windowSize("9", _layoutMode, fallbackW, fallbackH);
+    _lockedBaseWidth = targetW;
+    _lockedBaseHeight = targetH;
+    _lockedBaseZoom = 1;
     if (skipResize) return;
-    const targetW = _layoutMode === "complete" ? 540 : (_layoutMode === "simplified" ? 480 : 360);
-    const targetH = _layoutMode === "complete" ? 175 : (_layoutMode === "simplified" ? 130 : 90);
     if (window.pywebview?.api?.set_window_size) {
       window.pywebview.api.set_window_size(targetW, targetH);
+    }
+    if (_resizeMode === "locked" && window.pywebview?.api?.set_resize_mode) {
+      const outerRatio = (targetW + 16) / (targetH + 39);
+      window.pywebview.api.set_resize_mode("locked", outerRatio);
     }
     return;
   }
@@ -652,13 +763,18 @@ function _applyLayoutMode(skipResize) {
   panel.classList.remove("layout-simplified", "layout-compact");
   if (_layoutMode !== "complete") panel.classList.add("layout-" + _layoutMode);
   if (skipResize) return;
-  const h = _LAYOUT_HEIGHTS[_layoutMode];
-
-  const isFrameless = _settings && _settings.frameless;
-  const currentOuterW = isFrameless ? window.innerWidth : (window.innerWidth + 16);
+  const defaultFallbackH = _layoutMode === "complete" ? 281 : (_layoutMode === "simplified" ? 181 : 37);
+  const [targetW, targetH] = _windowSize(_CURRENT_SKIN, _layoutMode, 684, defaultFallbackH);
+  _lockedBaseWidth = targetW;
+  _lockedBaseHeight = targetH;
+  _lockedBaseZoom = 1;
 
   if (window.pywebview?.api?.set_window_size) {
-    window.pywebview.api.set_window_size(currentOuterW, h);
+    window.pywebview.api.set_window_size(targetW, targetH);
+  }
+  if (_resizeMode === "locked" && window.pywebview?.api?.set_resize_mode) {
+    const outerRatio = (targetW + 16) / (targetH + 39);
+    window.pywebview.api.set_resize_mode("locked", outerRatio);
   }
 }
 
@@ -681,21 +797,66 @@ function _cycleLayout() {
     window._ignoreNextP2Resize = true;
     if (typeof window._resetP2ResizeStates === "function") window._resetP2ResizeStates();
 
-    // PyWebView's _window.width can be stale on Windows, so we pass the accurate outerWidth from JS
-    const isFrameless = _settings && _settings.frameless;
-    const currentOuterW = isFrameless ? window.innerWidth : (window.innerWidth + 16);
+    const layoutKey = isExp ? "expanded" : "collapsed";
+    let targetW = 578, targetH = isExp ? 195 : 99, targetZoom = 1;
+    if (_CURRENT_SKIN === "4") {
+      [targetW, targetH] = _windowSize("4", layoutKey, 268, isExp ? 427 : 296);
+      targetZoom = 0.61;
+    } else if (_CURRENT_SKIN === "5") {
+      [targetW, targetH] = _windowSize("5", layoutKey, 573, isExp ? 233 : 131);
+      targetZoom = 0.75;
+    } else if (_CURRENT_SKIN === "6") {
+      [targetW, targetH] = _windowSize("6", layoutKey, 629, isExp ? 258 : 172);
+      targetZoom = 0.73;
+    } else if (_CURRENT_SKIN === "8") {
+      [targetW, targetH] = _windowSize("8", layoutKey, 578, isExp ? 195 : 99);
+      targetZoom = 0.94;
+    }
 
-    if (_CURRENT_SKIN === "4" && window.pywebview?.api?.set_window_size) {
-      window.pywebview.api.set_window_size(currentOuterW, isExp ? 466 : 335);
-    } else if (_CURRENT_SKIN === "5" && window.pywebview?.api?.set_window_size) {
-      window.pywebview.api.set_window_size(currentOuterW, isExp ? 272 : 170);
-      document.documentElement.style.zoom = isExp ? 0.75 : 0.75;
-    } else if (_CURRENT_SKIN === "6" && window.pywebview?.api?.set_window_size) {
-      window.pywebview.api.set_window_size(currentOuterW, isExp ? 297 : 211);
-      document.documentElement.style.zoom = isExp ? 0.73 : 0.73;
-    } else if (_CURRENT_SKIN === "8" && window.pywebview?.api?.set_window_size) {
-      window.pywebview.api.set_window_size(594, isExp ? 234 : 138);
-      document.documentElement.style.zoom = 0.94;
+    if (window.pywebview?.api?.set_window_size) {
+      window.pywebview.api.set_window_size(targetW, targetH);
+    }
+    document.documentElement.style.zoom = targetZoom;
+    _lockedBaseWidth = targetW;
+    _lockedBaseHeight = targetH;
+    _lockedBaseZoom = targetZoom;
+    if (_resizeMode === "locked" && window.pywebview?.api?.set_resize_mode) {
+      const outerRatio = (targetW + 16) / (targetH + 39);
+      window.pywebview.api.set_resize_mode("locked", outerRatio);
+    }
+    return;
+  }
+
+  if (_CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12") {
+    const hud = document.querySelector(".proposal-hud");
+    if (!hud) return;
+    const isExp = !hud.classList.contains("expanded");
+    hud.classList.toggle("expanded", isExp);
+    if (typeof showToast === "function") showToast(isExp ? "Drawer: Expanded" : "Drawer: Hidden", 1600);
+    const layoutKey = isExp ? "expanded" : "collapsed";
+
+    let targetW = 630, targetH = isExp ? 163 : 132, targetZoom = 1;
+    if (_CURRENT_SKIN === "10") {
+      [targetW, targetH] = _windowSize("10", layoutKey, 661, isExp ? 252 : 122);
+      targetZoom = 1;
+    } else if (_CURRENT_SKIN === "11") {
+      [targetW, targetH] = _windowSize("11", layoutKey, 784, isExp ? 213 : 197);
+      targetZoom = 1;
+    } else if (_CURRENT_SKIN === "12") {
+      [targetW, targetH] = _windowSize("12", layoutKey, 630, isExp ? 163 : 132);
+      targetZoom = 0.77;
+    }
+
+    if (window.pywebview?.api?.set_window_size) {
+      window.pywebview.api.set_window_size(targetW, targetH);
+    }
+    document.documentElement.style.zoom = targetZoom;
+    _lockedBaseWidth = targetW;
+    _lockedBaseHeight = targetH;
+    _lockedBaseZoom = targetZoom;
+    if (_resizeMode === "locked" && window.pywebview?.api?.set_resize_mode) {
+      const outerRatio = (targetW + 16) / (targetH + 39);
+      window.pywebview.api.set_resize_mode("locked", outerRatio);
     }
     return;
   }
@@ -736,16 +897,16 @@ function _updateScoringModeBadge() {
   const badge = document.getElementById("scoringModeBadge");
   if (!badge) return;
   if (_lnOverrideActive) {
-    badge.textContent = "♬ Mode: LN Course";
+    badge.textContent = "Mode: LN Course";
     badge.dataset.mode = "ln_course";
   } else if (_scoringMode === "celestial") {
-    badge.textContent = "✦ Mode: Celestial";
+    badge.textContent = "Mode: Celestial";
     badge.dataset.mode = "celestial";
   } else if (_scoringMode === "signicial") {
     badge.textContent = "◆ Mode: Signicial";
     badge.dataset.mode = "signicial";
   } else if (_scoringMode === "shoegazer") {
-    badge.textContent = "♫ Mode: Shoegazer";
+    badge.textContent = "Mode: Shoegazer";
     badge.dataset.mode = "shoegazer";
   } else {
     badge.textContent = "◇ Mode: Reform";
@@ -896,7 +1057,7 @@ function setChartGenerating(isGenerating) {
 
 function setChartDone() {
   chartGenerating = false;
-  showToast("✓ Chart generated", 2000);
+  showToast("Chart generated", 2000);
 }
 
 function setTickerText(tickerEl, text) {
@@ -1124,6 +1285,10 @@ function startMapTransition() {
     ui.drainBar.style.width = "0%";
   }
 
+  if (_CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12") {
+    _startProposalsComputingAnimation();
+  }
+
   // Only use the full blackout transition when we are replacing an existing
   // dan result. On first load there is nothing stale to hide, so keep the
   // normal loading screen visible instead of masking the whole overlay.
@@ -1150,6 +1315,8 @@ function finishMapTransition() {
   clearTimeout(_transitionSafetyTimer);
   isMapTransitioning = false;
   ui.panel.classList.remove("is-map-transition");
+  const activeHud = document.querySelector(".proposal-hud");
+  if (activeHud) activeHud.classList.remove("map-transition");
 }
 
 function extractTimeState(payload) {
@@ -1311,6 +1478,15 @@ function _renderAnalysisPayload(payload) {
   if (_CURRENT_SKIN === "9") {
     finishMapTransition();
     _updateChromaStreamSkin(payload);
+    setChartButtonReady(true);
+    if (ui.density) { ui.density.innerHTML = ""; ui.density.classList.remove("has-data"); }
+    return;
+  }
+
+  // ── Top 3 Selected Proposals (ui-10, ui-11, ui-12) ────────────
+  if (_CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12") {
+    finishMapTransition();
+    _updateProposalsSkin(payload);
     setChartButtonReady(true);
     if (ui.density) { ui.density.innerHTML = ""; ui.density.classList.remove("has-data"); }
     return;
@@ -2183,6 +2359,406 @@ function _updateChromaStreamSkin(payload) {
   }
 }
 
+// ── Top 3 Selected Proposals (ui-10, ui-11, ui-12) ──────────────────
+let _proposalsCalcInterval = null;
+let _proposalsIsComputing = false;
+let _lastDisplayedProposalDP = 11.98;
+
+function _animateProposalDP(startDP, endDP, duration = 240) {
+  if (_sunnyAnimReqs["prop_dp"]) window.cancelAnimationFrame(_sunnyAnimReqs["prop_dp"]);
+  let startTimestamp = null;
+  const intEls = Array.from(document.querySelectorAll('[data-bind="dp-int"], #ui-dp-int'));
+  const decEls = Array.from(document.querySelectorAll('[data-bind="dp-dec"], #ui-dp-dec'));
+  const step = (timestamp) => {
+    if (!startTimestamp) startTimestamp = timestamp;
+    const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = startDP + (endDP - startDP) * ease;
+    const splitStr = current.toFixed(2).split(".");
+    const intVal = splitStr[0];
+    const decVal = "." + (splitStr[1] || "00");
+    for (let i = 0; i < intEls.length; i++) intEls[i].textContent = intVal;
+    for (let i = 0; i < decEls.length; i++) decEls[i].textContent = decVal;
+    if (progress < 1) {
+      _sunnyAnimReqs["prop_dp"] = window.requestAnimationFrame(step);
+    }
+  };
+  _sunnyAnimReqs["prop_dp"] = window.requestAnimationFrame(step);
+}
+
+function _startProposalsComputingAnimation() {
+  if (_CURRENT_SKIN !== "10" && _CURRENT_SKIN !== "11" && _CURRENT_SKIN !== "12") return;
+  if (_proposalsIsComputing) return;
+  _proposalsIsComputing = true;
+
+  const hud = document.querySelector(".proposal-hud");
+  if (hud) hud.classList.add("is-computing");
+
+  document.querySelectorAll('[data-bind="tier-name"], #ui-tier').forEach(el => el.textContent = "SCANNING");
+
+  const GLITCH_SYMBOLS = ['1ST', '2ND', '3RD', '4TH', '5TH', '6TH', '7TH', '8TH', '9TH', '10TH', 'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ'];
+  let pct = 0;
+
+  const dpIntEls = Array.from(document.querySelectorAll('[data-bind="dp-int"], #ui-dp-int'));
+  const dpDecEls = Array.from(document.querySelectorAll('[data-bind="dp-dec"], #ui-dp-dec'));
+  const symEls = Array.from(document.querySelectorAll('[data-bind="symbol-mod"], #ui-symbol'));
+  const danEl10 = document.querySelector('#hud-10 [data-bind="dan-title"], #hud-10 #ui-dan-name');
+  const danEl11 = document.querySelector('#hud-11 [data-bind="dan-title"], #hud-11 #ui-dan-name');
+  const danEl12 = document.querySelector('#hud-12 [data-bind="dan-title"], #hud-12 #ui-dan-name');
+
+  clearInterval(_proposalsCalcInterval);
+  _proposalsCalcInterval = setInterval(() => {
+    pct = Math.min(99, pct + Math.floor(Math.random() * 12 + 4));
+    const randInt = Math.floor(Math.random() * 20 + 1).toString().padStart(2, '0');
+    const randDec = Math.floor(Math.random() * 99).toString().padStart(2, '0');
+    const randSym = GLITCH_SYMBOLS[Math.floor(Math.random() * GLITCH_SYMBOLS.length)];
+
+    for (let i = 0; i < dpIntEls.length; i++) dpIntEls[i].textContent = randInt;
+    for (let i = 0; i < dpDecEls.length; i++) dpDecEls[i].textContent = `.${randDec}`;
+    for (let i = 0; i < symEls.length; i++) symEls[i].textContent = randSym;
+
+    if (_CURRENT_SKIN === "10" && danEl10) {
+      danEl10.textContent = `SYNC ${pct}%`;
+    } else if (_CURRENT_SKIN === "11" && danEl11) {
+      const fakeRPM = Math.floor(6500 + Math.random() * 5500);
+      danEl11.textContent = `${fakeRPM} RPM`;
+    } else if (_CURRENT_SKIN === "12" && danEl12) {
+      danEl12.textContent = `MSD_${randInt}.${randDec}`;
+    }
+  }, 75);
+}
+
+function _stopProposalsComputingAnimation() {
+  if (_CURRENT_SKIN !== "10" && _CURRENT_SKIN !== "11" && _CURRENT_SKIN !== "12") return;
+  _proposalsIsComputing = false;
+  if (_proposalsCalcInterval) {
+    clearInterval(_proposalsCalcInterval);
+    _proposalsCalcInterval = null;
+  }
+  if (_splitFlapTimer) {
+    clearInterval(_splitFlapTimer);
+    _splitFlapTimer = null;
+  }
+  const hud = document.querySelector(".proposal-hud");
+  if (hud) hud.classList.remove("is-computing");
+}
+
+let _splitFlapTimer = null;
+function _runSplitFlapText(targetText) {
+  if (_splitFlapTimer) {
+    clearInterval(_splitFlapTimer);
+    _splitFlapTimer = null;
+  }
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#/_";
+  const el = document.querySelector('#hud-11 [data-bind="dan-title"], #hud-11 #ui-dan-name');
+  if (!el) return;
+  let step = 0;
+  const len = targetText.length;
+  _splitFlapTimer = setInterval(() => {
+    let out = "";
+    for (let i = 0; i < len; i++) {
+      if (i < Math.floor(step)) {
+        out += targetText[i];
+      } else {
+        out += chars[Math.floor(Math.random() * chars.length)];
+      }
+    }
+    el.textContent = out;
+    step += 1.6;
+    if (step >= len) {
+      clearInterval(_splitFlapTimer);
+      _splitFlapTimer = null;
+      el.textContent = targetText;
+    }
+  }, 28);
+}
+
+let _lastProposalPayload = null;
+
+function _updateProposalsSkin(payload) {
+  if (!payload || typeof payload !== "object") return;
+  _lastProposalPayload = payload;
+
+  _stopProposalsComputingAnimation();
+
+  // Trigger map transition animation
+  const activeHud = document.querySelector(".proposal-hud");
+  if (activeHud) {
+    activeHud.classList.remove("map-transition");
+    void activeHud.offsetWidth;
+    activeHud.classList.add("map-transition");
+    setTimeout(() => {
+      if (activeHud) activeHud.classList.remove("map-transition");
+    }, 650);
+  }
+
+  let category = "REFORM 4K";
+  let danTitle = "ALPHA";
+  let symbol = "α";
+  let dpVal = 11.98;
+  let palette = DAN_PALETTES["Alpha"] || ["rgb(70,60,180)", "rgb(220,65,80)", "rgb(245,225,45)"];
+
+  const celestial = payload.celestial;
+  const signicial = payload.signicial;
+  const shoegazer = payload.shoegazer;
+  const lnCourse = payload.ln_course;
+
+  if (payload.mode === "7k" && payload.tier_7k) {
+    category = "7K MANIA";
+    danTitle = String(payload.tier_7k).toUpperCase();
+    dpVal = Number(payload.dp_7k || payload.dp || 0);
+    palette = PALETTES_7K[payload.tier_7k] || PALETTES_7K["Gamma"];
+    const tier7k = String(payload.tier_7k);
+    if (tier7k.includes("Dan")) {
+      const numMatch = tier7k.match(/\d+/);
+      const num = numMatch ? numMatch[0] : "1";
+      const suf = num === "1" ? "ST" : num === "2" ? "ND" : num === "3" ? "RD" : "TH";
+      symbol = `${num}${suf}`;
+    } else if (tier7k === "Gamma") symbol = "γ";
+    else if (tier7k === "Azimuth") symbol = "AZI";
+    else if (tier7k === "Zenith") symbol = "ZEN";
+    else if (tier7k.includes("Stellium")) symbol = "STE";
+    else symbol = tier7k.substring(0, 3).toUpperCase();
+  } else if (_lnOverrideActive && lnCourse && lnCourse.label) {
+    category = "LN COURSE";
+    danTitle = String(lnCourse.label).toUpperCase();
+    dpVal = Number(lnCourse.dp_ln || lnCourse.dp || 0);
+    const lKey = String(lnCourse.stage_key || "1st");
+    palette = LN_COURSE_PALETTES[lKey] || LN_COURSE_PALETTES["1st"];
+    symbol = LN_COURSE_SYMBOLS[lKey] || lKey.substring(0, 3).toUpperCase();
+  } else if (_scoringMode === "celestial" && celestial && celestial.label) {
+    category = "CELESTIAL 4K";
+    danTitle = String(celestial.label).toUpperCase();
+    dpVal = Number(celestial.dp_celestial || celestial.dp || 0);
+    const tier = String(celestial.label);
+    palette = CELESTIAL_PALETTES[tier] || CELESTIAL_PALETTES["Beginner"];
+    symbol = CELESTIAL_SYMBOLS[tier] || tier.substring(0, 3).toUpperCase();
+  } else if (_scoringMode === "signicial" && signicial && signicial.label) {
+    category = "SIGNICIAL 4K";
+    danTitle = String(signicial.label).toUpperCase();
+    dpVal = Number(signicial.dp_signicial || signicial.dp || 0);
+    const stage = String(signicial.label);
+    palette = SIGNICIAL_PALETTES[stage] || SIGNICIAL_PALETTES["I"];
+    symbol = SIGNICIAL_SYMBOLS[stage] || stage;
+  } else if (_scoringMode === "shoegazer" && shoegazer && shoegazer.label) {
+    category = "SHOEGAZER 4K";
+    danTitle = String(shoegazer.label).toUpperCase();
+    dpVal = Number(shoegazer.dp_shoegazer || shoegazer.dp || 0);
+    const stage = String(shoegazer.label);
+    palette = SHOEGAZER_PALETTES[stage] || SHOEGAZER_PALETTES["1st"];
+    symbol = SHOEGAZER_SYMBOLS[stage] || stage.substring(0, 3).toUpperCase();
+  } else {
+    // Reform Mode
+    category = "REFORM 4K";
+    const danLabel = String(payload.dan_label || "1st Dan");
+    danTitle = danLabel.toUpperCase();
+    dpVal = Number(payload.dp || 0);
+    palette = paletteForDan(danLabel) || DAN_PALETTES["1st Dan"];
+    if (NUMERIC_DAN_MAP[danLabel]) {
+      symbol = NUMERIC_DAN_MAP[danLabel];
+    } else if (GREEK_DAN_SYMBOLS[danLabel]) {
+      symbol = GREEK_DAN_SYMBOLS[danLabel];
+    } else {
+      symbol = danLabel.substring(0, 3).toUpperCase();
+    }
+  }
+
+  // Calculate decimal fraction and subtier
+  const decimalVal = Math.max(0, dpVal - Math.floor(dpVal));
+  let tierInfo = { name: "HIGH", mod: "++", count: 5 };
+  if (decimalVal < 0.20) tierInfo = { name: "LOW", mod: "--", count: 1 };
+  else if (decimalVal < 0.40) tierInfo = { name: "MID-LOW", mod: "-", count: 2 };
+  else if (decimalVal < 0.60) tierInfo = { name: "MID", mod: "", count: 3 };
+  else if (decimalVal < 0.80) tierInfo = { name: "MID-HIGH", mod: "+", count: 4 };
+
+  const symbolMod = `${symbol}${tierInfo.mod}`;
+
+  // Parse palette colors to "r, g, b" strings
+  function toRgbString(c) {
+    if (!c) return "70, 60, 180";
+    if (typeof c === "string" && c.startsWith("rgb")) {
+      const match = c.match(/\d+[\s,]+\d+[\s,]+\d+/);
+      return match ? match[0].replace(/\s+/g, ',') : "70, 60, 180";
+    }
+    return c;
+  }
+  const c1 = toRgbString(palette[0]);
+  const c2 = toRgbString(palette[1] || palette[0]);
+  const c3 = toRgbString(palette[2] || palette[1] || palette[0]);
+
+  // Luminance for text contrast
+  const parts1 = c1.split(',').map(Number);
+  const lum1 = (0.299 * (parts1[0] || 0) + 0.587 * (parts1[1] || 0) + 0.114 * (parts1[2] || 0)) / 255;
+  const contrastOnC1 = lum1 > 0.62 ? "#08090d" : "#ffffff";
+
+  // Sunny Star Rating dynamic colors
+  const srVal = Number(payload.sunny_sr || payload.sr_official || payload.sr || payload.osu_sr || 0);
+  const srColorBg = getStarBgColor(srVal);
+  const srColorTxt = getStarTextColor(srVal);
+
+  const applyData = () => {
+    const root = document.documentElement;
+    root.style.setProperty('--c1', c1);
+    root.style.setProperty('--c2', c2);
+    root.style.setProperty('--c3', c3);
+    root.style.setProperty('--contrast-on-c1', contrastOnC1);
+    root.style.setProperty('--sr-bg', srColorBg);
+    root.style.setProperty('--sr-txt', srColorTxt);
+    root.style.setProperty('--sr-accent', srColorBg);
+    root.style.setProperty('--dec-prog', decimalVal.toFixed(3));
+    root.style.setProperty('--tier-pct', (tierInfo.count * 20).toString());
+
+    // SVG stops for UI-11
+    const stop1 = document.getElementById('svg-stop-1');
+    const stop2 = document.getElementById('svg-stop-2');
+    if (stop1) stop1.setAttribute('stop-color', `rgb(${c1})`);
+    if (stop2) stop2.setAttribute('stop-color', `rgb(${c2})`);
+
+    // DOM text bindings
+    document.querySelectorAll('[data-bind="dan-title"], #ui-dan-name').forEach(el => el.textContent = danTitle);
+
+    // Symbol element with responsive font sizing in UI-10
+    const symEl = document.getElementById("ui-symbol");
+    if (symEl) {
+      symEl.textContent = symbolMod;
+      if (_CURRENT_SKIN === "10") {
+        if (symbolMod.length >= 5) {
+          symEl.style.fontSize = "12px";
+          symEl.style.letterSpacing = "-0.6px";
+        } else if (symbolMod.length === 4) {
+          symEl.style.fontSize = "14px";
+          symEl.style.letterSpacing = "-0.4px";
+        } else if (symbolMod.length === 3) {
+          symEl.style.fontSize = "17px";
+          symEl.style.letterSpacing = "-0.2px";
+        } else {
+          symEl.style.fontSize = "20px";
+          symEl.style.letterSpacing = "-0.5px";
+        }
+      }
+    }
+    document.querySelectorAll('[data-bind="symbol-mod"]').forEach(el => {
+      if (el !== symEl) el.textContent = symbolMod;
+    });
+
+    document.querySelectorAll('[data-bind="tier-name"], #ui-tier').forEach(el => el.textContent = tierInfo.name);
+    const catEl = document.getElementById('ui-category');
+    if (catEl) catEl.textContent = category;
+
+    // Animated DP
+    _animateProposalDP(_lastDisplayedProposalDP || 0, dpVal, 600);
+    _lastDisplayedProposalDP = dpVal;
+
+    // Etterna mode detection & sync
+    const isEtterna = (payload.game === "etterna")
+      || (_lastMapPayload && _lastMapPayload.game === "etterna")
+      || (typeof _etternaRunning !== "undefined" && _etternaRunning)
+      || document.body.classList.contains("game-etterna");
+    document.body.classList.toggle("game-etterna", isEtterna);
+    document.body.classList.toggle("game-osu", !isEtterna);
+
+    // Map info (preserves metadata from map_info when analysis result arrives)
+    let fullMap = "";
+    if (payload.title || payload.artist) {
+      const t = payload.title || "";
+      const a = payload.artist || "";
+      let ver = payload.version || payload.diff_name || "";
+      if (ver) {
+        const vTrim = String(ver).trim();
+        ver = vTrim.startsWith("[") && vTrim.endsWith("]") ? ` ${vTrim}` : ` [${vTrim}]`;
+      }
+      fullMap = [a, t].filter(Boolean).join(" — ");
+      if (!fullMap) fullMap = t || a || "";
+      if (fullMap && ver) fullMap += ver;
+    } else if (_lastMapPayload && (_lastMapPayload.title || _lastMapPayload.artist)) {
+      const t = _lastMapPayload.title || "";
+      const a = _lastMapPayload.artist || "";
+      let ver = _lastMapPayload.version || _lastMapPayload.diff_name || "";
+      if (ver) {
+        const vTrim = String(ver).trim();
+        ver = vTrim.startsWith("[") && vTrim.endsWith("]") ? ` ${vTrim}` : ` [${vTrim}]`;
+      }
+      fullMap = [a, t].filter(Boolean).join(" — ");
+      if (!fullMap) fullMap = t || a || "";
+      if (fullMap && ver) fullMap += ver;
+    } else {
+      const existing = document.getElementById("skinMapTitle")?.textContent;
+      if (existing && existing !== "Waiting for beatmap..." && existing !== "Waiting for beatmap from tosu...") {
+        fullMap = existing;
+      }
+    }
+    if (!fullMap) fullMap = "Waiting for beatmap...";
+    document.querySelectorAll('[data-bind="map-full"], #skinMapTitle').forEach(el => el.textContent = fullMap);
+
+    // Skillset & stats
+    const SKILLSET_LABELS = {
+      stream: "STREAM", jumpstream: "JS", handstream: "HS",
+      stamina: "STAM", jackspeed: "JACK", chordjack: "CJ", technical: "TECH",
+    };
+    const skillsets = payload.skillsets || {};
+    const top1 = Object.entries(skillsets)
+      .filter(([, v]) => Number(v) > 0)
+      .sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+    const skillLabel = top1 ? (SKILLSET_LABELS[top1[0]] || top1[0].toUpperCase()) : "PATTERN";
+    document.querySelectorAll('[data-bind="skillset"], #ui-skillset').forEach(el => el.textContent = skillLabel);
+
+    const msdVal = Number(payload.overall_msd || 0);
+    document.querySelectorAll('[data-bind="msd"], #danMetrics').forEach(el => el.textContent = msdVal > 0 ? msdVal.toFixed(2) : "--.--");
+    document.querySelectorAll('[data-bind="sr"], #ui-sr, #ui-sr-stat').forEach(el => el.textContent = srVal > 0 ? `${srVal.toFixed(2)}★` : "--.-★");
+
+    // BPM & Length.  These used to fall back to a `mapObj` that was never
+    // declared anywhere in this scope: `mapObj && ...` does not protect against a
+    // missing binding, so evaluating it threw ReferenceError on skins 10-12.
+    // The payload already carries the values.
+    const bpm = Math.round(Number(payload.bpm || payload.max_bpm || payload.bpm_common || 0));
+    if (bpm > 0) document.querySelectorAll('[data-bind="bpm"], #ui-bpm').forEach(el => el.textContent = bpm);
+    if (isEtterna) {
+      document.querySelectorAll('[data-bind="len"], #ui-len').forEach(el => el.textContent = "--:--");
+    } else {
+      const totalS = Math.floor(Number(payload.total_ms || 0) / 1000);
+      if (totalS > 0) {
+        const m = Math.floor(totalS / 60);
+        const s = String(totalS % 60).padStart(2, "0");
+        document.querySelectorAll('[data-bind="len"], #ui-len').forEach(el => el.textContent = `${m}:${s}`);
+      }
+    }
+
+    // Shift LEDs (UI-11) & Barcode (UI-12)
+    document.querySelectorAll('#p4-leds .p4-led').forEach((el, i) => {
+      const colorCls = i < 2 ? 'g' : (i < 4 ? 'y' : 'r');
+      el.className = `p4-led ${i < tierInfo.count ? 'active ' + colorCls : ''}`;
+    });
+    document.querySelectorAll('#p5-bars .p5-bbar').forEach((el, i) => {
+      el.classList.toggle('active', i < tierInfo.count);
+    });
+
+    // J / P / X / A mini bars
+    const jVal = Math.min(95, Math.max(15, Math.round(Number(skillsets.jumpstream || 15) * 3.5)));
+    const pVal = Math.min(95, Math.max(15, Math.round(Number(skillsets.handstream || 15) * 3.5)));
+    const xVal = Math.min(95, Math.max(15, Math.round(Number(skillsets.stream || 15) * 3.5)));
+    const aVal = Math.min(95, Math.max(15, Math.round(Number(skillsets.stamina || 15) * 3.5)));
+    const jEl = document.getElementById('jpxa-j') || document.querySelector('[data-bar="j"]');
+    const pEl = document.getElementById('jpxa-p') || document.querySelector('[data-bar="p"]');
+    const xEl = document.getElementById('jpxa-x') || document.querySelector('[data-bar="x"]');
+    const aEl = document.getElementById('jpxa-a') || document.querySelector('[data-bar="a"]');
+    if (jEl) jEl.style.width = `${jVal}%`;
+    if (pEl) pEl.style.width = `${pVal}%`;
+    if (xEl) xEl.style.width = `${xVal}%`;
+    if (aEl) aEl.style.width = `${aVal}%`;
+    lastDanRaw = danTitle;
+  };
+
+  if (_CURRENT_SKIN === "12") {
+    // Swiss Brutalist: update text at 60ms when mechanical shutters cover the cells
+    setTimeout(applyData, 60);
+  } else {
+    applyData();
+    if (_CURRENT_SKIN === "11") {
+      _runSplitFlapText(danTitle);
+    }
+  }
+}
+
 function applyDanResult(result) {
   finishMapTransition();
   // Palette: Celestial → per-tier; Signicial → per-stage; Shoegazer → per-stage; LN Course → per-stage; Reform → per-dan
@@ -2445,12 +3021,18 @@ function applyLoading(message = "Computing") {
     root.style.setProperty("--star-bg", "rgb(45, 45, 45)");
     root.style.setProperty("--star-text", "#ffffff");
     root.style.setProperty("--star-accent", "rgb(140, 140, 140)");
-    root.style.setProperty("--c1", "#555555");
-    root.style.setProperty("--c2", "#333333");
+    root.style.setProperty("--c1", "85, 85, 85");
+    root.style.setProperty("--c2", "50, 50, 50");
+    root.style.setProperty("--c3", "200, 200, 200");
     _startSunnyDotsAnimation();
     _startSkin8DotsAnimation();
     _startSkin9ComputingAnimation();
-    const uiContent = document.getElementById("ui-content");
+    _startProposalsComputingAnimation();
+    // The glitch is declared by skins 7 and 8.  The prototype wrapped the HUD in
+    // `<div id="ui-content">`; the shipped skins use `<main id="overlay">`, so
+    // looking only for ui-content meant the animation never fired.
+    const uiContent = document.getElementById("ui-content") ||
+                      document.getElementById("overlay");
     if (uiContent) {
       uiContent.classList.remove("glitch-active");
       void uiContent.offsetWidth;
@@ -2906,49 +3488,44 @@ function applyFromPythonBridge(payload) {
           _startOsuCheck();                     // start polling osu! status
         }
         // Re-load settings from Python file now that the API is reachable.
-        _loadSettings().then(() => {
+        _loadSettings().then(() => _loadSkinDimensions()).then(() => {
           _applySettings();
-          const savedLayout = _settings.layout || "complete";
+          // Skins that use layout modes open on `complete`; otherwise the
+          // last saved layout is kept.
+          const forcedLayout = (_CURRENT_SKIN === "9" || _CURRENT_SKIN === "1") ? "complete" : null;
+          const savedLayout = forcedLayout || _settings.layout || "complete";
           if (savedLayout !== _layoutMode) {
             _layoutMode = savedLayout;
             _applyLayoutMode(true);
           }
-          // Apply saved window size OR skin defaults safely inside the .then block
-          // once the python settings have been loaded and the API is guaranteed ready.
-          let w = _settings.windowWidth;
-          let h = _settings.windowHeight;
-          const isLegacyDefault = (w === 700 && h === 320) || (w === 860 && h === 320);
-          if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "8" || _CURRENT_SKIN === "9")) {
-            w = null;
-            h = null;
-          }
-          if (_CURRENT_SKIN === "4") {
-            document.documentElement.style.zoom = 0.61;
-          } else if (_CURRENT_SKIN === "5") {
-            document.documentElement.style.zoom = 0.75;
-          } else if (_CURRENT_SKIN === "6") {
-            document.documentElement.style.zoom = 0.73;
-          } else if (_CURRENT_SKIN === "8") {
-            document.documentElement.style.zoom = 0.94;
-          }
-          if (w && h && window.pywebview?.api?.set_window_size) {
-            window.pywebview.api.set_window_size(w, h);
-          } else if (!w && !h && window.pywebview?.api?.set_window_size) {
-            if (_CURRENT_SKIN === "4") {
-              window.pywebview.api.set_window_size(284, 335);
-            } else if (_CURRENT_SKIN === "5") {
-              window.pywebview.api.set_window_size(589, 170);
-            } else if (_CURRENT_SKIN === "6") {
-              window.pywebview.api.set_window_size(645, 211);
-            } else if (_CURRENT_SKIN === "8") {
-              window.pywebview.api.set_window_size(594, 234);
-            } else if (_CURRENT_SKIN === "9") {
-              const w9 = _layoutMode === "compact" ? 370 : 485;
-              const h9 = _layoutMode === "complete" ? 169 : (_layoutMode === "simplified" ? 158 : 120);
-              window.pywebview.api.set_window_size(w9, h9);
-            } else {
-              window.pywebview.api.set_window_size(700, 320);
-            }
+          // Canonical startup layout per skin.  Each skin opens in its natural
+          // format (Josh opens fully expanded, Hero-Dan collapsed, ...), and the
+          // size comes from the shared dimensions table rather than a second copy
+          // of the numbers.  This runs on every page load, so switching skins
+          // always lands on that skin's own default instead of inheriting the
+          // window size of the previous one.
+          const startupLayout = {
+            "1": "complete", "2": "complete", "3": "complete", "4": "collapsed",
+            "5": "collapsed", "6": "collapsed", "7": "default", "8": "collapsed",
+            "9": "complete", "10": "collapsed", "11": "collapsed", "12": "collapsed",
+          };
+          const startupFallback = {
+            "1": [684, 281], "2": [684, 281], "3": [684, 281], "4": [268, 296],
+            "5": [573, 131], "6": [629, 172], "7": [784, 301], "8": [578, 99],
+            "9": [524, 146], "10": [661, 122], "11": [784, 197], "12": [630, 132],
+          };
+          const startupLayoutKey = startupLayout[_CURRENT_SKIN] || "complete";
+          const fb = startupFallback[_CURRENT_SKIN] || [700, 320];
+          const [sw, sh] = _dimsFor(_CURRENT_SKIN, startupLayoutKey, "viewport") || fb;
+          const skinZoom = (_SKIN_DIMS && _SKIN_DIMS[_CURRENT_SKIN] &&
+                            typeof _SKIN_DIMS[_CURRENT_SKIN].zoom === "number")
+            ? _SKIN_DIMS[_CURRENT_SKIN].zoom : 1.0;
+          document.documentElement.style.zoom = skinZoom;
+          _lockedBaseWidth = sw;
+          _lockedBaseHeight = sh;
+          _lockedBaseZoom = skinZoom;
+          if (window.pywebview?.api?.set_window_size) {
+            window.pywebview.api.set_window_size(sw, sh);
           }
         });
       }
@@ -2969,6 +3546,10 @@ function applyFromPythonBridge(payload) {
         }
       }
       if (!vizActive) vizTarget.fill(0);
+      // Only wake the render loop when the bars actually carry signal.  The
+      // Python side emits a "visualizer" payload at 30 fps even when idle
+      // (bands: null), so kicking on every payload would keep restarting it.
+      if (Array.isArray(payload.bands) && payload.bands.some((v) => v > 0.001)) vizKick();
       return;
     }
 
@@ -3059,6 +3640,7 @@ function applyFromPythonBridge(payload) {
       document.body.classList.toggle("game-osu", !isEtterna);
 
       setMapTitleText(titleLine);
+      document.querySelectorAll('[data-bind="map-full"], #skinMapTitle').forEach(el => el.textContent = titleLine);
       if (ui.mapArtist) {
         if (payload.mapper) {
           ui.mapArtist.textContent = isEtterna ? `Charter: ${payload.mapper}` : `Mapped by ${payload.mapper}`;
@@ -4051,39 +4633,70 @@ document.addEventListener("keydown", (e) => {
     const panel = document.getElementById("danPanel") || document.getElementById("overlay");
     const isExpanded = panel && (panel.classList.contains("is-expanded") || panel.classList.contains("expanded"));
     if (_CURRENT_SKIN === "4") {
-      if (window.pywebview?.api?.set_window_size) {
-        window.pywebview.api.set_window_size(284, isExpanded ? 466 : 335);
-      }
+      const [w4, h4] = _windowSize("4", isExpanded ? "expanded" : "collapsed", 284, isExpanded ? 466 : 335);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w4, h4);
       document.documentElement.style.zoom = 0.61;
-      if (typeof showToast === "function") showToast(isExpanded ? "Reset: 284×466 ◱" : "Reset: 284×335 ◱");
+      if (typeof showToast === "function") showToast(`Reset: ${w4}×${h4} ◱`);
     } else if (_CURRENT_SKIN === "5") {
-      if (window.pywebview?.api?.set_window_size) {
-        window.pywebview.api.set_window_size(589, isExpanded ? 272 : 170);
-      }
+      const [w5, h5] = _windowSize("5", isExpanded ? "expanded" : "collapsed", 589, isExpanded ? 272 : 170);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w5, h5);
       document.documentElement.style.zoom = 0.75;
       if (typeof window._resetP2ResizeStates === "function") {
         window._resetP2ResizeStates();
       }
-      if (typeof showToast === "function") showToast(isExpanded ? "Reset: 589×272 ◱" : "Reset: 589×170 ◱");
+      if (typeof showToast === "function") showToast(`Reset: ${w5}×${h5} ◱`);
     } else if (_CURRENT_SKIN === "6") {
-      if (window.pywebview?.api?.set_window_size) {
-        window.pywebview.api.set_window_size(645, isExpanded ? 297 : 211);
-      }
+      const [w6, h6] = _windowSize("6", isExpanded ? "expanded" : "collapsed", 645, isExpanded ? 297 : 211);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w6, h6);
       document.documentElement.style.zoom = 0.73;
-      if (typeof showToast === "function") showToast(isExpanded ? "Reset: 645×297 ◱" : "Reset: 645×211 ◱");
+      if (typeof showToast === "function") showToast(`Reset: ${w6}×${h6} ◱`);
     } else if (_CURRENT_SKIN === "8") {
-      if (window.pywebview?.api?.set_window_size) {
-        window.pywebview.api.set_window_size(594, isExpanded ? 234 : 138);
-      }
+      const [w8, h8] = _windowSize("8", isExpanded ? "expanded" : "collapsed", 594, isExpanded ? 234 : 138);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w8, h8);
       document.documentElement.style.zoom = 0.94;
-      if (typeof showToast === "function") showToast(isExpanded ? "Reset: 594×234 ◱" : "Reset: 594×138 ◱");
+      if (typeof showToast === "function") showToast(`Reset: ${w8}×${h8} ◱`);
     } else if (_CURRENT_SKIN === "9") {
-      const w9 = _layoutMode === "compact" ? 370 : 485;
-      const h9 = _layoutMode === "complete" ? 169 : (_layoutMode === "simplified" ? 158 : 120);
-      if (window.pywebview?.api?.set_window_size) {
-        window.pywebview.api.set_window_size(w9, h9);
-      }
+      const [w9, h9] = _windowSize("9", _layoutMode, 540, 185);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w9, h9);
+      document.documentElement.style.zoom = 1;
+      const base9 = _dimsFor("9", _layoutMode, "viewport") || [524, 146];
+      _lockedBaseWidth = base9[0];
+      _lockedBaseHeight = base9[1];
+      _lockedBaseZoom = 1;
       if (typeof showToast === "function") showToast(`Reset: ${w9}×${h9} ◱`);
+    } else if (_CURRENT_SKIN === "10") {
+      const isExp = document.getElementById("hud-10")?.classList.contains("expanded");
+      const key = isExp ? "expanded" : "collapsed";
+      const [w10, h10] = _windowSize("10", key, 677, isExp ? 291 : 161);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w10, h10);
+      document.documentElement.style.zoom = 1;
+      const base10 = _dimsFor("10", key, "viewport") || [661, isExp ? 252 : 122];
+      _lockedBaseWidth = base10[0];
+      _lockedBaseHeight = base10[1];
+      _lockedBaseZoom = 1;
+      if (typeof showToast === "function") showToast(`Reset: ${w10}×${h10} ◱`);
+    } else if (_CURRENT_SKIN === "11") {
+      const isExp = document.getElementById("hud-11")?.classList.contains("expanded");
+      const key = isExp ? "expanded" : "collapsed";
+      const [w11, h11] = _windowSize("11", key, 800, isExp ? 252 : 236);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w11, h11);
+      document.documentElement.style.zoom = 1;
+      const base11 = _dimsFor("11", key, "viewport") || [784, isExp ? 213 : 197];
+      _lockedBaseWidth = base11[0];
+      _lockedBaseHeight = base11[1];
+      _lockedBaseZoom = 1;
+      if (typeof showToast === "function") showToast(`Reset: ${w11}×${h11} ◱`);
+    } else if (_CURRENT_SKIN === "12") {
+      const isExp = document.getElementById("hud-12")?.classList.contains("expanded");
+      const key = isExp ? "expanded" : "collapsed";
+      const [w12, h12] = _windowSize("12", key, 646, isExp ? 202 : 171);
+      if (window.pywebview?.api?.set_window_size) window.pywebview.api.set_window_size(w12, h12);
+      document.documentElement.style.zoom = 0.77;
+      const base12 = _dimsFor("12", key, "viewport") || [630, isExp ? 163 : 132];
+      _lockedBaseWidth = base12[0];
+      _lockedBaseHeight = base12[1];
+      _lockedBaseZoom = 0.77;
+      if (typeof showToast === "function") showToast(`Reset: ${w12}×${h12} ◱`);
     } else {
       if (window.pywebview?.api?.reset_window_size) {
         window.pywebview.api.reset_window_size();
@@ -4091,8 +4704,8 @@ document.addEventListener("keydown", (e) => {
       if (typeof showToast === "function") showToast("Reset: 700×320 ◱");
     }
     // Also reset layout to full (for skins that use classic layout modes).
-    // Skin 9 keeps its active layout — its reset uses the per-layout size.
-    if (_CURRENT_SKIN !== "9") {
+    // Skins 9-12 keep their active layout — their reset uses the per-layout size.
+    if (_CURRENT_SKIN !== "9" && _CURRENT_SKIN !== "10" && _CURRENT_SKIN !== "11" && _CURRENT_SKIN !== "12") {
       _layoutMode = "complete";
       _settings.layout = "complete";
       document.getElementById("danPanel")?.classList.remove("layout-simplified", "layout-compact");
@@ -4102,17 +4715,17 @@ document.addEventListener("keydown", (e) => {
 
   // resize_toggle — toggle free ↔ locked
   const nextMode = _resizeMode === "free" ? "locked" : "free";
+  let lockRatio = 0.0;
   if (nextMode === "locked") {
-    _lockedBaseWidth = Math.max(1, window.innerWidth);
-    _lockedBaseHeight = Math.max(1, window.innerHeight);
-    _lockedBaseZoom = _currentZoomFactor();
+    const info = _syncLockedBaseForCurrentSkin(true);
+    lockRatio = info.outerRatio;
   }
   _resizeMode = nextMode;
   _updateHintLabel();
   adaptZoom();
 
   if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.set_resize_mode === "function") {
-    window.pywebview.api.set_resize_mode(_resizeMode);
+    window.pywebview.api.set_resize_mode(_resizeMode, lockRatio);
   }
 
   const label = _resizeMode === "locked"
@@ -4227,6 +4840,100 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+function _getCanonicalSkinInfo() {
+  let layoutKey = "collapsed";
+  let fallbackW = 684;
+  let fallbackH = 281;
+  let canonicalZoom = 1;
+
+  if (_CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12") {
+    const isExp = document.getElementById("hud-" + _CURRENT_SKIN)?.classList.contains("expanded") ||
+                  document.querySelector(".proposal-hud")?.classList.contains("expanded");
+    layoutKey = isExp ? "expanded" : "collapsed";
+    if (_CURRENT_SKIN === "10") {
+      fallbackW = 661;
+      fallbackH = isExp ? 252 : 122;
+      canonicalZoom = 1;
+    } else if (_CURRENT_SKIN === "11") {
+      fallbackW = 784;
+      fallbackH = isExp ? 213 : 197;
+      canonicalZoom = 1;
+    } else if (_CURRENT_SKIN === "12") {
+      fallbackW = 630;
+      fallbackH = isExp ? 163 : 132;
+      canonicalZoom = 0.77;
+    }
+  } else if (_CURRENT_SKIN === "8") {
+    const isExp = document.getElementById("overlay")?.classList.contains("expanded");
+    layoutKey = isExp ? "expanded" : "collapsed";
+    fallbackW = 578;
+    fallbackH = isExp ? 195 : 99;
+    canonicalZoom = 0.94;
+  } else if (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6") {
+    const panel = document.getElementById("danPanel") || document.getElementById("overlay");
+    const isExp = panel && (panel.classList.contains("is-expanded") || panel.classList.contains("expanded"));
+    layoutKey = isExp ? "expanded" : "collapsed";
+    if (_CURRENT_SKIN === "4") {
+      fallbackW = 268;
+      fallbackH = isExp ? 427 : 296;
+      canonicalZoom = 0.61;
+    } else if (_CURRENT_SKIN === "5") {
+      fallbackW = 573;
+      fallbackH = isExp ? 233 : 131;
+      canonicalZoom = 0.75;
+    } else if (_CURRENT_SKIN === "6") {
+      fallbackW = 629;
+      fallbackH = isExp ? 258 : 172;
+      canonicalZoom = 0.73;
+    }
+  } else if (_CURRENT_SKIN === "9") {
+    layoutKey = _layoutMode || "complete";
+    canonicalZoom = 1;
+    if (layoutKey === "complete") {
+      fallbackW = 524; fallbackH = 146;
+    } else if (layoutKey === "simplified") {
+      fallbackW = 409; fallbackH = 129;
+    } else {
+      fallbackW = 323; fallbackH = 93;
+    }
+  } else if (_CURRENT_SKIN === "7") {
+    layoutKey = "default";
+    fallbackW = 784; fallbackH = 301;
+    canonicalZoom = 1;
+  } else {
+    layoutKey = _layoutMode || "complete";
+    canonicalZoom = 1;
+    fallbackW = 684;
+    fallbackH = layoutKey === "complete" ? 281 : (layoutKey === "simplified" ? 181 : 37);
+  }
+
+  const base = _dimsFor(_CURRENT_SKIN, layoutKey, "viewport") || [fallbackW, fallbackH];
+  return {
+    layoutKey,
+    baseW: base[0],
+    baseH: base[1],
+    canonicalZoom,
+    outerW: base[0] + 16,
+    outerH: base[1] + 39,
+    outerRatio: (base[0] + 16) / (base[1] + 39)
+  };
+}
+
+function _syncLockedBaseForCurrentSkin(enforceCanonical = false) {
+  const info = _getCanonicalSkinInfo();
+  _lockedBaseWidth = info.baseW;
+  _lockedBaseHeight = info.baseH;
+  _lockedBaseZoom = info.canonicalZoom;
+
+  if (enforceCanonical) {
+    if (window.pywebview?.api?.set_window_size) {
+      window.pywebview.api.set_window_size(info.baseW, info.baseH);
+    }
+    _applyZoom(info.canonicalZoom);
+  }
+  return info;
+}
+
 /* Responsive Zooming and Performance Scaling for High Resolutions */
 // Base dimensions the overlay was designed at.
 const _BASE_W = 700;
@@ -4234,6 +4941,8 @@ const _BASE_H = 320;
 let _lockedBaseWidth = _BASE_W;
 let _lockedBaseHeight = _BASE_H;
 let _lockedBaseZoom = 1;
+
+_syncLockedBaseForCurrentSkin(false);
 
 function _currentZoomFactor() {
   const raw = parseFloat(document.documentElement.style.zoom || "1");
@@ -4250,31 +4959,44 @@ function _applyZoom(zoomFactor) {
 }
 
 function adaptZoom() {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  const isLarge = w >= 900;
+  const curZoom = _currentZoomFactor();
+  const physicalW = window.innerWidth;
+  const physicalH = window.innerHeight;
+  const isLarge = physicalW >= 900;
 
   document.documentElement.style.setProperty(
     "--glass-blur",
     isLarge ? "blur(12px) saturate(140%)" : "blur(24px) saturate(160%)"
   );
 
-  if (_resizeMode === "locked") {
+  if (_resizeMode === "locked" && _lockedBaseWidth > 0 && _lockedBaseHeight > 0) {
     // Locked mode keeps the current Free-mode visual scale on entry, then
     // scales proportionally from that exact window/zoom state on future resizes.
-    const widthRatio = w / Math.max(1, _lockedBaseWidth);
-    const heightRatio = h / Math.max(1, _lockedBaseHeight);
-    const zoomFactor = Math.max(0.5, _lockedBaseZoom * Math.min(widthRatio, heightRatio));
-    _applyZoom(zoomFactor);
+    const widthRatio = physicalW / _lockedBaseWidth;
+    const heightRatio = physicalH / _lockedBaseHeight;
+    const zoomFactor = Math.max(0.4, _lockedBaseZoom * Math.min(widthRatio, heightRatio));
+    if (Math.abs(zoomFactor - curZoom) > 0.005) {
+      _applyZoom(zoomFactor);
+    }
   }
   // Free mode: leave zoom as-is so any scale set in locked mode is preserved.
   // Call _resetZoom() explicitly only when you want to go back to default.
 
   syncMapTitleMarquee();
-  // _updateResolutionIndicator();
+  // The dimensions readout is intentionally not refreshed: it was a development
+  // aid, not part of the HUD.
+  _removeResolutionIndicator();
 }
 
-/*
+function _removeResolutionIndicator() {
+  // Disabled: the dimensions badge was a development aid.  Remove it if a
+  // previous build left one in the DOM.
+  const existing = document.getElementById("tempResIndicator");
+  if (existing && existing.parentNode) {
+    existing.parentNode.removeChild(existing);
+  }
+}
+
 function _updateResolutionIndicator() {
   let badge = document.getElementById("tempResIndicator");
   if (!badge) {
@@ -4310,18 +5032,18 @@ function _updateResolutionIndicator() {
     });
 
     badge.addEventListener("click", () => {
-      const isFrameless = _settings.frameless;
+      const curZoom = _currentZoomFactor();
       const innerW = window.innerWidth;
       const innerH = window.innerHeight;
-      const outerW = isFrameless ? innerW : (innerW + 16);
-      const outerH = isFrameless ? innerH : (innerH + 39);
-      const zoomPct = Math.round(_currentZoomFactor() * 100);
+      const outerW = innerW + 16;
+      const outerH = innerH + 39;
+      const zoomPct = Math.round(curZoom * 100);
       const panel = document.getElementById("danPanel") || document.getElementById("overlay");
-      const isExpanded = panel && (panel.classList.contains("is-expanded") || panel.classList.contains("expanded"));
+      const isExpanded = panel && (panel.classList.contains("is-expanded") || panel.classList.contains("expanded") || document.querySelector(".proposal-hud")?.classList.contains("expanded"));
       const layout = isExpanded ? "Expanded" : "Collapsed";
 
       const copyText = `[DanOverlay Dimensions]
-Skin: ${_CURRENT_SKIN} (${_CURRENT_SKIN === "9" ? "Josh type shit" : _CURRENT_SKIN === "8" ? "Hero-Dan Lazer" : _CURRENT_SKIN === "7" ? "Sunny Rebirth" : _CURRENT_SKIN === "6" ? "Dark Vignette" : _CURRENT_SKIN === "5" ? "Broadcast Bar" : _CURRENT_SKIN === "4" ? "Vertical Monolith" : _CURRENT_SKIN === "3" ? "Graph" : _CURRENT_SKIN === "2" ? "Classic" : "Modern"})
+Skin: ${_CURRENT_SKIN} (${_CURRENT_SKIN === "12" ? "Swiss Brutalist Ticker" : _CURRENT_SKIN === "11" ? "Chrono-Tachometer Blade" : _CURRENT_SKIN === "10" ? "Dynamic Orbital Island" : _CURRENT_SKIN === "9" ? "Josh type shit" : _CURRENT_SKIN === "8" ? "Hero-Dan Lazer" : _CURRENT_SKIN === "7" ? "Sunny Rebirth" : _CURRENT_SKIN === "6" ? "Dark Vignette" : _CURRENT_SKIN === "5" ? "Broadcast Bar" : _CURRENT_SKIN === "4" ? "Vertical Monolith" : _CURRENT_SKIN === "3" ? "Graph" : _CURRENT_SKIN === "2" ? "Classic" : "Modern"})
 Inner (Viewport): ${innerW} × ${innerH}
 Outer (Window): ${outerW} × ${outerH}
 Zoom: ${zoomPct}%
@@ -4330,7 +5052,7 @@ Layout: ${layout}`;
 
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(copyText).then(() => {
-          showToast("Copied HUD dimensions! 📋", 1800);
+          showToast("HUD dimensions copied", 1800);
         }).catch(() => {
           _fallbackCopyText(copyText);
         });
@@ -4342,13 +5064,13 @@ Layout: ${layout}`;
     document.body.appendChild(badge);
   }
 
-  const isFrameless = _settings.frameless;
+  const curZoom = _currentZoomFactor();
   const innerW = window.innerWidth;
   const innerH = window.innerHeight;
-  // Estimate outer dimensions based on border frame offsets (16px width, 39px height)
-  const outerW = isFrameless ? innerW : (innerW + 16);
-  const outerH = isFrameless ? innerH : (innerH + 39);
-  const zoomPct = Math.round(_currentZoomFactor() * 100);
+  // Outer dimensions = viewport + the frame offsets (16 px width, 39 px height)
+  const outerW = innerW + 16;
+  const outerH = innerH + 39;
+  const zoomPct = Math.round(curZoom * 100);
 
   badge.innerHTML = `
     <div style="color:var(--dan-primary, #5ddfb0);font-weight:bold;margin-bottom:4px;letter-spacing:1px;font-family:'Inter',sans-serif;font-size:9px;text-transform:uppercase">HUD Medidor (Copiar)</div>
@@ -4371,13 +5093,12 @@ function _fallbackCopyText(text) {
   ta.select();
   try {
     document.execCommand("copy");
-    showToast("Copied HUD dimensions! 📋", 1800);
+    showToast("HUD dimensions copied", 1800);
   } catch (_) {
     showToast("Failed to copy", 1800);
   }
   document.body.removeChild(ta);
 }
-*/
 
 function _resetZoom() {
   document.documentElement.style.zoom = "";
@@ -4391,6 +5112,27 @@ document.addEventListener("keydown", (e) => {
   if (!isKeybind("layout_cycle", e)) return;
   e.preventDefault();
   _cycleLayout();
+});
+
+// C key — interactive calculation animation test for proposals (skins 10, 11, 12)
+document.addEventListener("keydown", (e) => {
+  if (_cfgIsOpen()) return;
+  if (e.key === "c" || e.key === "C") {
+    if (!e.ctrlKey && !e.altKey && !e.metaKey && (_CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12")) {
+      if (document.activeElement && (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "SELECT" || document.activeElement.tagName === "TEXTAREA")) return;
+      e.preventDefault();
+      if (_proposalsIsComputing) {
+        _stopProposalsComputingAnimation();
+      } else {
+        _startProposalsComputingAnimation();
+        setTimeout(() => {
+          if (_proposalsIsComputing && _lastProposalPayload) {
+            _updateProposalsSkin(_lastProposalPayload);
+          }
+        }, 1650);
+      }
+    }
+  }
 });
 
 // Ctrl+, — open settings panel
@@ -4429,24 +5171,14 @@ async function _openSettings() {
   if (!overlay) return;
   _isOpeningSettings = true;
 
-  // Capture the *actual* window dimensions before expanding, so we can restore
-  // them exactly and show the real values in the Window Size fields.
-  const isFrameless = _settings && _settings.frameless;
-  _cfgPrevWidth = isFrameless ? window.innerWidth : (window.innerWidth + 16);
-  _cfgPrevHeight = isFrameless ? window.innerHeight : (window.innerHeight + 39);
+  // Capture current client dimensions before expanding so we can restore them cleanly
+  _cfgPrevWidth = window.innerWidth;
+  _cfgPrevHeight = window.innerHeight;
 
-  let targetW = -1;
-  let targetH = -1;
+  const targetW = Math.max(window.innerWidth, _CFG_OPEN_WIDTH);
+  const targetH = Math.max(window.innerHeight, _CFG_OPEN_HEIGHT);
 
-  if (_cfgPrevWidth > 0 && _cfgPrevWidth < _CFG_OPEN_WIDTH) {
-    targetW = _CFG_OPEN_WIDTH;
-  }
-
-  if (_cfgPrevHeight > 0 && _cfgPrevHeight < _CFG_OPEN_HEIGHT) {
-    targetH = _CFG_OPEN_HEIGHT;
-  }
-
-  if (targetW !== -1 || targetH !== -1) {
+  if (targetW !== window.innerWidth || targetH !== window.innerHeight) {
     _cfgExpandedForModal = true;
     if (window.pywebview?.api?.set_window_size) {
       window.pywebview.api.set_window_size(targetW, targetH);
@@ -4513,12 +5245,28 @@ function _renderCfgPanel() {
 
   const greenScreenChk = document.getElementById("cfgGreenScreenChk");
   if (greenScreenChk) greenScreenChk.checked = _settings.greenScreen;
-  const framelessChk = document.getElementById("cfgFramelessChk");
-  if (framelessChk) framelessChk.checked = _settings.frameless;
   const engineSel = document.getElementById("cfgEngineSelect");
   if (engineSel) engineSel.value = _settings.engine || "isor";
   const skinSel = document.getElementById("cfgSkinSelect");
-  if (skinSel) skinSel.value = _settings.skin;
+  if (skinSel) {
+    const allSkins = [
+      { v: "1", t: "Modern" }, { v: "2", t: "Classic" }, { v: "3", t: "Graph" },
+      { v: "4", t: "Vertical Monolith" }, { v: "5", t: "Broadcast Bar" },
+      { v: "6", t: "Dark Vignette" }, { v: "7", t: "Sunny Rebirth" },
+      { v: "8", t: "Hero-Dan Lazer" }, { v: "9", t: "Josh type shit" },
+      { v: "10", t: "Dynamic Orbital Island" }, { v: "11", t: "Chrono-Tachometer Blade" },
+      { v: "12", t: "Swiss Brutalist Ticker" }
+    ];
+    allSkins.forEach(s => {
+      if (!skinSel.querySelector(`option[value="${s.v}"]`)) {
+        const opt = document.createElement("option");
+        opt.value = s.v;
+        opt.textContent = s.t;
+        skinSel.appendChild(opt);
+      }
+    });
+    skinSel.value = _settings.skin;
+  }
 
   const ui6SettingsWrap = document.getElementById("cfgUi6Settings");
   if (ui6SettingsWrap) {
@@ -4553,7 +5301,14 @@ async function _populateWindowSizeInputs() {
     if (_CURRENT_SKIN === "4") wEl.value = 284;
     else if (_CURRENT_SKIN === "5") wEl.value = 589;
     else if (_CURRENT_SKIN === "6") wEl.value = 645;
-    else if (_CURRENT_SKIN === "9") wEl.value = _layoutMode === "compact" ? 370 : 485;
+    else if (_CURRENT_SKIN === "9") wEl.value = _layoutMode === "complete" ? 540 : (_layoutMode === "simplified" ? 425 : 339);
+    else if (_CURRENT_SKIN === "10") {
+      wEl.value = 677;
+    }
+    else if (_CURRENT_SKIN === "11") wEl.value = 800;
+    else if (_CURRENT_SKIN === "12") {
+      wEl.value = 646;
+    }
     else wEl.value = 700;
   }
 
@@ -4572,7 +5327,16 @@ async function _populateWindowSizeInputs() {
       const isExp = document.getElementById("danPanel")?.classList.contains("is-expanded");
       hEl.value = isExp ? 297 : 211;
     } else if (_CURRENT_SKIN === "9") {
-      hEl.value = _layoutMode === "complete" ? 169 : (_layoutMode === "simplified" ? 158 : 120);
+      hEl.value = _layoutMode === "complete" ? 185 : (_layoutMode === "simplified" ? 168 : 132);
+    } else if (_CURRENT_SKIN === "10") {
+      const isExp = document.getElementById("hud-10")?.classList.contains("expanded");
+      hEl.value = isExp ? 291 : 161;
+    } else if (_CURRENT_SKIN === "11") {
+      const isExp = document.getElementById("hud-11")?.classList.contains("expanded");
+      hEl.value = isExp ? 252 : 236;
+    } else if (_CURRENT_SKIN === "12") {
+      const isExp = document.getElementById("hud-12")?.classList.contains("expanded");
+      hEl.value = isExp ? 202 : 171;
     } else {
       hEl.value = 320;
     }
@@ -4713,7 +5477,10 @@ function _initCfgListeners() {
 
     // Check if user changed the dimension inputs from what was originally open
     const isCustomSize = (parsedW && parsedH && (parsedW !== _cfgPrevWidth || parsedH !== _cfgPrevHeight));
-    if (isCustomSize) {
+    if (skinChanged) {
+      _settings.windowWidth = null;
+      _settings.windowHeight = null;
+    } else if (isCustomSize) {
       _settings.windowWidth = parsedW;
       _settings.windowHeight = parsedH;
     }
@@ -4728,11 +5495,11 @@ function _initCfgListeners() {
     }
     _cancelKeybindCapture();
 
-    if (isCustomSize) {
+    if (!skinChanged && isCustomSize) {
       if (window.pywebview?.api?.set_window_size) {
         window.pywebview.api.set_window_size(parsedW, parsedH);
       }
-    } else if (_cfgExpandedForModal && _cfgPrevWidth && _cfgPrevHeight) {
+    } else if (!skinChanged && _cfgExpandedForModal && _cfgPrevWidth && _cfgPrevHeight) {
       if (window.pywebview?.api?.set_window_size) {
         window.pywebview.api.set_window_size(_cfgPrevWidth, _cfgPrevHeight);
       }
@@ -4743,10 +5510,9 @@ function _initCfgListeners() {
     _cfgPrevWidth = null;
 
     if (skinChanged) {
-      // Ask Python to navigate the webview to the correct skin HTML.
-      // Using pywebview.load_url() ensures the bridge is re-established.
+      // Ask Python to navigate the webview to the correct skin HTML and resize window.
       localStorage.setItem("danOverlay_skipIntro", "1");
-      showToast("Reloading with new skin\u2026", 1500);
+      showToast("Switching skin\u2026", 1000);
       setTimeout(() => {
         if (window.pywebview?.api?.switch_skin) {
           window.pywebview.api.switch_skin(_settings.skin);
@@ -4760,7 +5526,7 @@ function _initCfgListeners() {
             : base + "/index.html";
           window.location.href = newUrl;
         }
-      }, 1600);
+      }, 200);
     } else if (engineChanged) {
       if (_settings.engine === "isor" && _scoringMode !== "celestial" && _scoringMode !== "reform") {
         _scoringMode = "reform";
@@ -4768,9 +5534,9 @@ function _initCfgListeners() {
         _lnOverrideActive = false;
         _updateScoringModeBadge();
       }
-      showToast(_settings.engine === "isor" ? "Engine: ISOR activated ⚡ (Reform & Celestial)" : "Engine: Legacy activated 🏛️", 2200);
+      showToast(_settings.engine === "isor" ? "Engine: ISOR" : "Engine: Legacy", 1800);
     } else {
-      showToast("Settings saved \u2713", 2000);
+      showToast("Settings saved", 2000);
     }
   });
 
@@ -4954,8 +5720,17 @@ function _initCfgListeners() {
         defaultW = 594;
         defaultH = isExp ? 234 : 138;
       } else if (_settings.skin === "9") {
-        defaultW = _layoutMode === "compact" ? 360 : (_layoutMode === "simplified" ? 480 : 540);
-        defaultH = _layoutMode === "complete" ? 175 : (_layoutMode === "simplified" ? 130 : 90);
+        defaultW = _layoutMode === "complete" ? 540 : (_layoutMode === "simplified" ? 425 : 339);
+        defaultH = _layoutMode === "complete" ? 185 : (_layoutMode === "simplified" ? 168 : 132);
+      } else if (_settings.skin === "10") {
+        defaultW = 677;
+        defaultH = 291;
+      } else if (_settings.skin === "11") {
+        defaultW = 800;
+        defaultH = 252;
+      } else if (_settings.skin === "12") {
+        defaultW = 646;
+        defaultH = 171;
       }
 
       const winW = document.getElementById("cfgWinWidth");
@@ -5013,8 +5788,17 @@ function _initCfgListeners() {
       defaultH = isExp ? 234 : 138;
       document.documentElement.style.zoom = 0.94;
     } else if (_CURRENT_SKIN === "9") {
-      defaultW = _layoutMode === "compact" ? 360 : (_layoutMode === "simplified" ? 480 : 540);
-      defaultH = _layoutMode === "complete" ? 175 : (_layoutMode === "simplified" ? 130 : 90);
+      defaultW = _layoutMode === "complete" ? 540 : (_layoutMode === "simplified" ? 425 : 339);
+      defaultH = _layoutMode === "complete" ? 185 : (_layoutMode === "simplified" ? 168 : 132);
+    } else if (_CURRENT_SKIN === "10") {
+      defaultW = 677;
+      defaultH = 291;
+    } else if (_CURRENT_SKIN === "11") {
+      defaultW = 800;
+      defaultH = 252;
+    } else if (_CURRENT_SKIN === "12") {
+      defaultW = 646;
+      defaultH = 171;
     }
     if (winW) winW.value = defaultW;
     if (winH) winH.value = defaultH;
@@ -5045,23 +5829,8 @@ function _initCfgListeners() {
       const chk = document.getElementById("cfgGreenScreenChk");
       if (chk) chk.checked = _settings.greenScreen;
       if (typeof showToast === "function") {
-        showToast(_settings.greenScreen ? "Green Screen: ON 🟩" : "Green Screen: OFF 🖼️", 1500);
+        showToast(_settings.greenScreen ? "Green Screen: ON" : "Green Screen: OFF", 1500);
       }
-    });
-  }
-
-  // Frameless window toggle (takes effect on next restart)
-  const framelessChk = document.getElementById("cfgFramelessChk");
-  if (framelessChk) {
-    framelessChk.addEventListener("change", () => {
-      _settings.frameless = framelessChk.checked;
-      void _saveSettings();
-      showToast(
-        framelessChk.checked
-          ? "Frameless ON — restart the overlay to apply ↺"
-          : "Frameless OFF — restart the overlay to apply ↺",
-        3000
-      );
     });
   }
 
@@ -5094,7 +5863,6 @@ function _initCfgListeners() {
     });
   }
 
-  if (framelessChk) framelessChk.checked = _settings.frameless;
   if (greenScreenChk) greenScreenChk.checked = _settings.greenScreen;
 
   // Help: Start Tutorial button
@@ -5275,12 +6043,13 @@ function _updateDensityProgress(currentMs) {
 
 (async () => {
   await _loadSettings();
+  await _loadSkinDimensions();
   _layoutMode = _settings.layout || "complete";
   _applySettings();
   let w = _settings.windowWidth;
   let h = _settings.windowHeight;
   const isLegacyDefault = (w === 700 && h === 320) || (w === 860 && h === 320);
-  if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "8")) {
+  if (isLegacyDefault && (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6" || _CURRENT_SKIN === "8" || _CURRENT_SKIN === "9" || _CURRENT_SKIN === "10" || _CURRENT_SKIN === "11" || _CURRENT_SKIN === "12")) {
     w = null;
     h = null;
   }
@@ -5292,27 +6061,33 @@ function _updateDensityProgress(currentMs) {
     document.documentElement.style.zoom = 0.73;
   } else if (_CURRENT_SKIN === "8") {
     document.documentElement.style.zoom = 0.94;
+  } else if (_CURRENT_SKIN === "12") {
+    document.documentElement.style.zoom = 0.77;
   }
   if (w && h && window.pywebview?.api?.set_window_size) {
     window.pywebview.api.set_window_size(w, h);
   } else if (!w && !h && window.pywebview?.api?.set_window_size) {
-    if (_CURRENT_SKIN === "4") {
-      window.pywebview.api.set_window_size(284, 335);
-    } else if (_CURRENT_SKIN === "5") {
-      window.pywebview.api.set_window_size(589, 170);
-    } else if (_CURRENT_SKIN === "6") {
-      window.pywebview.api.set_window_size(645, 211);
-    } else if (_CURRENT_SKIN === "8") {
-      window.pywebview.api.set_window_size(594, 234);
-    } else if (_CURRENT_SKIN === "9") {
-      const w9 = _layoutMode === "compact" ? 370 : 485;
-      const h9 = _layoutMode === "complete" ? 169 : (_layoutMode === "simplified" ? 158 : 120);
-      window.pywebview.api.set_window_size(w9, h9);
+    // Default size per skin, taken from the dimensions table when available.
+    const defaults = {
+      "4": ["collapsed", 268, 296],
+      "5": ["collapsed", 573, 131],
+      "6": ["collapsed", 629, 172],
+      "8": ["collapsed", 578, 99],
+      "9": [_layoutMode, _layoutMode === "complete" ? 524 : (_layoutMode === "simplified" ? 409 : 323), _layoutMode === "complete" ? 146 : (_layoutMode === "simplified" ? 129 : 93)],
+      "10": ["collapsed", 661, 122],
+      "11": ["collapsed", 784, 197],
+      "12": ["collapsed", 630, 132],
+    };
+    const entry = defaults[_CURRENT_SKIN];
+    if (entry) {
+      const [dw, dh] = _windowSize(_CURRENT_SKIN, entry[0], entry[1], entry[2]);
+      window.pywebview.api.set_window_size(dw, dh);
     } else {
-      window.pywebview.api.set_window_size(700, 320);
+      window.pywebview.api.set_window_size(684, 281);
     }
   }
   _applyLayoutMode(true);
+  _syncLockedBaseForCurrentSkin(false);
   _initCfgListeners();
   boot();
 

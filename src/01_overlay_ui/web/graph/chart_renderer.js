@@ -746,13 +746,19 @@ function renderExportChart(payload) {
 
             const b64 = canvas.toDataURL("image/png");
 
+            // Release the drawing surface immediately. An 1800x980 canvas holds
+            // roughly 7 MB of backing store, and without this each generated
+            // chart leaves another one waiting for the garbage collector.
+            canvas.width = 0;
+            canvas.height = 0;
+
             console.log("[CHART] b64 length:", b64.length, "fn:", fn);
             if (typeof setChartGenerating === "function") setChartGenerating(false);
             if (window.pywebview && window.pywebview.api && window.pywebview.api.save_chart) {
               console.log("[CHART] Calling save_chart...");
               window.pywebview.api.save_chart(b64, fn).then(res => {
                 if (typeof showToast === "function") {
-                  if (res.status === "ok") showToast(res.message || "✓ Imagen generada", 2000);
+                  if (res.status === "ok") showToast(res.message || "Imagen generada", 2000);
                   else showToast(res.message || "Error al guardar", 3000);
                 }
               }).catch((err) => {

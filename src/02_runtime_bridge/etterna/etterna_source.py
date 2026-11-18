@@ -34,6 +34,10 @@ _GAMEPLAY_NAMES = ("DanOverlayGameplay.txt", "DanielGameplay.txt")
 _EVAL_NAMES = ("DanOverlayEval.txt", "DanielEval.txt")
 _MENU_NAMES = ("DanOverlayMenu.txt", "DanielMenu.txt")
 
+# LRU metadata cache to avoid re-parsing simfiles and re-scanning disk on revisited maps
+_etterna_metadata_cache: dict[tuple, tuple] = {}
+_METADATA_CACHE_MAX = 500
+
 
 def find_etterna_root(configured_path: str | None = None) -> Path | None:
     """Finds the Etterna root directory."""
@@ -365,41 +369,55 @@ def run(event_bus, stop_event, configured_root: str | None = None, poll_interval
                 if current_key != last_bridge_key and resolved_step and resolved_step.is_file():
                     last_bridge_key = current_key
                     mod_label = f"{rate:.2f}x" if abs(rate - 1.0) > 1e-4 else "NM"
-                    bg_path = _find_bg_file(resolved_step.parent, resolved_step)
-                    banner_path = _find_banner_file(resolved_step.parent, resolved_step)
-                    audio_path = _find_audio_file(resolved_step.parent, resolved_step)
-                    charter = _extract_charter(resolved_step, description)
 
-                    pack = ""
-                    if len(resolved_step.parents) >= 2:
-                        cand_pack = resolved_step.parents[1].name
-                        if cand_pack.lower() not in ("songs", "songs_current", "tests", "etterna maps", "test", "d:", "c:", ""):
-                            pack = cand_pack
-                    elif song_dir:
-                        parts = Path(song_dir).parts
-                        if len(parts) >= 2 and parts[0].lower() in ("songs", "songs_current"):
-                            pack = parts[1]
+                    meta_key = (step_path_str, difficulty, meter, description)
+                    cached_meta = _etterna_metadata_cache.get(meta_key)
+                    if cached_meta is not None:
+                        bg_path, banner_path, audio_path, charter, pack, drain_s, offset_ms, first_note_beat = cached_meta
+                    else:
+                        bg_path = _find_bg_file(resolved_step.parent, resolved_step)
+                        banner_path = _find_banner_file(resolved_step.parent, resolved_step)
+                        audio_path = _find_audio_file(resolved_step.parent, resolved_step)
+                        charter = _extract_charter(resolved_step, description)
 
-                    # Quick drain duration from simfile
-                    total_time_ms = 0
-                    first_note_audio_ms = 0.0
-                    try:
+                        pack = ""
+                        if len(resolved_step.parents) >= 2:
+                            cand_pack = resolved_step.parents[1].name
+                            if cand_pack.lower() not in ("songs", "songs_current", "tests", "etterna maps", "test", "d:", "c:", ""):
+                                pack = cand_pack
+                        elif song_dir:
+                            parts = Path(song_dir).parts
+                            if len(parts) >= 2 and parts[0].lower() in ("songs", "songs_current"):
+                                pack = parts[1]
+
+                        # Quick drain duration from simfile
+                        drain_s = 0.0
+                        offset_ms = 0.0
+                        first_note_beat = 0.0
                         try:
-                            from etterna.sm_parser import parse_simfile
-                        except ImportError:
                             try:
-                                from sm_parser import parse_simfile
+                                from etterna.sm_parser import parse_simfile
                             except ImportError:
-                                from .sm_parser import parse_simfile
-                        parsed_sm = parse_simfile(str(resolved_step), difficulty=difficulty, meter=meter)
-                        drain_s = float(parsed_sm.get("drain_time_s", 0.0) or 0.0)
-                        if drain_s > 0:
-                            total_time_ms = int(round(drain_s * 1000.0 / rate))
-                        notes = parsed_sm.get("notes") or []
-                        offset_ms = float(parsed_sm.get("offset", 0.0) or 0.0) * 1000.0
-                        first_note_audio_ms = offset_ms + (float(notes[0][0]) if notes else 0.0)
-                    except Exception:
-                        pass
+                                try:
+                                    from sm_parser import parse_simfile
+                                except ImportError:
+                                    from .sm_parser import parse_simfile
+                            parsed_sm = parse_simfile(str(resolved_step), difficulty=difficulty, meter=meter)
+                            drain_s = float(parsed_sm.get("drain_time_s", 0.0) or 0.0)
+                            notes = parsed_sm.get("notes") or []
+                            offset_ms = float(parsed_sm.get("offset", 0.0) or 0.0) * 1000.0
+                            first_note_beat = float(notes[0][0]) if notes else 0.0
+                        except Exception:
+                            pass
+
+                        _etterna_metadata_cache[meta_key] = (
+                            bg_path, banner_path, audio_path, charter, pack, drain_s, offset_ms, first_note_beat
+                        )
+                        if len(_etterna_metadata_cache) > _METADATA_CACHE_MAX:
+                            _etterna_metadata_cache.pop(next(iter(_etterna_metadata_cache)))
+
+                    total_time_ms = int(round(drain_s * 1000.0 / rate)) if drain_s > 0 else 0
+                    first_note_audio_ms = offset_ms + first_note_beat
 
                     last_total_time_ms = total_time_ms
                     last_first_note_audio_ms = first_note_audio_ms

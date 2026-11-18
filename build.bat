@@ -14,7 +14,7 @@ rem    build.bat --no-audio- compile without ffmpeg (not recommended)
 rem ============================================================
 
 set "APP_BASE=DanOverlay"
-set "APP_VERSION=3.2.0-beta"
+set "APP_VERSION=3.2"
 set "BUILD_NAME=%APP_BASE% %APP_VERSION%"
 set "ENTRY=%CD%\src\01_overlay_ui\main.py"
 
@@ -84,6 +84,18 @@ if not exist "src\01_overlay_ui\web\ui-9\index.html" (
     echo [ERROR] Missing web\ui-9\index.html
     exit /b 1
 )
+if not exist "src\01_overlay_ui\web\ui-10\index.html" (
+    echo [ERROR] Missing web\ui-10\index.html
+    exit /b 1
+)
+if not exist "src\01_overlay_ui\web\ui-11\index.html" (
+    echo [ERROR] Missing web\ui-11\index.html
+    exit /b 1
+)
+if not exist "src\01_overlay_ui\web\ui-12\index.html" (
+    echo [ERROR] Missing web\ui-12\index.html
+    exit /b 1
+)
 if not exist "src\01_overlay_ui\web\graph.ico" (
     echo [ERROR] Missing graph.ico
     exit /b 1
@@ -122,6 +134,18 @@ if not exist "config\vsrg_ridge_model.json" (
 )
 if not exist "config\celestial_ruler.json" (
     echo [ERROR] Missing config\celestial_ruler.json
+    exit /b 1
+)
+if not exist "config\skin_dimensions.json" (
+    echo [ERROR] Missing config\skin_dimensions.json
+    exit /b 1
+)
+if not exist "config\classifier_model.json" (
+    echo [ERROR] Missing config\classifier_model.json
+    exit /b 1
+)
+if not exist "config\rice_model.json" (
+    echo [ERROR] Missing config\rice_model.json
     exit /b 1
 )
 if not exist "src\08_isor_engine\isor_engine.py" (
@@ -202,7 +226,10 @@ if exist ".venv\Scripts\python.exe" (
 )
 
 rem -- Verify / install dependencies --
-set "REQUIRED_PY_PKGS=pyinstaller pywebview requests pillow numpy pandas websocket-client pythonnet clr-loader tzdata"
+rem pandas and tzdata are intentionally absent: nothing in the app imports them,
+rem and they used to add tens of megabytes to the bundle and to the runtime
+rem footprint for nothing.
+set "REQUIRED_PY_PKGS=pyinstaller pywebview requests pillow numpy websocket-client pythonnet clr-loader"
 for %%P in (%REQUIRED_PY_PKGS%) do (
     %PY% -m pip show %%P >nul 2>&1
     if errorlevel 1 (
@@ -247,7 +274,6 @@ set "HIDDEN=%HIDDEN% --hidden-import sr_core"
 set "HIDDEN=%HIDDEN% --hidden-import sr_core.algorithm"
 set "HIDDEN=%HIDDEN% --hidden-import sr_core.osu_file_parser"
 set "HIDDEN=%HIDDEN% --hidden-import numpy"
-set "HIDDEN=%HIDDEN% --hidden-import pandas"
 set "HIDDEN=%HIDDEN% --hidden-import bisect"
 set "HIDDEN=%HIDDEN% --hidden-import heapq"
 rem Runtime modules
@@ -299,12 +325,20 @@ set "HIDDEN=%HIDDEN% --hidden-import etterna.etterna_installer"
 rem -- Collect Binaries and Data --
 set "COLLECT="
 set "COLLECT=%COLLECT% --collect-binaries numpy"
-set "COLLECT=%COLLECT% --collect-binaries pandas"
-set "COLLECT=%COLLECT% --collect-data pandas"
-set "COLLECT=%COLLECT% --collect-data tzdata"
 set "COLLECT=%COLLECT% --collect-all webview"
 set "COLLECT=%COLLECT% --collect-all clr_loader"
 set "COLLECT=%COLLECT% --collect-all pythonnet"
+rem Keep analysis libraries that are installed in the dev environment but never
+rem used at runtime out of the bundle.
+set "EXCLUDE="
+set "EXCLUDE=%EXCLUDE% --exclude-module pandas"
+set "EXCLUDE=%EXCLUDE% --exclude-module tzdata"
+set "EXCLUDE=%EXCLUDE% --exclude-module scipy"
+set "EXCLUDE=%EXCLUDE% --exclude-module sklearn"
+set "EXCLUDE=%EXCLUDE% --exclude-module matplotlib"
+set "EXCLUDE=%EXCLUDE% --exclude-module IPython"
+set "EXCLUDE=%EXCLUDE% --exclude-module pytest"
+set "EXCLUDE=%EXCLUDE% --exclude-module tkinter"
 
 rem -- Compile --
 echo [INFO] Compiling...
@@ -324,10 +358,12 @@ if not "%FFMPEG_BIN%"=="" (
     --distpath "%CD%\dist" ^
     --icon "%CD%\src\01_overlay_ui\web\graph.ico" ^
     --noupx ^
+    --optimize 1 ^
     %DATA% ^
     %PATHS% ^
     %HIDDEN% ^
     %COLLECT% ^
+    %EXCLUDE% ^
     "%ENTRY%"
 
 if errorlevel 1 (

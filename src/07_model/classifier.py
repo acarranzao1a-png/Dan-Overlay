@@ -3,6 +3,7 @@
 # Does not use MSD — only Sunny components + structural features
 
 import json
+import math
 import os
 import sys
 
@@ -23,6 +24,63 @@ def _load_family_profiles():
     path = os.path.join(_CONFIG_DIR, "family_profiles.json")
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def _load_fitted_model():
+    """Fitted chart-type classifier, or None to use the hand-tuned scores.
+
+    Built by tests/prototype/02_benchmarks/fit_classifier.py: a multinomial
+    logistic regression over the same linear score form the hand-written
+    classifier uses, trained on the two labelled corpora (the Leo_Black
+    benchmark and the dan practice packs) with the rhythm-shape features that
+    feature_extractor now produces.
+
+    Measured, 11 features, 4 classes:
+        benchmark 5-fold CV          90.2%   (hand-tuned: 60.9%)
+        practice packs 5-fold CV     82.7%   (hand-tuned: 66.7%)
+        benchmark -> practice        82.3%
+        practice  -> benchmark       88.4%
+
+    The hand-tuned scores separated speed from tech by at most Cohen's d = 0.53
+    with the eight features they could read; the rhythm-shape features reach
+    1.05-1.35 with the same sign on both corpora.
+
+    Deleting config/classifier_model.json falls back to the hand-tuned scores.
+    """
+    try:
+        path = os.path.join(_CONFIG_DIR, "classifier_model.json")
+        with open(path, encoding="utf-8") as f:
+            model = json.load(f)
+        if model.get("features") and model.get("classes") and model.get("coef"):
+            return model
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+_FIT_MODEL = _load_fitted_model()
+
+
+def _fitted_family(features):
+    """(family, probability, per-class probabilities) from the fitted model."""
+    model = _FIT_MODEL
+    if not model:
+        return None
+    try:
+        x = [float(features.get(k, 0.0) or 0.0) for k in model["features"]]
+        z = [(v - m) / (s if abs(s) > 1e-9 else 1.0)
+             for v, m, s in zip(x, model["mean"], model["scale"])]
+        raw = []
+        for cls, coef, bias in zip(model["classes"], model["coef"], model["intercept"]):
+            raw.append((cls, float(bias) + sum(a * c for a, c in zip(coef, z))))
+        top = max(s for _c, s in raw)
+        exp = [(c, math.exp(s - top)) for c, s in raw]
+        total = sum(v for _c, v in exp) or 1.0
+        probs = {c: v / total for c, v in exp}
+        best = max(probs, key=probs.get)
+        return best, probs[best], probs
+    except (KeyError, ValueError, TypeError):
+        return None
 
 
 def _clamp(value, low, high):
@@ -130,7 +188,7 @@ def _classify_tech_subtype(features, sunny_result, profiles_cfg):
     }
 
 
-def classify_family(sunny_result, features, domain_info=None):
+def classify_family(sunny_result, features, domain_info=None, fitted=True):
     """Classifies the chart family based on Sunny internals + features.
 
     Parameters
@@ -187,6 +245,35 @@ def classify_family(sunny_result, features, domain_info=None):
     jump_ratio = get_f("jump_ratio")
     hand_ratio = get_f("hand_ratio")
     quad_ratio = get_f("quad_ratio")
+    # Rhythm-shape features (feature_extractor._extract_rhythm_features).
+    # row_size_entropy is the only signal that isolates `speed`: a stream of
+    # uniform single notes gives the lowest value of the four families.
+    row_size_entropy = get_f("row_size_entropy", 0.0)
+    dt_jerk = get_f("dt_jerk", 0.0)
+
+    # ── Fitted classifier ────────────────────────────────────────────────────
+    # When config/classifier_model.json is present it decides the family.  The
+    # hand-tuned scores below, and the post-rules that compensate for them, are
+    # kept only as a fallback: the best separation they could reach on the
+    # features they read was Cohen's d = 0.53, which is why speed was recognised
+    # only 25.9% of the time.
+    fitted_model = _fitted_family(features) if fitted else None
+    if fitted_model is not None:
+        family_fit, prob_fit, probs_fit = fitted_model
+        sub_info = None
+        if family_fit == "tech":
+            sub_info = _classify_tech_subtype(features, sunny_result, profiles_cfg)
+        elif family_fit == "stamina" and probs_fit.get("tech", 0.0) >= 0.25:
+            sub_info = _classify_tech_subtype(features, sunny_result, profiles_cfg)
+        return {
+            "family": family_fit,
+            "confidence": round(prob_fit, 3),
+            "scores": {k: round(v, 2) for k, v in probs_fit.items()},
+            "subtype": sub_info["subtype"] if sub_info else "generic",
+            "subtype_confidence": sub_info["confidence"] if sub_info else 0.0,
+            "subtype_scores": sub_info["scores"] if sub_info else {},
+            "reason": f"fitted model: {family_fit} (p={prob_fit:.2f})",
+        }
 
     # NPS profile stats
     nps_p90 = get_f("nps_p90")
@@ -323,10 +410,19 @@ def classify_family(sunny_result, features, domain_info=None):
     else:
         family = top_family
 
-    # Post-classification tiebreak: stream/hybrid → tech when density is
-    # irregular (dcv > 0.35) and tech score is within 75% of stream.
-    # High density_cv is fundamentally anti-stream, indicating tech patterns.
-    if family in ("hybrid", "stream") and density_cv > 0.35:
+    # Post-classification tiebreak: stream/hybrid -> tech when the chart is NOT
+    # stream-like and carries tech content.
+    #
+    # This used to be gated on `density_cv > 0.35`, but measured on the practice
+    # packs the medians are 0.377 for speed vs 0.350 for tech: the threshold sits
+    # inside BOTH distributions, so the rule fired at random and swallowed speed
+    # charts (speed was classified correctly only 3.2% of the time there, and
+    # 19.7% on the Leo_Black benchmark, with the same speed->tech confusion).
+    #
+    # Tech is *anti-stream*: the measured separators are stream purity
+    # (speed 0.807 vs tech 0.685 median), hand ratio (0.028 vs 0.050) and
+    # jack density (0.338 vs 0.400).  Purity is the cleanest of the three.
+    if family in ("hybrid", "stream") and stream_purity < 0.75:
         tech_s = scores.get("tech", 0)
         stream_s = scores.get("stream", 0)
         if tech_s > 0 and stream_s > 0 and tech_s / stream_s > 0.75:

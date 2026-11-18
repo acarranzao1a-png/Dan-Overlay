@@ -87,7 +87,6 @@ canvas#bg-canvas {
   align-items: center;
   justify-content: space-between;
   padding: 16px 28px;
-  cursor: pointer;
   width: 100%;
   user-select: none;
 }

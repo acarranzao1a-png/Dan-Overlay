@@ -1,0 +1,349 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,800&family=Montserrat:ital,wght@0,600;0,800;0,900;1,900&display=swap');
+
+:root {
+  /* Paleta dinamica del Dan activo */
+  --c1: 70, 60, 180;
+  --c2: 220, 65, 80;
+  --c3: 245, 225, 45;
+  --contrast-on-c1: #ffffff;
+
+  /* Colores dinamicos de Sunny Star Rating */
+  --sr-bg: #5654ca;
+  --sr-txt: #ffd966;
+
+  /* Progreso decimal (0.00 a 0.99) y porcentaje de Tier (20 a 100) */
+  --dec-prog: 0.98;
+  --tier-pct: 100;
+
+  /* Curvas fisicas */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-mech: cubic-bezier(0.7, 0, 0.15, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+body {
+  background-color: transparent !important;
+  color: #ffffff;
+  font-family: 'Montserrat', sans-serif;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Modos Chroma OBS */
+body.stage-chroma, body.chroma-mode {
+  background-color: #00ff00 !important;
+}
+body.stage-chroma .p4-hud, body.chroma-mode .p4-hud,
+body.stage-chroma .p4-gauge-dial, body.chroma-mode .p4-gauge-dial,
+body.stage-chroma .p4-blade-wrap, body.chroma-mode .p4-blade-wrap {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* OVERLAY CONTAINER */
+#overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: transparent;
+}
+
+/* ==========================================================================
+   UI-11: CHRONO-TACHOMETER BLADE (Motorsport Gauge + Shift Lights)
+   ========================================================================== */
+.p4-hud {
+  position: relative;
+  width: 780px;
+  display: flex; align-items: center;
+  transition: transform 0.35s var(--ease-mech);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Transicion de Mapa P2: Upshift Suspension Kick + Nitrous Flash */
+@keyframes p4UpshiftKick {
+  0%   { transform: translate3d(0, 0, 0) skewX(0deg); }
+  20%  { transform: translate3d(-22px, 0, 0) skewX(-9deg) scale(1.02); }
+  55%  { transform: translate3d(8px, 0, 0) skewX(3deg); }
+  100% { transform: translate3d(0, 0, 0) skewX(0deg); }
+}
+.p4-hud.map-transition {
+  animation: p4UpshiftKick 0.55s var(--ease-out-expo);
+  will-change: transform;
+}
+
+/* Esfera del Tacometro 240° */
+.p4-gauge-dial {
+  position: relative; z-index: 5;
+  width: 184px; height: 184px;
+  min-width: 184px; min-height: 184px;
+  max-width: 184px; max-height: 184px;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #131622 52%, #08090e 100%);
+  border: 2.5px solid rgba(255,255,255,0.16);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.92), inset 0 0 28px rgba(var(--c1), 0.25);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  flex-shrink: 0;
+  contain: layout style;
+}
+.p4-dial-svg {
+  position: absolute; inset: 6px;
+  width: calc(100% - 12px); height: calc(100% - 12px);
+  transform: rotate(150deg); /* Inicia a las 7 en punto, recorre 240° */
+  overflow: visible;
+  will-change: transform;
+}
+.p4-arc-bg {
+  fill: none; stroke: rgba(255,255,255,0.08);
+  stroke-width: 11; stroke-linecap: round;
+  stroke-dasharray: 293 440; /* 240 deg de r=70 */
+}
+.p4-arc-ticks {
+  fill: none; stroke: rgba(255,255,255,0.22);
+  stroke-width: 4;
+  stroke-dasharray: 2 27.3;
+}
+.p4-arc-glow {
+  fill: none; stroke: rgb(var(--c1));
+  stroke-width: 17; stroke-linecap: round;
+  stroke-dasharray: 293 440;
+  stroke-dashoffset: calc(293 - (293 * var(--dec-prog)));
+  opacity: 0.35;
+  transition: stroke-dashoffset 0.7s var(--ease-spring), stroke 0.35s ease, opacity 0.35s ease;
+  will-change: stroke-dashoffset;
+}
+.p4-arc-fill {
+  fill: none; stroke: url(#p4-grad);
+  stroke-width: 11; stroke-linecap: round;
+  stroke-dasharray: 293 440;
+  stroke-dashoffset: calc(293 - (293 * var(--dec-prog)));
+  transition: stroke-dashoffset 0.7s var(--ease-spring);
+  will-change: stroke-dashoffset;
+}
+
+/* Aguja fisica del tacometro */
+.p4-needle-group {
+  transform-origin: 80px 80px;
+  transform: rotate(calc(var(--dec-prog) * 240deg));
+  transition: transform 0.7s var(--ease-spring);
+  will-change: transform;
+}
+.p4-needle-glow {
+  stroke: rgb(var(--c1));
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.65;
+  transition: stroke 0.35s ease;
+}
+.p4-needle-line {
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+/* Animacion de Calculo P2: Launch Control Revving (Optimizada a 60 FPS sin filter stacking) */
+@keyframes revArcBounce {
+  0%   { stroke-dashoffset: 260; }
+  25%  { stroke-dashoffset: 70; }
+  45%  { stroke-dashoffset: 150; }
+  75%  { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 40; }
+}
+@keyframes revNeedleBounce {
+  0%   { transform: rotate(25deg); }
+  25%  { transform: rotate(185deg); }
+  45%  { transform: rotate(115deg); }
+  75%  { transform: rotate(240deg); }
+  100% { transform: rotate(210deg); }
+}
+.p4-hud.is-computing .p4-arc-fill, #overlay.computing-mode .p4-hud .p4-arc-fill {
+  animation: revArcBounce 0.55s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+.p4-hud.is-computing .p4-arc-glow, #overlay.computing-mode .p4-hud .p4-arc-glow {
+  animation: revArcBounce 0.55s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+  stroke: #ff1e56;
+  opacity: 0.55;
+}
+.p4-hud.is-computing .p4-needle-group, #overlay.computing-mode .p4-hud .p4-needle-group {
+  animation: revNeedleBounce 0.55s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+}
+.p4-hud.is-computing .p4-needle-glow, #overlay.computing-mode .p4-hud .p4-needle-glow {
+  stroke: #ff1e56;
+}
+
+.p4-dial-center {
+  position: relative; z-index: 2; text-align: center; margin-top: 8px;
+}
+.p4-dial-sym {
+  font-size: 15px; font-weight: 900; color: rgb(var(--c1));
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(var(--c1), 0.5);
+}
+.p4-dial-dp {
+  font-family: 'Chakra Petch', sans-serif; font-style: italic;
+  display: flex; align-items: baseline; justify-content: center;
+}
+.p4-dial-dp .int { font-size: 46px; font-weight: 700; line-height: 0.9; color: #fff; }
+.p4-dial-dp .dec { font-size: 24px; font-weight: 700; color: rgb(var(--c1)); }
+.p4-dial-unit {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800;
+  color: rgba(255,255,255,0.42); letter-spacing: 2px; margin-top: 4px;
+}
+
+/* Cuchilla Derecha Solida */
+.p4-blade-wrap {
+  position: relative; overflow: hidden;
+  flex: 1; margin-left: -28px; padding-left: 46px;
+  background: linear-gradient(95deg, #0b0d14 0%, #10131f 75%, #151929 100%);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-top: 2.5px solid rgb(var(--c1));
+  border-right: 4px solid rgb(var(--c2));
+  border-radius: 0 18px 18px 0;
+  box-shadow: 0 16px 45px rgba(0,0,0,0.88);
+  padding-top: 16px; padding-bottom: 16px; padding-right: 28px;
+  display: flex; flex-direction: column; justify-content: center;
+  contain: layout style;
+}
+
+/* Fogonazo Nitrous en Transicion */
+.p4-nitro-flash {
+  position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: linear-gradient(90deg, transparent 20%, rgba(var(--c1), 0.55) 70%, rgb(var(--c2)) 100%);
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+@keyframes nitroBurst {
+  0%   { opacity: 0.95; transform: translate3d(-30%, 0, 0); }
+  100% { opacity: 0; transform: translate3d(20%, 0, 0); }
+}
+.p4-hud.map-transition .p4-nitro-flash {
+  animation: nitroBurst 0.5s var(--ease-out-expo);
+}
+
+/* 5 LEDs Shift-Lights (Volante F1) */
+.p4-shift-bar {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.p4-led-array { display: flex; gap: 8px; align-items: center; }
+.p4-led {
+  position: relative;
+  width: 26px; height: 7px; border-radius: 3px;
+  background: rgba(255,255,255,0.09);
+  transform: skewX(-20deg);
+  overflow: hidden;
+  will-change: opacity;
+}
+.p4-led::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.p4-led.active.g::after { background: #00f59b; box-shadow: 0 0 10px #00f59b; opacity: 1; }
+.p4-led.active.y::after { background: #ffb800; box-shadow: 0 0 10px #ffb800; opacity: 1; }
+.p4-led.active.r::after { background: rgb(var(--c1)); box-shadow: 0 0 14px rgb(var(--c1)); opacity: 1; }
+
+/* Secuencia de LEDs durante Launch Control (Optimizada con Opacity en Compositor) */
+@keyframes ledSeq {
+  0%, 15% { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+.p4-hud.is-computing .p4-led::after, #overlay.computing-mode .p4-hud .p4-led::after {
+  background: #ff1e56;
+  box-shadow: 0 0 12px #ff1e56;
+  will-change: opacity;
+}
+.p4-hud.is-computing .p4-led:nth-child(1)::after, #overlay.computing-mode .p4-hud .p4-led:nth-child(1)::after { animation: ledSeq 0.45s 0.00s infinite alternate; }
+.p4-hud.is-computing .p4-led:nth-child(2)::after, #overlay.computing-mode .p4-hud .p4-led:nth-child(2)::after { animation: ledSeq 0.45s 0.07s infinite alternate; }
+.p4-hud.is-computing .p4-led:nth-child(3)::after, #overlay.computing-mode .p4-hud .p4-led:nth-child(3)::after { animation: ledSeq 0.45s 0.14s infinite alternate; }
+.p4-hud.is-computing .p4-led:nth-child(4)::after, #overlay.computing-mode .p4-hud .p4-led:nth-child(4)::after { animation: ledSeq 0.45s 0.21s infinite alternate; }
+.p4-hud.is-computing .p4-led:nth-child(5)::after, #overlay.computing-mode .p4-hud .p4-led:nth-child(5)::after { animation: ledSeq 0.45s 0.28s infinite alternate; }
+
+.p4-tier-code {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 800;
+  color: rgb(var(--c1)); letter-spacing: 3px;
+}
+
+.p4-dan-italic {
+  position: relative; z-index: 2;
+  font-family: 'Montserrat', sans-serif; font-style: italic;
+  font-size: 44px; font-weight: 900; text-transform: uppercase;
+  letter-spacing: 2px; line-height: 0.95; color: #fff;
+  text-shadow: 4px 4px 0px rgba(var(--c1), 0.4);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  contain: content;
+}
+
+/* Difusor Aerodinamico Expandible [L] */
+.p4-diffuser {
+  position: relative; z-index: 2;
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-out-expo), opacity 0.3s ease, margin-top 0.3s ease;
+  opacity: 0; margin-top: 0;
+  will-change: grid-template-rows, opacity;
+}
+.p4-hud.expanded .p4-diffuser {
+  grid-template-rows: 1fr; opacity: 1; margin-top: 12px;
+}
+.p4-diffuser-inner {
+  min-height: 0; overflow: hidden;
+  border-top: 1px solid rgba(255,255,255,0.12); padding-top: 10px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+.p4-map-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.p4-map-line {
+  font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p4-skill-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800;
+  color: rgb(var(--c1)); border: 1px solid rgba(var(--c1), 0.5);
+  padding: 2px 8px; transform: skewX(-12deg); flex-shrink: 0;
+}
+.p4-rpm-metrics {
+  display: grid; grid-template-columns: repeat(4, 1fr) 1.3fr; gap: 8px;
+}
+.p4-rpm-box {
+  background: rgba(0,0,0,0.45); border-left: 2.5px solid rgb(var(--c1));
+  padding: 5px 10px; transform: skewX(-12deg);
+}
+.p4-rpm-box .k { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: rgba(255,255,255,0.45); display: block; }
+.p4-rpm-box .v { font-family: 'Chakra Petch', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
+
+.p3-jpxa-mini {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; width: 100%;
+}
+.p3-jpxa-track { height: 5px; background: rgba(255,255,255,0.1); border-radius: 99px; overflow: hidden; }
+.p3-jpxa-fill { height: 100%; background: linear-gradient(90deg, rgb(var(--c1)), rgb(var(--c2))); border-radius: 99px; transition: width 0.5s ease; }
+
+/* Modo Etterna: Ocultar sección de duración / longitud */
+body.game-etterna .p4-rpm-box:has(#ui-len),
+body.game-etterna .p4-rpm-box:nth-child(4) {
+  display: none !important;
+}
+body.game-etterna .p4-rpm-metrics {
+  grid-template-columns: repeat(3, 1fr) 1.3fr;
+}
+

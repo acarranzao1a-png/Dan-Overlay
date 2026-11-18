@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:ital,wght@0,500;0,700;0,800;1,800&family=Montserrat:ital,wght@0,600;0,800;0,900;1,900&display=swap');
+
+:root {
+  /* Paleta dinamica del Dan activo */
+  --c1: 70, 60, 180;
+  --c2: 220, 65, 80;
+  --c3: 245, 225, 45;
+  --contrast-on-c1: #ffffff;
+
+  /* Colores dinamicos de Sunny Star Rating */
+  --sr-bg: #5654ca;
+  --sr-txt: #ffd966;
+
+  /* Progreso decimal (0.00 a 0.99) y porcentaje de Tier (20 a 100) */
+  --dec-prog: 0.98;
+  --tier-pct: 100;
+
+  /* Curvas fisicas */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-mech: cubic-bezier(0.7, 0, 0.15, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+body {
+  background-color: transparent !important;
+  color: #ffffff;
+  font-family: 'JetBrains Mono', monospace;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* Modos Chroma OBS */
+body.stage-chroma, body.chroma-mode {
+  background-color: #00ff00 !important;
+}
+body.stage-chroma .p5-hud, body.chroma-mode .p5-hud {
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* OVERLAY CONTAINER */
+#overlay {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 10px;
+  background: transparent;
+}
+
+/* ==========================================================================
+   UI-12: SWISS BRUTALIST TICKER
+   ========================================================================== */
+.p5-hud {
+  position: relative;
+  width: 760px;
+  background: #09090d;
+  border: 2px solid #ffffff;
+  box-shadow: 9px 9px 0px rgb(var(--c1));
+  font-family: 'JetBrains Mono', monospace;
+  transition: box-shadow 0.25s var(--ease-spring), transform 0.25s var(--ease-spring);
+  overflow: hidden;
+}
+
+/* Escaner Laser Vertical durante Calculo en P3 */
+.p5-laser-bar {
+  position: absolute; top: 0; bottom: 0; width: 4px; z-index: 40;
+  background: #ffffff;
+  box-shadow: 0 0 18px 4px rgb(var(--c1)), 0 0 8px #ffffff;
+  opacity: 0; pointer-events: none;
+}
+@keyframes brutalLaserScan {
+  0% { left: 0%; opacity: 1; }
+  50% { left: 99%; opacity: 1; }
+  100% { left: 0%; opacity: 1; }
+}
+.p5-hud.is-computing .p5-laser-bar, #overlay.computing-mode .p5-hud .p5-laser-bar {
+  animation: brutalLaserScan 0.75s ease-in-out infinite;
+}
+
+/* Sello Mecanico (Compresion de la sombra solida al cambiar de mapa) */
+@keyframes p5MechanicalStamp {
+  0% { transform: translate(0, 0); box-shadow: 9px 9px 0px rgb(var(--c1)); }
+  35% { transform: translate(7px, 7px); box-shadow: 2px 2px 0px rgb(var(--c1)); }
+  75% { transform: translate(-2px, -2px); box-shadow: 12px 12px 0px rgb(var(--c1)); }
+  100% { transform: translate(0, 0); box-shadow: 9px 9px 0px rgb(var(--c1)); }
+}
+.p5-hud.map-transition {
+  animation: p5MechanicalStamp 0.55s var(--ease-spring);
+}
+
+/* Cortinas individuales escalonadas por celda */
+.p5-cell-shutter {
+  position: absolute; inset: 0; z-index: 25;
+  background: rgb(var(--c1));
+  transform: scaleX(0); transform-origin: left;
+  pointer-events: none;
+}
+@keyframes cellShutterWipe {
+  0%   { transform: scaleX(0); transform-origin: left; }
+  45%  { transform: scaleX(1); transform-origin: left; }
+  55%  { transform: scaleX(1); transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
+.p5-hud.map-transition .shutter-1 { animation: cellShutterWipe 0.45s 0.00s var(--ease-mech); background: #ffffff; }
+.p5-hud.map-transition .shutter-2 { animation: cellShutterWipe 0.45s 0.06s var(--ease-mech); }
+.p5-hud.map-transition .shutter-3 { animation: cellShutterWipe 0.45s 0.12s var(--ease-mech); }
+.p5-hud.map-transition .shutter-4 { animation: cellShutterWipe 0.45s 0.17s var(--ease-mech); }
+
+/* Grilla Principal de 3 Celdas */
+.p5-grid-main {
+  display: grid;
+  grid-template-columns: 140px 1fr 230px;
+}
+
+/* Celda A: Bloque de Color Solido (--c1) */
+.p5-cell-sym {
+  position: relative; overflow: hidden;
+  background: rgb(var(--c1));
+  color: var(--contrast-on-c1);
+  border-right: 2px solid #ffffff;
+  padding: 18px 16px;
+  display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.p5-sym-lbl { font-size: 9px; font-weight: 800; letter-spacing: 1px; opacity: 0.85; }
+.p5-sym-huge {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 42px; font-weight: 900; line-height: 0.9; letter-spacing: -2px;
+  margin-top: 8px;
+}
+
+/* Celda B: Headline del Dan + Barcode Tier */
+.p5-cell-dan {
+  position: relative; overflow: hidden;
+  padding: 16px 24px;
+  border-right: 2px solid #ffffff;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.p5-dan-submeta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.45); letter-spacing: 1.5px;
+  margin-bottom: 2px;
+}
+.p5-dan-headline {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 40px; font-weight: 900; text-transform: uppercase;
+  color: #ffffff; line-height: 0.95; letter-spacing: -1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p5-barcode-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.18);
+}
+.p5-barcode-bars { display: flex; gap: 5px; align-items: flex-end; height: 14px; }
+.p5-bbar {
+  width: 15px; height: 100%; border: 1.5px solid rgba(255,255,255,0.3);
+  background: transparent; transition: all 0.2s ease;
+}
+.p5-bbar.active { background: rgb(var(--c1)); border-color: rgb(var(--c1)); }
+
+@keyframes barcodeDance {
+  0% { transform: scaleY(0.25); background: rgb(var(--c1)); }
+  100% { transform: scaleY(1); background: #ffffff; }
+}
+.p5-hud.is-computing .p5-bbar, #overlay.computing-mode .p5-hud .p5-bbar {
+  transform-origin: bottom;
+  animation: barcodeDance 0.22s ease-in-out infinite alternate;
+}
+.p5-hud.is-computing .p5-bbar:nth-child(2), #overlay.computing-mode .p5-hud .p5-bbar:nth-child(2) { animation-delay: 0.05s; }
+.p5-hud.is-computing .p5-bbar:nth-child(3), #overlay.computing-mode .p5-hud .p5-bbar:nth-child(3) { animation-delay: 0.10s; }
+.p5-hud.is-computing .p5-bbar:nth-child(4), #overlay.computing-mode .p5-hud .p5-bbar:nth-child(4) { animation-delay: 0.15s; }
+.p5-hud.is-computing .p5-bbar:nth-child(5), #overlay.computing-mode .p5-hud .p5-bbar:nth-child(5) { animation-delay: 0.08s; }
+
+.p5-tier-str { font-size: 11px; font-weight: 800; color: rgb(var(--c1)); letter-spacing: 2px; }
+
+/* Celda C: Matriz DP + Regla Milimetrica */
+.p5-cell-dp {
+  position: relative; overflow: hidden;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background: #0d0f17;
+}
+.p5-dp-val {
+  display: flex; align-items: baseline; justify-content: flex-end;
+  font-weight: 800;
+}
+.p5-dp-val .int { font-size: 48px; line-height: 0.9; color: #fff; }
+.p5-dp-val .dec { font-size: 25px; color: rgb(var(--c1)); }
+
+.p5-ruler-wrap {
+  display: flex; flex-direction: column; gap: 4px; margin-top: 10px;
+}
+.p5-ruler-track {
+  position: relative; height: 8px; width: 100%;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,0.28) 0, rgba(255,255,255,0.28) 1px, transparent 1px, transparent 10%);
+  border-bottom: 1.5px solid #ffffff;
+}
+.p5-ruler-marker {
+  position: absolute; top: -3px;
+  left: calc(var(--dec-prog) * 100%);
+  width: 8px; height: 12px;
+  background: rgb(var(--c1)); border: 1.5px solid #fff;
+  transform: translateX(-50%);
+  transition: left 0.6s var(--ease-spring);
+}
+@keyframes scannerMarker { 0%, 100% { left: 4%; } 50% { left: 96%; } }
+.p5-hud.is-computing .p5-ruler-marker, #overlay.computing-mode .p5-hud .p5-ruler-marker { animation: scannerMarker 0.45s linear infinite; }
+.p5-ruler-lbls {
+  display: flex; justify-content: space-between;
+  font-size: 8px; color: rgba(255,255,255,0.5);
+}
+
+/* Ticker Brutalista Expandible [L] */
+.p5-drawer {
+  position: relative;
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 0.42s var(--ease-out-expo);
+}
+.p5-hud.expanded .p5-drawer { grid-template-rows: 1fr; }
+.p5-drawer-inner { min-height: 0; overflow: hidden; position: relative; }
+.p5-ticker-strip {
+  border-top: 2px solid #ffffff;
+  display: grid; grid-template-columns: 1.7fr repeat(4, 1fr);
+  background: #09090d;
+}
+.p5-tcell {
+  padding: 10px 12px; border-right: 1.5px solid rgba(255,255,255,0.25);
+  display: flex; flex-direction: column; justify-content: center;
+  overflow: hidden;
+}
+.p5-tcell:last-child { border-right: none; }
+.p5-tcell .k { font-size: 8px; color: rgba(255,255,255,0.48); margin-bottom: 2px; letter-spacing: 1px; }
+.p5-tcell .v { font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Modo Etterna: Ocultar celda de duración / longitud */
+body.game-etterna .p5-tcell:has(#ui-len),
+body.game-etterna .p5-tcell:last-child {
+  display: none !important;
+}
+body.game-etterna .p5-ticker-strip {
+  grid-template-columns: 1.7fr repeat(3, 1fr);
+}
+

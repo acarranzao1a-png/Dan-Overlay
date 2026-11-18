@@ -41,10 +41,11 @@ def _compute_dan_range(dp, confidence):
     """When confidence is low, return a two-label range string or None."""
     if confidence >= RANGE_CONFIDENCE_THRESHOLD:
         return None
-    # Uncertainty band widens as confidence drops
+    # Uncertainty band widens as confidence drops.
+    # The top of the ladder is Kappa, which spans DP 20.00-20.99.
     spread = (1.0 - confidence) * 1.5  # at conf=0 → ±1.5 dp
     lo = max(0.5, dp - spread)
-    hi = min(20.5, dp + spread)
+    hi = min(20.99, dp + spread)
     label_lo = _dp_to_short(lo)
     label_hi = _dp_to_short(hi)
     if label_lo == label_hi:

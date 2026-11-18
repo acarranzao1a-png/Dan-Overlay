@@ -191,6 +191,11 @@ SKILLSET_CHOKE_MEANS = {
 _RULER_MIN_STEP = 0.05   # two tiers closer than this are indistinguishable
 _RULER_MIN_ZONE = 0.15   # interpolation band narrower than this = a cliff
 
+# Top of the output scale.  The ladder's last tier (Kappa) spans DP 20.00-20.99,
+# so a Kappa chart must be able to read anywhere inside that band; capping at
+# 20.5 truncated its upper half.
+_MAX_DP = 20.99
+
 
 def _report_ruler_health(name, means_dict):
     """Report (do not modify) ruler defects that degrade the interpolation.
@@ -495,7 +500,7 @@ _BIO_ENABLED = False
 _BIO_W_BASE = 0.15
 
 # ── Ridge error-corrector (calibrated offline on the VSRG benchmark) ──────────
-# dp_final = dp_base + clamp(ridge(bio + msd-role features), ±cap).
+# dp_final = dp_base + clamp(ridge(bio + msd-role features), Â±cap).
 # The deployed model (vsrg_ridge_model.json) is a dual-band ridge: the high
 # model is fit on the 11-17+ band (98 features, feature_set sustain_v1) and
 # the low model on the 1-10.5 band with official dan-pack augmentation. The
@@ -523,6 +528,73 @@ if _RIDGE_ENABLED:
                 break
             except Exception:
                 _RIDGE_MODEL = None
+
+
+# Rice model (config/rice_model.json).
+#
+# Feeding the engine's own projections to a model that predicts the dan directly,
+# instead of recombining them with the linear `lin_base`, is the largest accuracy
+# gain this engine has had:
+#
+#     engine alone                   0.2190   58.59 %
+#     model, ungated                 0.1803   67.99 %
+#     model, gated dp in [12,15)     0.1754   69.44 %
+#
+# The gain comes from the model form, not from extra columns: the four
+# projections alone reach 65 %, and the feature columns add roughly one point on
+# top.  A linear recombination of the same four inputs cannot express what a tree
+# can.
+#
+# The gate exists because outside the band it was validated in the model is worse
+# than the engine: measured per band, 9-11 and 11-12 lose about eight points of
+# exact rate.  Trees do not extrapolate, so they are not allowed to.
+#
+# Exported as plain decision trees, so no ML library ships with the app.  Delete
+# the file and the engine falls back to the pure physics.
+_RICE_MODEL = None
+for _cp in ([os.path.join(sys._MEIPASS, "config", "rice_model.json")]
+            if getattr(sys, "frozen", False) else []) + [
+            os.path.join(os.path.dirname(os.path.dirname(_THIS_DIR)), "config",
+                         "rice_model.json")]:
+    if os.path.exists(_cp):
+        try:
+            with open(_cp, encoding="utf-8") as _f:
+                _RICE_MODEL = json.load(_f)
+            break
+        except Exception:  # noqa: BLE001 - a broken file just disables it
+            _RICE_MODEL = None
+
+
+def _rice_model_vector(projections, features, curve):
+    """Standardised inputs in the model's own order."""
+    model = _RICE_MODEL
+    vals = [float(v) for v in projections]
+    for name in model["feature_names"]:
+        try:
+            vals.append(float(features.get(name, 0.0) or 0.0))
+        except (TypeError, ValueError):
+            vals.append(0.0)
+    for name in model["curve_names"]:
+        try:
+            vals.append(float(curve.get(name, 0.0) or 0.0))
+        except (TypeError, ValueError):
+            vals.append(0.0)
+    scale = model["scale"]
+    mean = model["mean"]
+    return [(v - mean[i]) / (scale[i] or 1.0) for i, v in enumerate(vals)]
+
+
+def _rice_model_predict(vec):
+    """Walk the exported trees: base + learning_rate * sum(leaf values)."""
+    model = _RICE_MODEL
+    total = 0.0
+    for nodes in model["trees"]:
+        i = 0
+        while not nodes[i][5]:
+            node = nodes[i]
+            i = node[2] if vec[node[0]] <= node[1] else node[3]
+        total += nodes[i][4]
+    return model["base"] + total * model["learning_rate"]
 
 
 _RIDGE_STREAM_NAMES = ["speed", "hand", "jack", "chordjack", "tech", "stamina", "course"]
@@ -939,11 +1011,22 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
 
     dp_sr = 0.0
     dp_choke = 0.0
+    # Per-skillset projections, kept separately.
+    #
+    # `dp_sr` below is a weighted AVERAGE of these, so the sum throws away the
+    # profile: a chart that is 70 % tech and 30 % jack and a chart that is 50/50
+    # can land on the same dp.  The weights and the per-skillset dans are the
+    # one piece of physics the engine computes and then discards, which is what
+    # makes them worth exposing as model inputs.
+    _sk_sr = {}
+    _sk_choke = {}
     for _k, _wk in sk_w.items():
+        _sk_sr[_k] = interpolate_ruler(mod_sr, SKILLSET_SR_MEANS.get(_k, SKILLSET_SR_MEANS["general"]))
+        _sk_choke[_k] = interpolate_ruler(choke_nps, SKILLSET_CHOKE_MEANS.get(_k, SKILLSET_CHOKE_MEANS.get("general", SKILLSET_CHOKE_MEANS)))
         if _wk <= 1e-9:
             continue
-        dp_sr += _wk * interpolate_ruler(mod_sr, SKILLSET_SR_MEANS.get(_k, SKILLSET_SR_MEANS["general"]))
-        dp_choke += _wk * interpolate_ruler(choke_nps, SKILLSET_CHOKE_MEANS.get(_k, SKILLSET_CHOKE_MEANS["general"]))
+        dp_sr += _wk * _sk_sr[_k]
+        dp_choke += _wk * _sk_choke[_k]
 
     # MinaCalc Dominant Projection
     if msd_dict and isinstance(msd_dict, dict) and "overall" in msd_dict:
@@ -953,6 +1036,19 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
     else:
         dp_msd = dp_sr
         has_msd = False
+
+    # The profile across skillsets, as model inputs.  The weights say WHAT kind
+    # of chart this is and the per-skillset dans say how hard it is in each
+    # dimension; both are discarded when the weighted average above is taken.
+    _profile = {}
+    for _k in ("jack", "tech", "speed", "stamina", "general"):
+        _profile["skw_" + _k] = round(float(sk_w.get(_k, 0.0)), 4)
+        _profile["sksr_" + _k] = round(float(_sk_sr.get(_k, 0.0)), 4)
+        _profile["skch_" + _k] = round(float(_sk_choke.get(_k, 0.0)), 4)
+    _srv = [v for v in _sk_sr.values() if v is not None]
+    _profile["sk_sr_max"] = round(max(_srv), 4) if _srv else 0.0
+    _profile["sk_sr_min"] = round(min(_srv), 4) if _srv else 0.0
+    _profile["sk_sr_spread"] = round(max(_srv) - min(_srv), 4) if _srv else 0.0
 
     # 3. Dynamic Triangulation Weights (continuous weight modulation)
     dp_bio = None
@@ -1022,6 +1118,7 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
         "sublevel": sublevel,
         "mod_sr": round(mod_sr, 4),
         "dp_sr": round(dp_sr, 2),
+        "sk_profile": _profile,
         "dp_choke": round(dp_choke, 2),
         "dp_msd": round(dp_msd, 2),
         "dp_bio": round(dp_bio, 2) if dp_bio is not None else None,
@@ -1034,6 +1131,75 @@ def compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_dict, famil
 
 _NATIVE_RATES = (0.75, 1.0, 1.5)
 _MOD_RATE = {"HT": 0.75, "DT": 1.5, "NC": 1.5, "NM": 1.0}
+
+
+def _curve_stats(values, times=None):
+    """Shape of the difficulty curve, not just its level.
+
+    `strain_graph` carries ~300 samples of the chart's difficulty over time.
+    Sunny's star rating already aggregates them, but it collapses the shape into
+    one number.  A chart that is uniformly hard and a chart with one brutal
+    section can share a star rating and feel completely different, so these
+    describe how the demand is distributed:
+
+        curve_p95 / curve_p99      the peak a player must survive
+        curve_cv                   how uneven the chart is
+        curve_peak_ratio           p95 over the mean
+        curve_top10_share          share of total strain in the top decile
+        curve_tw_p90               p90 of the demand, weighted by the time
+                                   spent there (a sustained percentile, not a
+                                   sample-count one: a long section matters
+                                   more than a short spike)
+        curve_late_ratio           mean of the last third over the first third,
+                                   which is the fatigue signature
+
+    Returns {} when there is not enough curve to describe.
+    """
+    vals = [float(v) for v in (values or []) if v is not None]
+    if len(vals) < 20:
+        return {}
+    arr = np.asarray(vals, dtype=float)
+    positive = arr[arr > 0]
+    if positive.size < 20:
+        return {}
+    mean = float(positive.mean())
+    std = float(positive.std())
+    out = {
+        "curve_mean": round(mean, 4),
+        "curve_p50": round(float(np.percentile(positive, 50)), 4),
+        "curve_p90": round(float(np.percentile(positive, 90)), 4),
+        "curve_p95": round(float(np.percentile(positive, 95)), 4),
+        "curve_p99": round(float(np.percentile(positive, 99)), 4),
+        "curve_max": round(float(positive.max()), 4),
+        "curve_cv": round(std / mean, 4) if mean > 1e-9 else 0.0,
+        "curve_peak_ratio": round(float(np.percentile(positive, 95)) / mean, 4) if mean > 1e-9 else 0.0,
+    }
+    total = float(positive.sum())
+    top = max(1, positive.size // 10)
+    out["curve_top10_share"] = round(float(np.sort(positive)[-top:].sum()) / total, 4) if total > 1e-9 else 0.0
+
+    # time-weighted p90: weight each sample by how long that demand is held
+    if times and len(times) == len(vals):
+        try:
+            t = np.asarray([float(x) for x in times], dtype=float)
+            dt = np.diff(t, prepend=t[0])
+            dt = np.clip(dt, 0.0, None)
+            idx = arr > 0
+            if idx.any() and dt[idx].sum() > 0:
+                order = np.argsort(arr[idx])
+                w = dt[idx][order]
+                cum = np.cumsum(w) / w.sum()
+                v_sorted = arr[idx][order]
+                out["curve_tw_p90"] = round(float(v_sorted[min(len(v_sorted) - 1, int(np.searchsorted(cum, 0.90)))]), 4)
+        except (TypeError, ValueError):
+            pass
+
+    third = max(1, positive.size // 3)
+    head = float(positive[:third].mean())
+    tail = float(positive[-third:].mean())
+    if head > 1e-9:
+        out["curve_late_ratio"] = round(tail / head, 4)
+    return out
 
 
 def _rice_view(parsed):
@@ -1169,12 +1335,28 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     if sr_gate < 7.0:
         classification = classify_from_parsed(parsed_eff)
         if classification.get("confidence", 0.0) < 0.10:
-            classification = classify_family(sunny_res, features, domain)
+            classification = classify_family(sunny_res, features, domain, fitted=False)
     else:
-        classification = classify_family(sunny_res, features, domain)
+        classification = classify_family(sunny_res, features, domain, fitted=False)
 
     family = classification.get("family", "hybrid")
     conf = classification.get("confidence", 0.70)
+
+    # 4b. Reported family.  The routing above deliberately stays on the
+    # hand-tuned classifier: `lin_base` was fitted against that assignment and a
+    # refit does not reproduce it (out-of-fold MAE 0.2575 vs the deployed
+    # 0.2525, measured).  The overlay, however, should show the best
+    # classification available, so when a fitted model is installed it only
+    # overrides the *reported* family.  With no fitted model both are identical.
+    family_display = family
+    conf_display = conf
+    try:
+        _display_cls = classify_family(sunny_res, features, domain, fitted=True)
+        if _display_cls.get("family"):
+            family_display = _display_cls["family"]
+            conf_display = float(_display_cls.get("confidence") or conf)
+    except Exception:  # noqa: BLE001 - display must never break the analysis
+        pass
 
     # 5. Multidimensional Triangulation
     triang = compute_triangulated_rank(raw_sr, sunny_strains, choke_info, msd_res, family, conf,
@@ -1190,6 +1372,7 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     # 11-17+ band (human criterion), blended C1 with the organic triangulation
     # via a sigmoid on the original base. Global and continuous.
     base = triang["dp"]
+    _lin_dbg = None
     if _RIDGE_MODEL and _RIDGE_MODEL.get("lin_base"):
         _lb = _RIDGE_MODEL["lin_base"]
         _coef = _lb.get(triang["sk_key"]) or _lb.get("general")
@@ -1198,6 +1381,17 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
         _blend = _RIDGE_MODEL.get("lin_blend", {"k": 8.0, "x0": 11.0})
         _w = _sigmoid(triang["dp"], k=float(_blend.get("k", 8.0)), x0=float(_blend.get("x0", 11.0)))
         base = _w * _base_lin + (1.0 - _w) * triang["dp"]
+        # Diagnostics only (cost: one small dict per analysis).  Exposes the
+        # exact state lin_base recombines, so its coefficients can be refitted
+        # against the final dp instead of a guess at which pipeline stage
+        # produced it.  Nothing downstream reads this key.
+        _lin_dbg = {
+            "tri": round(float(triang["dp"]), 6),
+            "base_lin": round(float(_base_lin), 6),
+            "w": round(float(_w), 6),
+            "sk_key": triang["sk_key"],
+            "coef": [float(c) for c in _coef],
+        }
 
     # Top-scale gate (continuous, C0): the VSRG benchmark never grades above
     # ~18.6 DP, so the lin_base blend compresses the official dan ladder at
@@ -1244,10 +1438,13 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
     # tech (0.3040 -> 0.3166) and band 11-14, so it was reverted.  It must be
     # integrated as a Ridge feature with joint recalibration (Fase C), not as a
     # standalone correction.
-    # Top cap (continuous): the official ladder ends at Kappa (DP 20.5); the
-    # dual/ridge stack may extrapolate slightly beyond it, so the final DP is
-    # bounded there. No VSRG benchmark map is affected (max ~18.6 DP).
-    dp_ridge = min(dp_ridge, 20.5)
+    # Top cap (continuous): the official ladder ends with Kappa, which spans
+    # DP 20.00-20.99.  The dual/ridge stack may extrapolate beyond that, so the
+    # final DP is bounded just under the top of Kappa.  (It used to be capped at
+    # 20.5 — the middle of Kappa — which truncated the whole upper half of the
+    # last tier and made a Kappa chart unable to read as Kappa High.)
+    # No VSRG benchmark map is affected (max measured ~18.1 DP).
+    dp_ridge = min(dp_ridge, _MAX_DP)
 
     # Anchor calibration of the level (see _RIDGE_ANCHORS). Applied AFTER the cap
     # so the shifted value is the one that gets capped, and BEFORE the native-rate
@@ -1258,7 +1455,7 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
             _h = 0.0
             for _ci, _ai in zip(_c, _a):
                 _h += _ai * math.exp(-((base - _ci) / _w) ** 2)
-            dp_ridge = min(max(dp_ridge + _h, 0.0), 20.5)
+            dp_ridge = min(max(dp_ridge + _h, 0.0), _MAX_DP)
         except Exception:
             pass
 
@@ -1284,6 +1481,28 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
                 dp_ridge = min(dp_ridge, _res_hi["dp"])
 
     triang["dp"] = round(dp_ridge, 2)
+
+    # Shape of the demand curve; also the input of the band-limited correction.
+    curve_stats = _curve_stats(
+        (sunny_res.get("strain_graph") or {}).get("values"),
+        (sunny_res.get("strain_graph") or {}).get("times"),
+    )
+
+    # Band-limited learned model.  Only inside the interval it was validated on,
+    # so it can never extrapolate across bands.
+    if _RICE_MODEL is not None:
+        _glo, _ghi = _RICE_MODEL.get("gate", [0.0, 0.0])
+        _cur = float(triang["dp"])
+        if _glo <= _cur < _ghi:
+            _vec = _rice_model_vector(
+                [triang["dp_sr"], triang["dp_msd"], triang["dp_choke"], _cur],
+                features, curve_stats)
+            _pred = _rice_model_predict(_vec)
+            # The model was trained on `expected` (the dan itself), while the
+            # engine's `dp` is the same quantity shifted by +0.5: the benchmark
+            # reports `got = dp - 0.5`. Setting dp to the raw prediction put the
+            # result half a dan low, so the shift is applied here, in one place.
+            triang["dp"] = round(min(_MAX_DP, max(0.0, _pred + 0.5)), 2)
     triang["ridge_correction"] = ridge_corr
     
     _tier_idx = min(len(DAN_ORDER) - 1, max(0, int(triang["dp"]) - 1))
@@ -1304,8 +1523,8 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
         "bpm": float(parsed_eff.get("bpm", 0.0) or 0.0),
         "drain_s": drain_s,
         "note_count": int(len(notes)),
-        "family": family,
-        "family_confidence": conf,
+        "family": family_display,
+        "family_confidence": conf_display,
         "raw_sr": raw_sr,
         "modulated_sr": triang["mod_sr"],
         "dp": triang["dp"],
@@ -1320,6 +1539,9 @@ def analyze_beatmap_prototype(osu_path, mod="NM", rate=None, parsed=None, domain
         "dan_short": triang["dan_short"],
         "sublevel": triang["sublevel"],
         "ridge_correction": triang.get("ridge_correction", 0.0),
+        "_lin_debug": _lin_dbg,
+        "curve_stats": curve_stats,
+        "sk_profile": triang.get("sk_profile") or {},
         "choke_info": choke_info,
         "sunny_strains": sunny_strains,
         "strain_graph": sunny_res.get("strain_graph"),

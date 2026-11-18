@@ -98,7 +98,7 @@ def main():
             f"The program closed unexpectedly.\n\n"
             f"Error: {e}\n\n"
             f"Check DanOverlay_error.txt for details."
-        )
+        ) 
         sys.exit(1)
 
 

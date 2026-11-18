@@ -41,7 +41,7 @@ class AnalysisCoordinator:
     * Supports runtime engine switching between ISOR and Legacy.
     """
 
-    _DEBOUNCE_S = 0.08
+    _DEBOUNCE_S = 0.04
 
     def __init__(self, event_bus, cache_size=200):
         self._bus = event_bus
@@ -93,7 +93,15 @@ class AnalysisCoordinator:
             changed = (engine != self._active_engine)
             self._active_engine = engine
         if changed and self._pending_map is not None:
-            self._on_map_changed(self._pending_map)
+            # Force a fresh analysis.  A cached entry for this (map, engine) can
+            # belong to a different chart when the key components collide, and
+            # serving it shows another map's numbers until the map itself changes.
+            logger.info(
+                "engine switch -> %s; re-analysing %s",
+                engine,
+                os.path.basename(getattr(self._pending_map, "path", "") or ""),
+            )
+            self._on_map_changed(self._pending_map, force=True)
 
     # ── warmup (cold-start elimination) ────────────────────────────
 
@@ -101,7 +109,9 @@ class AnalysisCoordinator:
         """Pre-import heavy modules so the first analysis avoids cold-start cost."""
         try:
             import numpy           # ~100ms
-            import pandas          # ~50ms
+            # pandas used to be imported here.  Nothing in the app ever used it,
+            # and it cost ~40-80 MB of resident memory (plus its tzdata payload in
+            # the frozen build) just for the warmup.  Removed.
             from primary_sr_bridge import _import_sr_core
             _import_sr_core()      # pulls in algorithm + osu_file_parser
             # Lighter modules.  Still worth pre-loading so first
@@ -119,10 +129,17 @@ class AnalysisCoordinator:
 
     # ── event handler ───────────────────────────────────────────────
 
-    def _on_map_changed(self, map_info):
+    def _on_map_changed(self, map_info, force=False):
         engine = self._active_engine
         diff_ver = getattr(map_info, "version", "") or ""
-        cache_key = (map_info.path, diff_ver, map_info.mod_label, round(map_info.mod_speed, 4), engine)
+        cache_key = (
+            getattr(map_info, "md5", "") or "",
+            map_info.path,
+            diff_ver,
+            map_info.mod_label,
+            round(map_info.mod_speed, 4),
+            engine,
+        )
 
         with self._lock:
             self._seq += 1
@@ -130,7 +147,7 @@ class AnalysisCoordinator:
             self._current_token = token
 
         # Cache hit — return instantly without debounce.
-        if cache_key in self._cache:
+        if not force and cache_key in self._cache:
             self._bus.emit(ANALYSIS_COMPLETE, self._cache[cache_key])
             return
 
@@ -185,6 +202,7 @@ class AnalysisCoordinator:
             engine = self._active_engine
             diff_ver = getattr(map_info, "version", "") or ""
             cache_key = (
+                getattr(map_info, "md5", "") or "",
                 map_info.path,
                 diff_ver,
                 map_info.mod_label,

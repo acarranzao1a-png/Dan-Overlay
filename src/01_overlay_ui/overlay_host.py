@@ -51,6 +51,7 @@ def _get_settings_path() -> Path:
 
 _REQUIRED_CONFIG = [
     "config/role_scales.json",
+    "config/skin_dimensions.json",
 ]
 
 
@@ -73,23 +74,81 @@ def _validate_startup():
     return missing
 
 
+# ── Skin dimensions ─────────────────────────────────────────────────────
+#
+# One table for both window styles.  `window_outer` is the size that includes
+# the OS border and title bar, which is what the window needs in framed mode;
+# `frameless` is the same content area with no chrome.  Keeping both in one
+# place stops the numbers from drifting between the JS and the host.
+
+def _load_skin_dimensions():
+    try:
+        with open(_resolve("config/skin_dimensions.json"),
+                  encoding="utf-8") as fh:
+            data = json.load(fh)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("skin dimensions unavailable: %s", exc)
+        return {"skins": {}}
+    return data
+
+
+_SKIN_DIMENSIONS = _load_skin_dimensions()
+
+
+def get_skin_dimensions():
+    """Return the per-skin size table so the UI can size the window correctly.
+
+    Each entry is `{skin: {"layouts": {layout: {"viewport": {...}, "window_outer": {...}}}}}`.
+    """
+    return _SKIN_DIMENSIONS
+
+
+def get_skin_canonical_window_size(skin_id: str, layout: str = "") -> tuple[int, int]:
+    """Get the canonical (outer_w, outer_h) for a skin to size the Win32 window (collapsed by default)."""
+    skin_str = str(skin_id)
+    skin_meta = _SKIN_DIMENSIONS.get("skins", {}).get(skin_str)
+    if not skin_meta:
+        return 700, 320
+    layouts = skin_meta.get("layouts", {})
+    target_layout = layout
+    if not target_layout or target_layout not in layouts:
+        if "collapsed" in layouts:
+            target_layout = "collapsed"
+        elif "compact" in layouts and skin_str == "9":
+            target_layout = "compact"
+        elif "complete" in layouts:
+            target_layout = "complete"
+        elif "default" in layouts:
+            target_layout = "default"
+        else:
+            target_layout = next(iter(layouts.keys()))
+
+    spec = layouts.get(target_layout, {})
+    outer = spec.get("window_outer", {})
+    w = outer.get("w", 700)
+    h = outer.get("h", 320)
+    return int(w), int(h)
+
+
 # ── Window modes ────────────────────────────────────────────────────────
 
 # Opened on first launch; user picks resize behavior in the UI.
-_APP_VERSION = "3.2.0-beta"
-_APP_TITLE = f"DanOverlay {_APP_VERSION} — Open Beta Testing — by 8DOUL (discord: agent_ale)"
+_APP_VERSION = "3.2"
+_APP_TITLE = f"DanOverlay {_APP_VERSION} — by 8DOUL (discord: agent_ale)"
 _DEFAULT_MODE = {
-    "label":    f"DanOverlay {_APP_VERSION} — Open Beta Testing",
+    "label":    f"DanOverlay {_APP_VERSION}",
     "width":    700, "height": 320, "min_size": (250, 100),
 }
 
 # Aspect ratio (width / height) locked when the user picks the "Locked" mode.
-_ASPECT_RATIO = _DEFAULT_MODE["width"] / _DEFAULT_MODE["height"]  # 700/320 ≈ 2.1875
+_ASPECT_RATIO = _DEFAULT_MODE["width"] / _DEFAULT_MODE["height"]  # 700/320 â‰ˆ 2.1875
 
 # Module-level list: keeps WndProc callbacks alive to prevent GC
 _aspect_wndproc_ref: list = []
 # Module-level dict: maps HWND -> original WndProc address for uninstall
 _aspect_orig_proc: dict[int, int] = {}
+# Module-level dict: maps HWND -> active aspect ratio float
+_aspect_ratios: dict[int, float] = {}
 
 
 def _install_aspect_ratio_lock(hwnd: int, ratio: float) -> None:
@@ -100,6 +159,11 @@ def _install_aspect_ratio_lock(hwnd: int, ratio: float) -> None:
     Only relevant on Windows.  Safe to call from a non-UI thread after the
     window has been fully created.
     """
+    _aspect_ratios[hwnd] = ratio
+    if hwnd in _aspect_orig_proc:
+        logger.info("Updated aspect-ratio lock on HWND %s (ratio=%.4f)", hwnd, ratio)
+        return
+
     import ctypes
     import ctypes.wintypes as W
 
@@ -137,6 +201,7 @@ def _install_aspect_ratio_lock(hwnd: int, ratio: float) -> None:
 
     def _wndproc(hwnd_val, msg, wparam, lparam) -> int:
         if msg == WM_SIZING:
+            active_ratio = _aspect_ratios.get(hwnd_val, ratio)
             rect_ptr = ctypes.cast(lparam, ctypes.POINTER(RECT))
             r = rect_ptr.contents
             w = r.right  - r.left
@@ -144,16 +209,16 @@ def _install_aspect_ratio_lock(hwnd: int, ratio: float) -> None:
 
             if wparam in (WMSZ_LEFT, WMSZ_RIGHT):
                 # Horizontal drag — width is primary, adjust height downward
-                r.bottom = r.top + max(1, round(w / ratio))
+                r.bottom = r.top + max(1, round(w / active_ratio))
             elif wparam in (WMSZ_TOP, WMSZ_BOTTOM):
                 # Vertical drag — height is primary, adjust width rightward
-                r.right = r.left + max(1, round(h * ratio))
+                r.right = r.left + max(1, round(h * active_ratio))
             elif wparam in (WMSZ_TOPLEFT, WMSZ_TOPRIGHT):
                 # Corner drag from top — width is primary, adjust top edge
-                r.top = r.bottom - max(1, round(w / ratio))
+                r.top = r.bottom - max(1, round(w / active_ratio))
             else:  # BOTTOMLEFT, BOTTOMRIGHT
                 # Corner drag from bottom — width is primary, adjust bottom edge
-                r.bottom = r.top + max(1, round(w / ratio))
+                r.bottom = r.top + max(1, round(w / active_ratio))
 
             return 1  # TRUE — message handled
 
@@ -272,7 +337,7 @@ def launch():
     # ── Pre-flight validation ──────────────────────────────────
     missing = _validate_startup()
     if missing:
-        msg = "Missing required files:\n\n" + "\n".join(f"  ✗  {m}" for m in missing)
+        msg = "Missing required files:\n\n" + "\n".join(f"  âœ—  {m}" for m in missing)
         msg += "\n\nPlease make sure you downloaded the full distribution.\nCheck DanOverlay_error.txt for details."
         _show_error_dialog("DanOverlay — Startup Error", msg)
         return
@@ -317,12 +382,12 @@ def launch():
 
 def _build_overlay_url() -> str:
     """Read 'skin' from settings.json and return the corresponding HTML URL.
-    skin "2"  → ui-2/index.html (classic horizontal design)
-    skin "3"  → ui-3/index.html (density graph design)
-    skin "4"  → ui-4/index.html (ring monolith design)
-    skin "5"  → ui-5/index.html (broadcast bar design)
-    skin "6"  → ui-6/index.html (big type design)
-    anything else → index.html (default design)
+    skin "2"  â†’ ui-2/index.html (classic horizontal design)
+    skin "3"  â†’ ui-3/index.html (density graph design)
+    skin "4"  â†’ ui-4/index.html (ring monolith design)
+    skin "5"  â†’ ui-5/index.html (broadcast bar design)
+    skin "6"  â†’ ui-6/index.html (big type design)
+    anything else â†’ index.html (default design)
     """
     skin = "1"
     try:
@@ -349,6 +414,12 @@ def _build_overlay_url() -> str:
         html_file = _WEB_DIR / "ui-8" / "index.html"
     elif skin == "9":
         html_file = _WEB_DIR / "ui-9" / "index.html"
+    elif skin == "10":
+        html_file = _WEB_DIR / "ui-10" / "index.html"
+    elif skin == "11":
+        html_file = _WEB_DIR / "ui-11" / "index.html"
+    elif skin == "12":
+        html_file = _WEB_DIR / "ui-12" / "index.html"
     else:
         html_file = _WEB_DIR / "index.html"
 
@@ -408,85 +479,17 @@ def _run_overlay_session(cfg, overlay_url):
     # This prevents size flashes or timing bugs on first load before JS is ready.
     _start_w = cfg["width"]
     _start_h = cfg["height"]
-    _use_frameless = False
     try:
         _settings_path = _get_settings_path()
         if _settings_path.exists():
             _saved = json.loads(_settings_path.read_text(encoding="utf-8"))
-            _use_frameless = bool(_saved.get("frameless", False))
-            
             _skin = str(_saved.get("skin", "1"))
-            _saved_w = _saved.get("windowWidth")
-            _saved_h = _saved.get("windowHeight")
-            
-            if _saved_w is not None and _saved_h is not None:
-                _saved_w = int(_saved_w)
-                _saved_h = int(_saved_h)
-                
-                # Intelligent migration: if saved dimensions are legacy/other skin defaults,
-                # override them with the active skin's defaults to prevent ugly layout stretching.
-                _is_legacy_default = (_saved_w == 700 and _saved_h == 320) or (_saved_w == 860 and _saved_h == 320)
-                if _is_legacy_default and _skin in ("4", "5", "6", "7", "8", "9"):
-                    if _skin == "4":
-                        _start_w = 284
-                        _start_h = 335
-                    elif _skin == "5":
-                        _start_w = 589
-                        _start_h = 170
-                    elif _skin == "6":
-                        _start_w = 645
-                        _start_h = 211
-                    elif _skin == "7":
-                        _start_w = 800
-                        _start_h = 340
-                    elif _skin == "8":
-                        _start_w = 594
-                        _start_h = 234
-                    elif _skin == "9":
-                        _layout = _saved.get("layout", "complete")
-                        _start_w = 540 if _layout == "complete" else (480 if _layout == "simplified" else 360)
-                        _start_h = 175 if _layout == "complete" else (130 if _layout == "simplified" else 90)
-                else:
-                    _start_w = _saved_w
-                    _start_h = _saved_h
-            else:
-                # Use skin defaults
-                if _skin == "4":
-                    _start_w = 284
-                    _start_h = 335
-                elif _skin == "5":
-                    _start_w = 589
-                    _start_h = 170
-                elif _skin == "6":
-                    _start_w = 645
-                    _start_h = 211
-                elif _skin == "7":
-                    _start_w = 800
-                    _start_h = 340
-                elif _skin == "8":
-                    _start_w = 594
-                    _start_h = 234
-                elif _skin == "9":
-                    _layout = _saved.get("layout", "complete")
-                    _start_w = 540 if _layout == "complete" else (480 if _layout == "simplified" else 360)
-                    _start_h = 175 if _layout == "complete" else (130 if _layout == "simplified" else 90)
-                elif _skin == "3":
-                    _layout = _saved.get("layout", "complete")
-                    _start_w = 700
-                    if _layout == "simplified":
-                        _start_h = 220
-                    elif _layout == "compact":
-                        _start_h = 76
-                    else:
-                        _start_h = 320
-                else:
-                    _start_w = 700
-                    _start_h = 320
+            # Always initialize the window with the canonical dimensions of the active skin (collapsed by default)
+            _start_w, _start_h = get_skin_canonical_window_size(_skin)
     except Exception as exc:
         logger.warning("Failed to load initial window size from settings: %s", exc)
-
-    if _use_frameless:
-        logger.info("Frameless mode enabled (from settings.json)")
+    except Exception as exc:
+        logger.warning("Failed to load initial window size from settings: %s", exc)
 
     window = webview.create_window(
         title=_APP_TITLE,
@@ -498,8 +501,6 @@ def _run_overlay_session(cfg, overlay_url):
         on_top=False,   # manual overlay pin toggle via Tab
         background_color="#000000",
         text_select=False,
-        frameless=_use_frameless,
-        easy_drag=_use_frameless,   # drag by clicking anywhere when frameless
     )
     window.events.closing += on_window_closed
 
@@ -643,6 +644,34 @@ def _run_overlay_session(cfg, overlay_url):
             target=_wait_for_js_ready, daemon=True, name="bridge-ready"
         ).start()
 
+        def set_window_size_outer(w: int, h: int):
+            if sys.platform != "win32":
+                try:
+                    _window.resize(int(w), int(h))
+                except Exception:
+                    pass
+                return
+            import ctypes
+            import ctypes.wintypes as W
+            try:
+                hwnd_val = ctypes.windll.user32.FindWindowW(None, _APP_TITLE)
+                if not hwnd_val:
+                    return
+                user32 = ctypes.windll.user32
+                if hwnd_val in _aspect_orig_proc and h > 0:
+                    _aspect_ratios[hwnd_val] = float(w) / float(h)
+                SWP_NOMOVE = 0x0002
+                SWP_NOZORDER = 0x0004
+                SWP_NOACTIVATE = 0x0010
+                user32.SetWindowPos(
+                    W.HWND(hwnd_val), 0, 0, 0,
+                    int(w), int(h),
+                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+            except Exception as exc:
+                logger.warning("set_window_size_outer failed: %s", exc)
+
+        _window.expose(set_window_size_outer)
+
         def switch_skin(skin_id: str) -> None:
             """Navigate the webview to the correct skin HTML.
 
@@ -651,8 +680,12 @@ def _run_overlay_session(cfg, overlay_url):
             a daemon thread a moment later.
             """
             def _navigate():
-                # Small delay: lets pywebview finish the JS-return dance first.
-                time.sleep(0.15)
+                time.sleep(0.05)
+                # Apply canonical collapsed window dimensions for the new skin immediately
+                cw, ch = get_skin_canonical_window_size(skin_id)
+                set_window_size_outer(cw, ch)
+                time.sleep(0.08)
+
                 if skin_id == "2":
                     html_file = _WEB_DIR / "ui-2" / "index.html"
                 elif skin_id == "3":
@@ -669,17 +702,23 @@ def _run_overlay_session(cfg, overlay_url):
                     html_file = _WEB_DIR / "ui-8" / "index.html"
                 elif skin_id == "9":
                     html_file = _WEB_DIR / "ui-9" / "index.html"
+                elif skin_id == "10":
+                    html_file = _WEB_DIR / "ui-10" / "index.html"
+                elif skin_id == "11":
+                    html_file = _WEB_DIR / "ui-11" / "index.html"
+                elif skin_id == "12":
+                    html_file = _WEB_DIR / "ui-12" / "index.html"
                 else:
                     html_file = _WEB_DIR / "index.html"
                 new_url = "file:///" + str(html_file).replace("\\", "/")
                 logger.info("switch_skin -> %s", new_url)
                 _window.load_url(new_url)
                 # Wait for the new page to finish loading, then initialise it.
-                time.sleep(1.0)
+                time.sleep(0.8)
                 bridge._send({"type": "bridge-init"})
                 # Re-send last-known tosu/map state so the fresh page has
                 # something to show without waiting for the next change event.
-                time.sleep(0.1)
+                time.sleep(0.08)
                 bridge.resync()
 
             threading.Thread(target=_navigate, daemon=True, name="switch-skin").start()
@@ -687,7 +726,7 @@ def _run_overlay_session(cfg, overlay_url):
         _window.expose(switch_skin)
 
         # Resize mode toggle: "free" = unrestricted, "locked" = aspect-ratio enforced.
-        def set_resize_mode(mode: str):
+        def set_resize_mode(mode: str, ratio: float = 0.0):
             if sys.platform != "win32":
                 return
             import ctypes
@@ -702,21 +741,23 @@ def _run_overlay_session(cfg, overlay_url):
                     return
 
                 if mode == "locked":
-                    # Lock to the window's *current* ratio so any resize done
-                    # in Free mode is preserved, not snapped back to default.
-                    import ctypes as _ct
-                    import ctypes.wintypes as _W
-                    class _RECT(_ct.Structure):
-                        _fields_ = [("left",_ct.c_long),("top",_ct.c_long),
-                                    ("right",_ct.c_long),("bottom",_ct.c_long)]
-                    _r = _RECT()
-                    _ct.windll.user32.GetWindowRect(_W.HWND(hwnd_val), _ct.byref(_r))
-                    _cw = _r.right - _r.left
-                    _ch = _r.bottom - _r.top
-                    lock_ratio = (_cw / _ch) if _ch > 0 else _ASPECT_RATIO
+                    if ratio and float(ratio) > 0:
+                        lock_ratio = float(ratio)
+                    else:
+                        import ctypes as _ct
+                        import ctypes.wintypes as _W
+                        class _RECT(_ct.Structure):
+                            _fields_ = [("left",_ct.c_long),("top",_ct.c_long),
+                                        ("right",_ct.c_long),("bottom",_ct.c_long)]
+                        _r = _RECT()
+                        _ct.windll.user32.GetWindowRect(_W.HWND(hwnd_val), _ct.byref(_r))
+                        _cw = _r.right - _r.left
+                        _ch = _r.bottom - _r.top
+                        lock_ratio = (_cw / _ch) if _ch > 0 else _ASPECT_RATIO
                     _install_aspect_ratio_lock(hwnd_val, lock_ratio)
                 else:
                     # Restore the original WndProc saved when lock was installed.
+                    _aspect_ratios.pop(hwnd_val, None)
                     orig = _aspect_orig_proc.pop(hwnd_val, None)
                     if orig:
                         user32 = ctypes.windll.user32
@@ -731,7 +772,7 @@ def _run_overlay_session(cfg, overlay_url):
 
         _window.expose(set_resize_mode)
 
-        # Reset the window to its default 700×320 size and remove any aspect lock.
+        # Reset the window to its default 700Ã—320 size and remove any aspect lock.
         def reset_window_size():
             if sys.platform == "win32":
                 import ctypes
@@ -742,6 +783,7 @@ def _run_overlay_session(cfg, overlay_url):
                         _APP_TITLE,
                     )
                     if hwnd_val:
+                        _aspect_ratios.pop(hwnd_val, None)
                         orig = _aspect_orig_proc.pop(hwnd_val, None)
                         if orig:
                             u32 = ctypes.windll.user32
@@ -761,41 +803,67 @@ def _run_overlay_session(cfg, overlay_url):
         # Resize the window to an explicit (width, height) — used by layout mode changes.
         # Pass w=-1 to keep the current width unchanged (only adjust height).
         def set_window_size(w: int, h: int):
+            """Resize so the CLIENT area is exactly w x h.
+
+            Every number in skin_dimensions.json is a viewport size (see
+            docs/skin-dimensions.md), so the requested size is the client
+            area and the frame plus title bar are added on top with
+            AdjustWindowRectEx.  Handing the viewport straight to SetWindowPos is
+            what made every skin come out ~14 px short in both axes.
+            """
             target_w = int(w)
             target_h = int(h)
-            if sys.platform == "win32":
-                import ctypes
-                import ctypes.wintypes as W
+            if sys.platform != "win32":
                 try:
-                    hwnd_val = ctypes.windll.user32.FindWindowW(None, _APP_TITLE)
-                    if hwnd_val:
-                        class _RECT(ctypes.Structure):
-                            _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long),
-                                        ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
-                        _r = _RECT()
-                        ctypes.windll.user32.GetWindowRect(W.HWND(hwnd_val), ctypes.byref(_r))
-                        cur_w = _r.right - _r.left
-                        cur_h = _r.bottom - _r.top
-                        final_w = cur_w if target_w < 0 else target_w
-                        final_h = cur_h if target_h < 0 else target_h
-                        SWP_NOMOVE = 0x0002
-                        SWP_NOZORDER = 0x0004
-                        SWP_NOACTIVATE = 0x0010
-                        ctypes.windll.user32.SetWindowPos(
-                            W.HWND(hwnd_val), 0, 0, 0,
-                            int(final_w), int(final_h),
-                            SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
-                        )
-                except Exception as exc:
-                    logger.warning("set_window_size (win32) failed: %s", exc)
+                    _window.resize(target_w, target_h)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("set_window_size fallback failed: %s", exc)
+                return
+            import ctypes
+            import ctypes.wintypes as W
             try:
-                actual_w = _window.width if target_w < 0 else target_w
-                actual_h = _window.height if target_h < 0 else target_h
-                _window.resize(int(actual_w), int(actual_h))
-            except Exception as exc:
-                logger.warning("set_window_size failed: %s", exc)
+                hwnd_val = ctypes.windll.user32.FindWindowW(None, _APP_TITLE)
+                if not hwnd_val:
+                    return
+
+                class _RECT(ctypes.Structure):
+                    _fields_ = [("left", ctypes.c_long), ("top", ctypes.c_long),
+                                ("right", ctypes.c_long), ("bottom", ctypes.c_long)]
+
+                user32 = ctypes.windll.user32
+                user32.GetWindowLongPtrW.restype = ctypes.c_longlong
+                user32.GetWindowLongPtrW.argtypes = [W.HWND, ctypes.c_int]
+
+                cur_c = _RECT()
+                user32.GetClientRect(W.HWND(hwnd_val), ctypes.byref(cur_c))
+                cur_client_w = max(1, cur_c.right - cur_c.left)
+                cur_client_h = max(1, cur_c.bottom - cur_c.top)
+
+                eff_client_w = cur_client_w if target_w < 0 else target_w
+                eff_client_h = cur_client_h if target_h < 0 else target_h
+
+                r = _RECT(0, 0, eff_client_w, eff_client_h)
+                style = user32.GetWindowLongPtrW(W.HWND(hwnd_val), -16)
+                ex_style = user32.GetWindowLongPtrW(W.HWND(hwnd_val), -20)
+                user32.AdjustWindowRectEx(ctypes.byref(r), style, False, ex_style)
+                final_w = r.right - r.left
+                final_h = r.bottom - r.top
+
+                if hwnd_val in _aspect_orig_proc and final_h > 0:
+                    _aspect_ratios[hwnd_val] = float(final_w) / float(final_h)
+
+                SWP_NOMOVE = 0x0002
+                SWP_NOZORDER = 0x0004
+                SWP_NOACTIVATE = 0x0010
+                user32.SetWindowPos(
+                    W.HWND(hwnd_val), 0, 0, 0,
+                    int(final_w), int(final_h),
+                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("set_window_size (win32) failed: %s", exc)
 
         _window.expose(set_window_size)
+        _window.expose(get_skin_dimensions)
 
         # Return the current window height so JS can save the real size before
         # expanding for the settings panel.
@@ -815,39 +883,7 @@ def _run_overlay_session(cfg, overlay_url):
 
         _window.expose(get_window_width)
 
-        # Toggle window title bar (frameless / borderless mode).
-        # Uses Win32 API to remove or restore WS_CAPTION + WS_SYSMENU styles.
-        # A restart is required for the change to fully take effect.
-        _frameless_enabled = [False]
 
-        def set_frameless(enabled: bool):
-            _frameless_enabled[0] = enabled
-            if sys.platform != "win32":
-                return
-            try:
-                import ctypes
-                import ctypes.wintypes as W
-                hwnd = ctypes.windll.user32.FindWindowW(None, _APP_TITLE)
-                if not hwnd:
-                    return
-                GWL_STYLE = -16
-                WS_CAPTION = 0x00C00000
-                WS_SYSMENU = 0x00080000
-                WS_THICKFRAME = 0x00040000
-                WS_MINIMIZEBOX = 0x00020000
-                WS_MAXIMIZEBOX = 0x00010000
-                style = ctypes.windll.user32.GetWindowLongPtrW(W.HWND(hwnd), GWL_STYLE)
-                if enabled:
-                    style &= ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)
-                else:
-                    style |= WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
-                ctypes.windll.user32.SetWindowLongPtrW(W.HWND(hwnd), GWL_STYLE, style)
-                ctypes.windll.user32.SetWindowPos(W.HWND(hwnd), 0, 0, 0, 0, 0,
-                    0x0002 | 0x0001 | 0x0020)  # SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED
-            except Exception as exc:
-                logger.warning("set_frameless failed: %s", exc)
-
-        _window.expose(set_frameless)
 
         def check_osu_running() -> dict:
             """Check whether osu! or Etterna processes are currently running."""
