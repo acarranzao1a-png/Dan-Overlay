@@ -3295,19 +3295,19 @@ function applyProgressData(payload) {
 
           if (isEtternaMode) {
             // Authentic Etterna Wife% Grades & Slang
-            if (acc >= 99.996) {
+            if (acc >= 99.9935) {
               resultText = "AAAAA";
               resultColor = "#ffffff";
-            } else if (acc >= 99.955) {
+            } else if (acc >= 99.970) {
               resultText = "AAAA";
               resultColor = "#00f0ff";
-            } else if (acc >= 99.70) {
+            } else if (acc >= 99.80) {
               resultText = "AAA";
               resultColor = "#ffd700";
-            } else if (acc >= 93.00) {
+            } else if (acc >= 96.50) {
               resultText = "AA";
               resultColor = "#22c55e";
-            } else if (acc >= 80.00) {
+            } else if (acc >= 85.00) {
               resultText = "A";
               resultColor = "#ef4444";
             } else if (acc >= 70.00) {

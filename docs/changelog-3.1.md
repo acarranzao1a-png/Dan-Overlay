@@ -27,11 +27,11 @@ When DanOverlay is linked to Etterna, the interface adapts specifically to match
 - **Wife% Accuracy & Official Grade Badges**: Evaluates performance on the end-of-song score screen and displays the exact Wife% accuracy along with official Etterna grade colors:
   | Grade | Wife% Threshold | Theme Accent Color | Status / Tier |
   | :--- | :--- | :--- | :--- |
-  | **AAAAA** | $\ge 99.996\%$ | Pure White (`#FFFFFF`) | Theoretical Perfection |
-  | **AAAA** | $\ge 99.955\%$ | Cyan (`#00FFFF`) | Master Tier |
-  | **AAA** | $\ge 99.700\%$ | Gold / Yellow (`#FFD700`) | Elite Tier |
-  | **AA** | $\ge 93.000\%$ | Neon Green (`#20D070`) | Official Clear Threshold |
-  | **A** | $\ge 80.000\%$ | Bright Red (`#E53935`) | Standard Pass |
+  | **AAAAA** | $\ge 99.9935\%$ | Pure White (`#FFFFFF`) | Theoretical Perfection |
+  | **AAAA** | $\ge 99.970\%$ | Cyan (`#00FFFF`) | Master Tier |
+  | **AAA** | $\ge 99.80\%$ | Gold / Yellow (`#FFD700`) | Elite Tier |
+  | **AA** | $\ge 96.50\%$ | Neon Green (`#20D070`) | Official Clear Threshold |
+  | **A** | $\ge 85.00\%$ | Bright Red (`#E53935`) | Standard Pass |
   | **B** | $\ge 70.000\%$ | Soft Purple | Passing Range |
   | **C** | $\ge 60.000\%$ | Muted Violet | Intermediate |
   | **D** | $< 60.000\%$ | Dark Slate | Sub-Clear |
