@@ -45,8 +45,14 @@ config/settings.json
 *.exe
 !tools/bin/msd.exe
 !tools/bin/msd527.exe
+!tools/bin/qsr/qsr.exe
 !src/01_overlay_ui/ffmpeg/ffmpeg.exe
 !src/01_overlay_ui/ffmpeg/ffprobe.exe
 
 # Rust build output for the MinaCalc wrapper
 tools/msd527/target/
+
+# dotnet build output for the Quaver rating wrapper
+tools/qsr/bin/
+tools/qsr/obj/
+!tools/bin/qsr/
