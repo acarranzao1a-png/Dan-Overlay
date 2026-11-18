@@ -326,6 +326,15 @@ def run(event_bus, stop_event, configured_root: str | None = None, poll_interval
             if not was_etterna_running:
                 was_etterna_running = True
                 logger.info("etterna_source: Etterna process detected at %s", etterna_root)
+                # The bridge install also runs once when the thread starts, but a
+                # player who opens the overlay first and Etterna afterwards would
+                # never get it otherwise.
+                try:
+                    installed = auto_install_all(str(etterna_root))
+                    if installed:
+                        logger.info("etterna_source: bridge installed into %s theme(s)", len(installed))
+                except Exception as exc:
+                    logger.warning("etterna_source: reactive install failed: %s", exc)
                 save_dir = etterna_root / "Save"
                 if save_dir.is_dir():
                     for name in _EVAL_NAMES:
@@ -335,6 +344,13 @@ def run(event_bus, stop_event, configured_root: str | None = None, poll_interval
                             break
 
             save_dir = etterna_root / "Save"
+            if not save_dir.is_dir():
+                # A per-machine install under Program Files gets its Save folder
+                # redirected by UAC, so the game writes there while the install
+                # root still looks empty.
+                redirected = Path(os.environ.get("APPDATA", "")) / "Etterna" / "Save"
+                if redirected.is_dir():
+                    save_dir = redirected
             if not save_dir.is_dir():
                 time.sleep(0.5)
                 continue

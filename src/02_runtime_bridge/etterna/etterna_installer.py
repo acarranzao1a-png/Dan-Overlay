@@ -16,6 +16,24 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+# OpenProcess access right. Without this the call raised NameError, which the bare
+# `except` below swallowed, so process discovery silently returned None for every
+# PID and the overlay could only ever find Etterna through the hardcoded path list.
+_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+
+# HANDLE is pointer-sized; without restype ctypes truncates it to a 32-bit int and
+# every subsequent call on that handle fails.
+_kernel32 = ctypes.windll.kernel32 if sys.platform == "win32" else None
+if _kernel32 is not None:
+    _kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    _kernel32.OpenProcess.restype = wintypes.HANDLE
+    _kernel32.QueryFullProcessImageNameW.argtypes = [
+        wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)
+    ]
+    _kernel32.QueryFullProcessImageNameW.restype = wintypes.BOOL
+    _kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    _kernel32.CloseHandle.restype = wintypes.BOOL
+
 if getattr(sys, "frozen", False):
     _BASE_MEI = Path(getattr(sys, "_MEIPASS", sys.executable)).resolve()
     _SCRIPT_DIR = _BASE_MEI / "bridges" if (_BASE_MEI / "bridges").is_dir() else _BASE_MEI / "src" / "02_runtime_bridge" / "etterna" / "bridges"
@@ -29,23 +47,23 @@ _EVAL_LUA = _SCRIPT_DIR / "dan_overlay_eval.lua"
 
 def _get_process_path(pid: int) -> str | None:
     """Retrieve full executable path for a process ID on Windows."""
-    if sys.platform != "win32":
+    if sys.platform != "win32" or _kernel32 is None:
         return None
+    h_process = None
     try:
-        h_process = ctypes.windll.kernel32.OpenProcess(
-            _PROCESS_QUERY_LIMITED_INFORMATION, False, pid
-        )
+        h_process = _kernel32.OpenProcess(_PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
         if not h_process:
             return None
         buf = ctypes.create_unicode_buffer(1024)
         size = wintypes.DWORD(len(buf))
-        ok = ctypes.windll.kernel32.QueryFullProcessImageNameW(
-            h_process, 0, buf, ctypes.byref(size)
-        )
-        ctypes.windll.kernel32.CloseHandle(h_process)
+        ok = _kernel32.QueryFullProcessImageNameW(h_process, 0, buf, ctypes.byref(size))
         return buf.value if ok else None
-    except Exception:
+    except OSError as exc:
+        logger.debug("etterna_installer: process path lookup failed for %s: %s", pid, exc)
         return None
+    finally:
+        if h_process:
+            _kernel32.CloseHandle(h_process)
 
 
 def find_running_etterna_root() -> Path | None:
@@ -104,6 +122,7 @@ def find_running_etterna_root() -> Path | None:
                 Path(os.environ.get("APPDATA", "")) / "Etterna",
                 Path(os.environ.get("LOCALAPPDATA", "")) / "Etterna",
                 Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "Etterna",
+                Path(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)")) / "Etterna",
             ]
             for c in candidates:
                 if c.is_dir() and ((c / "Themes").is_dir() or (c / "Save").is_dir()):
@@ -143,6 +162,7 @@ def find_all_etterna_roots(configured_path: str | None = None) -> list[Path]:
         Path(os.environ.get("APPDATA", "")) / "Etterna",
         Path(os.environ.get("LOCALAPPDATA", "")) / "Etterna",
         Path(os.environ.get("PROGRAMFILES", "C:\\Program Files")) / "Etterna",
+        Path(os.environ.get("PROGRAMFILES(X86)", "C:\\Program Files (x86)")) / "Etterna",
     ]
     for c in candidates:
         _add(c)
