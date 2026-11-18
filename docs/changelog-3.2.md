@@ -121,7 +121,9 @@ generated document, `docs/skin-dimensions.md`.
   skin declared at 661 × 122 renders at 661 × 122 instead of 647 × 108.
 - Every skin opens in its own natural format instead of inheriting the previous skin's window.
 
-## 5. Half the executable
+## 5. Smaller to ship, lighter to run
+
+### Installer size
 
 | | 3.2.0-beta | 3.2 |
 |---|---|---|
@@ -134,6 +136,44 @@ generated document, `docs/skin-dimensions.md`.
 - The Qt runtime the previous build carried as a fallback backend is no longer collected; the overlay
   runs on WebView2 through WinForms, which is what it always used.
 - Bytecode is compiled with `--optimize 1`.
+
+### Runtime footprint
+
+The installer number is the one you see; the resident number is the one you feel after a four-hour
+session. Both moved.
+
+- **`pandas` no longer loads at startup.** It was pulled in by the warm-up phase and consumed roughly
+  **40–80 MB of resident memory for nothing** — no module in the app ever read from it. Removing the
+  import cuts that out of every run, not just the build.
+- **The chart generator releases its canvas.** A 1800 × 980 canvas holds about **7 MB** of backing
+  store, and each exported PNG used to leave one more waiting for the garbage collector. It is now
+  zeroed right after `toDataURL`.
+- **No unbounded growth anywhere.** The three structures that could have leaked were audited rather
+  than assumed: the analysis cache is a 200-entry LRU that evicts as it fills, the Etterna metadata
+  cache is capped by `_METADATA_CACHE_MAX`, and the bridge queue only grows before the JS side is
+  ready. All three are bounded by construction.
+
+**A tool ships with the release** so this can be checked rather than taken on trust:
+`tools/measure_overlay_memory.ps1` walks the process tree (host plus its `msedgewebview2` children),
+and its `-Baseline` mode subtracts whatever else was already running so the figure is the overlay's
+own cost. Run it once with the overlay closed and once with it open.
+
+### Analysis time
+
+The pipeline was already parallel — `isor_engine` submits Sunny SR, MinaCalc, feature extraction and
+the biomechanical strain to a four-worker pool, so wall time is the slowest task rather than the sum.
+Measured per map on the reference corpus:
+
+| stage | time |
+|---|---|
+| parse | ~41 ms |
+| structural features | ~288 ms |
+| engine (the parallel block) | ~630 ms typical, ~1.4 s on dense marathons |
+
+**What was not done, and why**: the remaining cost is dominated by the reference SR engine, whose
+implementation cannot be rewritten without changing the numbers it produces. Micro-optimising the
+strain loop was rejected for the same reason — the engine's output is calibrated, and a faster
+version that estimates differently is not an optimisation.
 
 ## 6. Benchmarking that can be audited
 
