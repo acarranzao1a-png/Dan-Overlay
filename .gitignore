@@ -44,5 +44,9 @@ config/settings.json
 # Binaries built by the project
 *.exe
 !tools/bin/msd.exe
+!tools/bin/msd527.exe
 !src/01_overlay_ui/ffmpeg/ffmpeg.exe
 !src/01_overlay_ui/ffmpeg/ffprobe.exe
+
+# Rust build output for the MinaCalc wrapper
+tools/msd527/target/
