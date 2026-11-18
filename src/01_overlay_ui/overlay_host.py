@@ -1005,5 +1005,8 @@ def _run_overlay_session(cfg, overlay_url):
         logger.info("overlay session started with dual osu! and Etterna monitoring")
 
     _icon = str(_WEB_DIR / "graph.ico")
+    # debug must stay False in a shipped build: pywebview maps it straight onto
+    # WebView2's AreDevToolsEnabled / AreBrowserAcceleratorKeysEnabled, and with it
+    # on the Edge DevTools window docks itself over the overlay.
     webview.start(on_start, window, debug=False, icon=_icon)
 
