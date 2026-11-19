@@ -541,6 +541,10 @@ const _CURRENT_SKIN = window.location.href.includes("/ui-12/") ? "12"
 
 let _settings = {
   engine: "isor", // "isor" (Isotonic Strain Organic Residual) | "legacy" (Sunny + MinaCalc v3)
+  // Which difficulty number fills the MSD slot: "msd" (MinaCalc v527, the build
+  // Etterna ships), "qsr" (Quaver Skill Rating) or "both" (MSD in the slot, QSR
+  // as a secondary badge).  The engine's own estimate never changes.
+  displayMetric: "both",
   blur: _DEF_BLUR,
   brightness: _DEF_BRIGHT,
   layout: "complete",
@@ -622,6 +626,8 @@ async function _loadSettings() {
     const saved = JSON.parse(raw);
     if (typeof saved.engine === "string" && ["isor", "legacy"].includes(saved.engine.toLowerCase())) {
       _settings.engine = saved.engine.toLowerCase();
+    if (typeof saved.displayMetric === "string" && ["msd", "qsr", "both"].includes(saved.displayMetric))
+      _settings.displayMetric = saved.displayMetric;
     }
     if (typeof saved.blur === "number") _settings.blur = saved.blur;
     if (typeof saved.brightness === "number") _settings.brightness = saved.brightness;
@@ -1414,7 +1420,58 @@ function relativeLuminance(rgb) {
 }
 
 /* ── Analysis rendering (shared by WS handler + mode toggle) ─────────── */
+// Which difficulty number the MSD slot shows.
+//
+// "msd"  MinaCalc v527 (the build Etterna ships, computed by tools/bin/msd527.exe)
+// "qsr"  Quaver Skill Rating (tools/bin/qsr/qsr.exe)
+// "both" MSD in the slot and QSR in a secondary badge
+//
+// `payload.overall_msd` is the value the engine itself uses and is always
+// present, so it is the last-resort fallback when the optional binaries are
+// missing or the conversion was rejected.
+function _metricDisplay(payload) {
+  const mode = _settings.displayMetric || "both";
+  const dm = payload.display_msd;
+  const dq = payload.display_qsr;
+  const engineMsd = Number(payload.overall_msd || 0);
+  const msd = dm && Number(dm.overall) > 0 ? Number(dm.overall) : engineMsd;
+  const qsr = dq && Number(dq.qsr) > 0 ? Number(dq.qsr) : 0;
+  if (mode === "qsr" && qsr > 0) return { value: qsr, unit: "QSR", secondary: 0 };
+  if (mode === "both" && qsr > 0) return { value: msd, unit: "MSD", secondary: qsr };
+  return { value: msd, unit: "MSD", secondary: 0 };
+}
+
+// Secondary number for the "both" mode.  Built once and positioned in the
+// corner so it does not have to be added to eleven separate skins.
+function _renderSecondaryMetric(qsr) {
+  let el = document.getElementById("danSecondaryMetric");
+  if (!(qsr > 0)) {
+    if (el) el.style.display = "none";
+    return;
+  }
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "danSecondaryMetric";
+    el.style.cssText = [
+      "position:fixed", "right:10px", "bottom:8px", "z-index:9999",
+      "font:600 12px/1.2 system-ui,sans-serif", "letter-spacing:.06em",
+      "color:rgba(255,255,255,.82)", "background:rgba(0,0,0,.42)",
+      "padding:3px 7px", "border-radius:4px", "pointer-events:none",
+      "text-shadow:0 1px 2px rgba(0,0,0,.7)",
+    ].join(";");
+    document.body.appendChild(el);
+  }
+  el.textContent = "QSR " + qsr.toFixed(2);
+  el.style.display = "block";
+}
+
+let _lastPayload = null;
+
 function _renderAnalysisPayload(payload) {
+  _lastPayload = payload;
+  try {
+    _renderSecondaryMetric(_metricDisplay(payload).secondary);
+  } catch (_) { }
   if (!payload) return;
 
   const SKILLSET_LABELS = {
@@ -1466,7 +1523,7 @@ function _renderAnalysisPayload(payload) {
     finishMapTransition();
     const metricsEl = document.getElementById("danMetrics");
     if (metricsEl) {
-      const msd = Number(payload.overall_msd || 0);
+      const msd = _metricDisplay(payload).value;
       metricsEl.textContent = msd > 0 ? msd.toFixed(2) : "--.-";
     }
     setChartButtonReady(true);
@@ -1504,7 +1561,7 @@ function _renderAnalysisPayload(payload) {
     const lDp = Number(lnCourse.dp_ln || 0);
     const lFrac = lDp - Math.floor(lDp);
     const lSublevel = lFrac <= 0.20 ? "Low" : lFrac <= 0.40 ? "Mid-Low" : lFrac <= 0.60 ? "Mid" : lFrac <= 0.80 ? "Mid-High" : "High";
-    const displayMsd = Number(payload.overall_msd || 0);
+    const displayMsd = _metricDisplay(payload).value;
 
     lastDanRaw = `LN Course: ${lLabel}${lBeyond ? " (Beyond)" : ""}`;
     applyDanResult({
@@ -1600,7 +1657,7 @@ function _renderAnalysisPayload(payload) {
     const cShort = cBeyond ? "∞" : String(celestial.short);
     const cConf = Number(celestial.confidence || 0);
     const confPct = Math.round(cConf * 100);
-    const displayMsd = Number(payload.overall_msd || 0);
+    const displayMsd = _metricDisplay(payload).value;
 
     const cDp = Number(celestial.dp_celestial || 0);
     const cFrac = cDp - Math.floor(cDp);
@@ -1635,7 +1692,7 @@ function _renderAnalysisPayload(payload) {
     const sFrac = sDp - Math.floor(sDp);
     const sSublevel = sFrac <= 0.20 ? "Low" : sFrac <= 0.40 ? "Mid-Low" : sFrac <= 0.60 ? "Mid" : sFrac <= 0.80 ? "Mid-High" : "High";
     const sSuffix = sBeyond ? "Beyond" : sSublevel;
-    const displayMsd = Number(payload.overall_msd || 0);
+    const displayMsd = _metricDisplay(payload).value;
 
     lastDanRaw = `Signicial: ${sLabel}${sBeyond ? " (Beyond)" : ""}`;
     applyDanResult({
@@ -1662,7 +1719,7 @@ function _renderAnalysisPayload(payload) {
     const gShort = gBeyond ? "∞" : String(shoegazer.short || "");
     const gKey = String(shoegazer.stage_key || "");
     const gDp = Number(shoegazer.dp_shoegazer || 0);
-    const displayMsd = Number(payload.overall_msd || 0);
+    const displayMsd = _metricDisplay(payload).value;
     const gFrac = gDp - Math.floor(gDp);
     const gSublevel = gFrac <= 0.20 ? "Low" : gFrac <= 0.40 ? "Mid-Low" : gFrac <= 0.60 ? "Mid" : gFrac <= 0.80 ? "Mid-High" : "High";
     const gSuffix = gBeyond ? "Beyond" : gSublevel;
@@ -1688,7 +1745,7 @@ function _renderAnalysisPayload(payload) {
   const label = String(payload.dan_label || "Unknown");
   const sublevel = String(payload.sublevel || "");
   const rBeyond = Boolean(payload.beyond);
-  const displayMsd = Number(payload.overall_msd || 0);
+  const displayMsd = _metricDisplay(payload).value;
   const displayName = label;
   const displaySuffix = rBeyond ? "Beyond" : (sublevel || "-");
 
@@ -1806,7 +1863,7 @@ function _updateSunnyRebirthSkin(payload) {
   _animateSunnyMetric("val-abar", curA, abar, 800, 1);
   _animateSunnyMetric("fill-abar", curA, abar, 800, 1, true);
 
-  const msdVal = Number(payload.overall_msd || 0);
+  const msdVal = _metricDisplay(payload).value;
   const curMsd = parseFloat(document.getElementById("danMetrics")?.textContent) || 0;
   _animateSunnyMetric("danMetrics", curMsd, msdVal, 800, 1);
 
@@ -2045,7 +2102,7 @@ function _updateHeroDanLazerSkin(payload) {
     }
   }
 
-  const msdVal = Number(payload.overall_msd || 0);
+  const msdVal = _metricDisplay(payload).value;
   const curMsd = parseFloat(document.getElementById("danMetrics")?.textContent) || 0;
   _animateSunnyMetric("danMetrics", curMsd, msdVal, 800, 1);
 
@@ -2352,7 +2409,7 @@ function _updateChromaStreamSkin(payload) {
 
   // Update MSD
   if (msdEl) {
-    const msd = Number(payload.overall_msd || 0);
+    const msd = _metricDisplay(payload).value;
     const osuSr = Number(payload.osu_sr || payload.sr || 0);
     const displayVal = msd > 0 ? msd.toFixed(2) : (osuSr > 0 ? osuSr.toFixed(2) : "--.--");
     msdEl.textContent = displayVal;
@@ -2702,7 +2759,7 @@ function _updateProposalsSkin(payload) {
     const skillLabel = top1 ? (SKILLSET_LABELS[top1[0]] || top1[0].toUpperCase()) : "PATTERN";
     document.querySelectorAll('[data-bind="skillset"], #ui-skillset').forEach(el => el.textContent = skillLabel);
 
-    const msdVal = Number(payload.overall_msd || 0);
+    const msdVal = _metricDisplay(payload).value;
     document.querySelectorAll('[data-bind="msd"], #danMetrics').forEach(el => el.textContent = msdVal > 0 ? msdVal.toFixed(2) : "--.--");
     document.querySelectorAll('[data-bind="sr"], #ui-sr, #ui-sr-stat').forEach(el => el.textContent = srVal > 0 ? `${srVal.toFixed(2)}★` : "--.-★");
 
@@ -5247,6 +5304,8 @@ function _renderCfgPanel() {
   if (greenScreenChk) greenScreenChk.checked = _settings.greenScreen;
   const engineSel = document.getElementById("cfgEngineSelect");
   if (engineSel) engineSel.value = _settings.engine || "isor";
+  const metricSel = document.getElementById("cfgMetricSelect");
+  if (metricSel) metricSel.value = _settings.displayMetric || "both";
   const skinSel = document.getElementById("cfgSkinSelect");
   if (skinSel) {
     const allSkins = [
@@ -5808,6 +5867,20 @@ function _initCfgListeners() {
     _cfgPrevHeight = defaultH;
     showToast(`Window size reset to default (${defaultW}×${defaultH}). Press Save to apply.`, 2500);
   });
+
+  // Difficulty metric: which number fills the MSD slot.
+  const metricSelect = document.getElementById("cfgMetricSelect");
+  if (metricSelect) {
+    metricSelect.addEventListener("change", () => {
+      _settings.displayMetric = metricSelect.value;
+      void _saveSettings();
+      // Re-render with the payload already on screen instead of waiting for the
+      // next analysis, so the choice is visible immediately.
+      try {
+        if (_lastPayload) _renderAnalysisPayload(_lastPayload);
+      } catch (_) { }
+    });
+  }
 
   // Green screen toggle
   const greenScreenChk = document.getElementById("cfgGreenScreenChk");

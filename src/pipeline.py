@@ -534,7 +534,21 @@ def _analyze_map_isor(osu_path, mod="NM", strict_domain=False, rate=None, diffic
     _note_count = int(domain.get("note_count", 0) or 0)
     _avg_nps = (_note_count / _drain_s) if _drain_s > 0 else 0.0
 
+    # Display-only difficulty numbers (MinaCalc v527 / Quaver Skill Rating).
+    # These never feed the estimate: the engine's own dp_msd comes from the
+    # older msd.exe that the model was calibrated against.  collect() returns
+    # Nones whenever the binaries or the setting are unavailable, so this block
+    # cannot break the analysis.
+    try:
+        import display_scores as _display_scores
+        _display = _display_scores.collect(osu_path, _effective_bpm_rate)
+    except Exception:  # noqa: BLE001
+        _display = {"display_metric": "off", "display_msd": None, "display_qsr": None}
+
     return {
+        "display_metric": _display.get("display_metric"),
+        "display_msd": _display.get("display_msd"),
+        "display_qsr": _display.get("display_qsr"),
         "engine": "isor",
         "dp": raw_isor["dp"],
         "dan_label": raw_isor["dan_label"],

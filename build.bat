@@ -185,6 +185,16 @@ if not exist "tools\bin\msd.exe" (
     exit /b 1
 )
 
+rem -- Display-only binaries (MinaCalc v527 and Quaver Skill Rating). --
+rem -- Missing files degrade the overlay to the engine MSD; they never --
+rem -- break the build. --
+if not exist "tools\bin\msd527.exe" (
+    echo [WARN] tools\bin\msd527.exe missing: the overlay will show the engine MSD
+)
+if not exist "tools\bin\qsr\qsr.exe" (
+    echo [WARN] tools\bin\qsr missing: QSR will be unavailable
+)
+
 rem -- Locate ffmpeg.exe (required for the audio visualizer) --
 rem Check in src\01_overlay_ui\ffmpeg\ first, then local ffmpeg\, then PATH.
 set "FFMPEG_BIN="
@@ -256,6 +266,8 @@ set "DATA=%DATA% --add-data "%CD%\config;config""
 set "DATA=%DATA% --add-data "%CD%\src\02_runtime_bridge\etterna\bridges;bridges""
 set "DATA=%DATA% --add-data "%CD%\src\02_runtime_bridge\etterna\bridges;src\02_runtime_bridge\etterna\bridges""
 set "DATA=%DATA% --add-binary "%CD%\tools\bin\msd.exe;.""
+if exist "tools\bin\msd527.exe" set "DATA=%DATA% --add-binary "%CD%\tools\bin\msd527.exe;.""
+if exist "tools\bin\qsr" set "DATA=%DATA% --add-data "%CD%\tools\bin\qsr;qsr""
 if not "%FFMPEG_BIN%"=="" set "DATA=%DATA% --add-binary "%FFMPEG_BIN%;.""
 
 rem -- Module Search Paths --
