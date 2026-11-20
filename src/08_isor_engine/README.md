@@ -49,7 +49,7 @@ The name **ISOR** embodies the four methodological pillars that drive its calcul
 1. **Continuous Formulations, Zero Step Discontinuities:**  
    No heuristic corrections use brittle piecewise thresholds such as `if feature > X: +Y`. All boosts, gates, floors, and dampers are formulated as $C^0$/$C^1$ continuous functions (sigmoids, cosines, smooth clamps, and linear blends). This completely eliminates artificial difficulty cliffs.
 2. **Human Consensus as Ground Truth:**  
-   Calibrated against rigorous human-verified datasets: the Leo_Black VSRG Benchmark (1364 beatmaps with verified expected Dans), official DDMythical Reform course packs (151 beatmaps), and official Celestial packs (160 beatmaps). No parameter is tuned arbitrarily.
+   Calibrated against rigorous human-verified datasets: the Leo_Black VSRG Benchmark (1382 beatmaps with verified expected Dans), official DDMythical Reform course packs (151 beatmaps), and official Celestial packs (160 beatmaps). No parameter is tuned arbitrarily.
 3. **Verified Generalization Over Blind Overfitting:**  
    Every architectural iteration is validated using stratified K-Fold Cross-Validation and evaluated against independent external corpora (official packs and unseeded community practice sets). Generalization metrics are reported transparently.
 4. **Strict Rate Monotonicity:**  
@@ -408,20 +408,27 @@ the lifted space. The lift is $C^\infty$, which preserves the engine's continuit
 
 The tables in §9 are the live measurement, recomputed from the raw CSVs. This section records how
 the current build reaches those numbers and which caveats belong next to them. The contract is the
-official one, `got = DP − 0.5`; *rice* means every benchmark map with `pattern != ln` (1262 of them).
+official one, `got = DP − 0.5`; *rice* means every benchmark map with `pattern != ln` (1280 of them).
 
 | Metric | Current build |
 |---|---|
-| Rice corpus (1262 maps) — MAE | **0.1962** |
-| Rice corpus (1262 maps) — exact rate ($\le 0.20$) | **67.51 %** |
+| Rice corpus (1280 maps) — MAE | **0.2047** |
+| Rice corpus (1280 maps) — exact rate ($\le 0.20$) | **67.27 %** |
 | Shared with the reference implementation (1106 maps) — MAE | **0.1741** |
 | Shared with the reference implementation (1106 maps) — exact rate | **71.79 %** |
-| Coverage | **1364 / 1364** labels |
+| Coverage | **1382 / 1382** labels |
 
 **Which number to quote.** The 71.79 % figure is the cross-validated out-of-fold score on the maps both
-engines answer, so it is the only one that is directly comparable with a published result. The 67.51 %
-belongs to the wider 1262-map corpus, which includes the low tiers no competitor estimates. The
+engines answer, so it is the only one that is directly comparable with a published result. The 67.27 %
+belongs to the wider 1280-map corpus, which includes the low tiers no competitor estimates. The
 in-sample fit is never quoted.
+
+**One scope caveat on the 1280.** The model is validated out-of-fold on 1262 charts. The corpus grew by
+18 more after that validation, and those were analysed live rather than out-of-fold — they are genuinely
+unseen by the model, but their predictions do not come from the cross-validation. They are harder than
+average (MAE 0.80, exact 27.8 %), so including them lowers the headline from the 1262-only 0.1962 /
+67.35 % to the shipped 0.2047 / 67.27 %. Both numbers are real; they answer different questions, and
+the shipped CSV is the second one.
 
 ### In-sample versus out-of-fold
 
@@ -633,7 +640,7 @@ $$
   │                      TOTAL EVALUATION CORPUS (1,675 Maps)              │
   ├────────────────────────────┬────────────────────────────┬──────────────┤
   │ Leo_Black VSRG Benchmark   │ Official Reform Packs      │ Celestial    │
-  │ 1364 Maps (Ground Truth)   │ 151 Maps (1st to Kappa)    │ 160 Maps     │
+  │ 1382 Maps (Ground Truth)   │ 151 Maps (1st to Kappa)    │ 160 Maps     │
   └────────────────────────────┴────────────────────────────┴──────────────┘
 ```
 
@@ -642,58 +649,58 @@ $$
 ### 9.2 Complete Leo_Black VSRG Benchmark Results
 
 > **Evaluation Methodology & Transparency:**  
-> The benchmark metrics presented below were evaluated through rigorous **local testing** using the official reference dataset and scoring criteria established in [Leo_Black's VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark). To guarantee full reproducibility and transparency, the complete raw predictions for all 1364 benchmark beatmaps are provided in [ISOR.csv](ISOR.csv).
+> The benchmark metrics presented below were evaluated through rigorous **local testing** using the official reference dataset and scoring criteria established in [Leo_Black's VSRG DanEstimation Benchmark](https://github.com/LeoBlackMT/VSRG-DanEstimation-Benchmark). To guarantee full reproducibility and transparency, the complete raw predictions for all 1382 benchmark beatmaps are provided in [ISOR.csv](ISOR.csv).
 
-#### A. High Rice Scale (Tiers 11.0 – 17.0 · 1103 Maps) — *Core Competitive Arena*
+#### A. High Rice Scale (Tiers 11.0 – 17.0 · 1114 Maps) — *Core Competitive Arena*
 
 > Every figure is recomputed from the raw CSVs, so the published tables cannot drift apart.
 > Counts are per benchmark row; an algorithm that does not cover the whole scope is marked and
 > its coverage shown, because a lower MAE over a subset is not comparable.
 >
 > **Read the two rank columns together.** The mean absolute error and the exact-tier rate disagree:
-> ISOR has the highest exact rate of any estimator in this band, and the third-best MAE. The gap in
+> ISOR has the highest exact rate of any estimator in this band, and the fourth-best MAE. The gap in
 > MAE comes from a heavier tail (§5bis), not from a worse average fit.
 
 | Algorithm | Valid Maps | Coverage | MAE (lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Rank by MAE | Rank by exact |
 | :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Koishi** | 1096 / 1103 | 99.4% | **0.1510** | **0.1996** | 71.53% | **97.99%** | **#1** | #2 |
-| **Mixed** | 1103 / 1103 | 100.0% | 0.1699 | 0.2275 | 69.72% | 96.01% | #2 | #3 |
-| **XDC1** | 1102 / 1103 | 99.9% | 0.1717 | 0.2314 | 67.97% | 95.74% | #3 | #4 |
-| **ISOR** | **1103 / 1103** | **100.0%** | 0.1722 | 0.2499 | **71.89%** | 95.38% | #4 | **#1** |
-| **Roxy** | 1096 / 1103 | 99.4% | 0.1980 | 0.2740 | 63.78% | 94.98% | #5 | #5 |
-| **Azusa** | 1101 / 1103 | 99.8% | 0.2183 | 0.3085 | 59.13% | 93.28% | #6 | #6 |
-| **Companella** | 1103 / 1103 | 100.0% | 0.3666 | 0.5061 | 38.98% | 76.97% | #7 | #7 |
-| **Daniel** | 1099 / 1103 | 99.6% | 0.4088 | 0.4809 | 23.38% | 67.52% | #8 | #9 |
-| **Sunny (Native)** | 1103 / 1103 | 100.0% | 0.5156 | 0.6797 | 36.17% | 57.21% | #9 | #8 |
+| **Koishi** | 1096 / 1114 | 98.4% | **0.1510** | **0.1996** | 71.53% | **97.99%** | **#1** | #2 |
+| **Mixed** | 1103 / 1114 | 99.0% | 0.1699 | 0.2275 | 69.72% | 96.01% | #2 | #3 |
+| **XDC1** | 1102 / 1114 | 98.9% | 0.1717 | 0.2314 | 67.97% | 95.74% | #3 | #4 |
+| **ISOR** | **1114 / 1114** | **100.0%** | 0.1776 | 0.2682 | **71.54%** | 94.97% | #4 | **#1** |
+| **Roxy** | 1096 / 1114 | 98.4% | 0.1980 | 0.2740 | 63.78% | 94.98% | #5 | #5 |
+| **Azusa** | 1101 / 1114 | 98.8% | 0.2183 | 0.3085 | 59.13% | 93.28% | #6 | #6 |
+| **Companella** | 1103 / 1114 | 99.0% | 0.3666 | 0.5061 | 38.98% | 76.97% | #7 | #7 |
+| **Daniel** | 1099 / 1114 | 98.7% | 0.4088 | 0.4809 | 23.38% | 67.52% | #8 | #9 |
+| **Sunny (Native)** | 1103 / 1114 | 99.0% | 0.5156 | 0.6797 | 36.17% | 57.39% | #9 | #8 |
 
 <p align="center">
   <img src="assets/benchmark_accuracy_breakdown.png" alt="Benchmark Accuracy Breakdown" width="820" />
-  <br/><em>Accuracy tier distribution — High Rice Scale (Tiers 11–17, 1103 maps)</em>
+  <br/><em>Accuracy tier distribution — High Rice Scale (Tiers 11–17, 1114 maps)</em>
 </p>
 
 <p align="center">
   <img src="assets/benchmark_delta_distribution.png" alt="Residual Error Distribution" width="800" />
-  <br/><em>Residual error distribution — High Rice Scale (Tiers 11–17, 1103 maps)</em>
+  <br/><em>Residual error distribution — High Rice Scale (Tiers 11–17, 1114 maps)</em>
 </p>
 
 ---
 
-#### B. Full Rice Scale (Tiers 1.0 – 18.0 · 1262 Maps) — *Comprehensive Ladder*
+#### B. Full Rice Scale (Tiers 1.0 – 18.0 · 1280 Maps) — *Comprehensive Ladder*
 
 > Here the ladder is not filtered, so the low tiers that every estimator struggles with are included.
-> Coverage separates the field: Koishi answers 87.6 % of this corpus, XDC1 90.6 %, ISOR 100 %.
+> Coverage separates the field: Koishi answers 86.4 % of this corpus, XDC1 89.4 %, ISOR 100 %.
 
 | Algorithm | Valid Maps | Coverage | MAE (lower is better) | RMSE | Exact ($\le 0.20$) | Close ($\le 0.50$) | Rank by MAE | Rank by exact |
 | :---| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Koishi** | 1106 / 1262 | 87.6% | **0.1540** | **0.2046** | **70.89%** | **97.47%** | **#1** | **#1** |
-| **XDC1** | 1144 / 1262 | 90.6% | 0.1803 | 0.2498 | 66.87% | 94.67% | #2 | #3 |
-| **ISOR** | **1262 / 1262** | **100.0%** | 0.1962 | 0.2875 | 67.83% | 92.63% | #3 | #2 |
-| **Mixed** | 1262 / 1262 | 100.0% | 0.2075 | 0.3020 | 65.06% | 91.20% | #4 | #4 |
-| **Roxy** | 1119 / 1262 | 88.7% | 0.2093 | 0.2966 | 62.65% | 93.66% | #5 | #5 |
-| **Azusa** | 1260 / 1262 | 99.8% | 0.2555 | 0.3713 | 55.32% | 88.33% | #6 | #6 |
-| **Daniel** | 1140 / 1262 | 90.3% | 0.4216 | 0.5012 | 22.72% | 66.40% | #7 | #9 |
-| **Companella** | 1262 / 1262 | 100.0% | 0.4276 | 0.6408 | 37.08% | 73.06% | #8 | #7 |
-| **Sunny (Native)** | 1262 / 1262 | 100.0% | 0.5563 | 0.7452 | 35.10% | 55.07% | #9 | #8 |
+| **Koishi** | 1106 / 1280 | 86.4% | **0.1540** | **0.2046** | **70.89%** | **97.47%** | **#1** | **#1** |
+| **XDC1** | 1144 / 1280 | 89.4% | 0.1803 | 0.2498 | 66.87% | 94.67% | #2 | #3 |
+| **ISOR** | **1280 / 1280** | **100.0%** | 0.2047 | 0.3107 | 67.27% | 91.95% | #3 | #2 |
+| **Mixed** | 1262 / 1280 | 98.6% | 0.2075 | 0.3020 | 65.06% | 91.20% | #4 | #4 |
+| **Roxy** | 1119 / 1280 | 87.4% | 0.2093 | 0.2966 | 62.65% | 93.66% | #5 | #5 |
+| **Azusa** | 1260 / 1280 | 98.4% | 0.2555 | 0.3713 | 55.32% | 88.33% | #6 | #6 |
+| **Daniel** | 1140 / 1280 | 89.1% | 0.4216 | 0.5012 | 22.72% | 66.40% | #7 | #9 |
+| **Companella** | 1262 / 1280 | 98.6% | 0.4276 | 0.6408 | 37.08% | 73.06% | #8 | #7 |
+| **Sunny (Native)** | 1262 / 1280 | 98.6% | 0.5563 | 0.7452 | 35.10% | 55.23% | #9 | #8 |
 
 **On the shared subset only**, where every estimator answers the same maps (1101 of them), the
 ordering tightens: ISOR 71.93 % exact / 0.1730 MAE, Koishi 71.03 % / 0.1534, Mixed 69.85 % / 0.1704,
@@ -701,7 +708,7 @@ XDC1 67.85 % / 0.1743. **ISOR leads that set on exact rate and is third on MAE.*
 
 <p align="center">
   <img src="assets/benchmark_scatter_plot.png" alt="ISOR Expected vs Estimated Dan Scatter Plot" width="680" />
-  <br/><em>Calibration scatter — Full Rice Scale (1262 maps, LN excluded)</em>
+  <br/><em>Calibration scatter — Full Rice Scale (1280 maps, LN excluded)</em>
 </p>
 
 ---
@@ -749,16 +756,16 @@ Leo_Black corpus.
 ### 9.3 Pattern-Specific Breakdown for ISOR
 
 Performance across distinct mechanical archetypes on the **High Rice Scale
-(Tiers 11–17, 1103 maps)** — the same scope as the benchmark charts:
+(Tiers 11–17, 1114 maps)** — the same scope as the benchmark charts:
 
 | Pattern Skillset | Evaluated Maps ($n$) | MAE (Lower is better) | RMSE | Exact Fit ($\le 0.20$) | Close Fit ($\le 0.50$) |
 | :---| :---: | :---: | :---: | :---: | :---: |
-| **Stamina / Dense Jumpstream** | 282 | **0.1496** | 0.2124 | **78.4%** | **97.2%** |
-| **Jack / Chordjack** | 355 | **0.1614** | 0.2196 | 73.0% | 96.3% |
+| **Stamina / Dense Jumpstream** | 283 | **0.1498** | 0.2124 | **78.1%** | **97.2%** |
+| **Jack / Chordjack** | 364 | **0.1760** | 0.2746 | 72.3% | 95.3% |
 | **Speed / Burst Streams** | 247 | **0.1858** | 0.2488 | 68.4% | 94.3% |
-| **Technical / Poly-Rhythm** | 207 | **0.2020** | 0.3321 | 67.2% | 92.3% |
+| **Technical / Poly-Rhythm** | 208 | **0.2055** | 0.3375 | 66.8% | 91.8% |
 | **Course / Marathon** | 12 | **0.2308** | 0.2813 | 41.7% | 100.0% |
-| **Overall** | **1103** | **0.1722** | **0.2499** | **71.9%** | **95.4%** |
+| **Overall** | **1114** | **0.1776** | **0.2682** | **71.5%** | **95.0%** |
 
 Technical is the weakest archetype on both axes, and it is also the one with the widest residual
 spread (RMSE 0.33 against MAE 0.20). Course has too few maps in this scope for its figure to be
@@ -809,7 +816,7 @@ src/08_isor_engine/
 ├── __init__.py               # Package declaration & public API exports
 ├── isor_engine.py            # Primary pipeline: Triangulation, Ridge meta-layer, Gates
 ├── strain.py                 # Biomechanical strain engine: 7 streams, Entropy, Quantiles
-├── ISOR.csv                  # Benchmark predictions (1364 maps, official CSV)
+├── ISOR.csv                  # Benchmark predictions (1382 maps, official CSV)
 └── ISOR.md                   # Complete technical documentation (this file)
 
 config/

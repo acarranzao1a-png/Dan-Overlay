@@ -331,6 +331,19 @@ body.stage-chroma .p4-blade-wrap, body.chroma-mode .p4-blade-wrap {
 }
 .p4-rpm-box .k { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: rgba(255,255,255,0.45); display: block; }
 .p4-rpm-box .v { font-family: 'Chakra Petch', sans-serif; font-size: 15px; font-weight: 700; color: #fff; }
+.rpm-sec-row {
+  margin-top: 3px;
+  font-size: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  padding-top: 2px;
+}
+.rpm-sec-row .sec-k { opacity: 0.65; font-size: 7px; }
+.rpm-sec-row .sec-v { font-weight: 800; color: rgb(var(--c1)); font-size: 9px; }
 
 .p3-jpxa-mini {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; width: 100%;

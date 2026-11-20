@@ -752,6 +752,22 @@ html, body {
   text-align: right;
 }
 
+.dan-sec-pill {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  color: var(--text-soft);
+  vertical-align: middle;
+  text-transform: uppercase;
+  transition: opacity 0.2s ease;
+}
+
 /* BPM · OD row under the MSD number */
 .map-stats-row {
   display:         flex;

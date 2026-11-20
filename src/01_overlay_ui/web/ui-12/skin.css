@@ -242,6 +242,19 @@ body.stage-chroma .p5-hud, body.chroma-mode .p5-hud {
 .p5-tcell:last-child { border-right: none; }
 .p5-tcell .k { font-size: 8px; color: rgba(255,255,255,0.48); margin-bottom: 2px; letter-spacing: 1px; }
 .p5-tcell .v { font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tcell-sec-row {
+  margin-top: 3px;
+  font-size: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 2px;
+}
+.tcell-sec-row .sec-k { opacity: 0.65; font-size: 7px; }
+.tcell-sec-row .sec-v { font-weight: 800; color: #fff; font-size: 9px; }
 
 /* Modo Etterna: Ocultar celda de duración / longitud */
 body.game-etterna .p5-tcell:has(#ui-len),

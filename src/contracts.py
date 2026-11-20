@@ -68,6 +68,7 @@ class MapInfo:
     keycount: int = 4
     mod_speed: float = 1.0
     mod_label: str = ""      # "" | "DT" | "NC" | "HT"
+    mods: list = field(default_factory=list) # Full mods list (e.g. ["HD", "DT"])
     bg_path: str = ""        # full path to background image file
     banner_path: str = ""    # full path to banner image file
     audio_path: str = ""     # full path to audio file on disk
@@ -92,6 +93,7 @@ class MapInfo:
             "keycount": self.keycount,
             "mod_speed": self.mod_speed,
             "mod_label": self.mod_label,
+            "mods": list(self.mods),
             "game": self.game,
             "bg_path": self.bg_path,
             "banner_path": self.banner_path,
@@ -168,6 +170,9 @@ class AnalysisResult:
     sublevel_7k: str = ""
     dp_7k: float = 0.0
     engine: str = "isor"
+    display_metric: str = ""
+    display_msd: Optional[dict] = None
+    display_qsr: Optional[float] = None
 
     def to_dict(self):
         return {
@@ -220,6 +225,9 @@ class AnalysisResult:
             "pbar_max": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("pbar_max", 0.0) or 0.0), 2),
             "xbar_max": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("xbar_max", 0.0) or 0.0), 2),
             "abar_mean": round(float((self.debug.get("sr_result", {}) if isinstance(self.debug, dict) else {}).get("abar_mean", 0.0) or 0.0), 2),
+            "display_metric": self.display_metric,
+            "display_msd": self.display_msd,
+            "display_qsr": self.display_qsr,
         }
 
     @staticmethod
@@ -295,4 +303,7 @@ class AnalysisResult:
             sublevel_7k=str(raw.get("sublevel_7k", "") or ""),
             dp_7k=float(raw.get("dp_7k", 0) or 0),
             engine=str(raw.get("engine", "isor") or "isor"),
+            display_metric=str(raw.get("display_metric", "") or ""),
+            display_msd=raw.get("display_msd"),
+            display_qsr=raw.get("display_qsr"),
         )

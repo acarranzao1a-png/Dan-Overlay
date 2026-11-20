@@ -129,12 +129,18 @@ def _extract_and_emit(data, event_bus, state):
     mods_num = menu.get("mods", {}).get("num", 0)
     is_lazer = str(data.get("client", "")).lower() == "lazer"
 
+    active_mods = []
     lazer_mods_array = (
         menu.get("mods", {}).get("array")
         or data.get("play", {}).get("mods", {}).get("array")
         or data.get("resultsScreen", {}).get("mods", {}).get("array")
     )
     if isinstance(lazer_mods_array, list):
+        for m in lazer_mods_array:
+            if isinstance(m, dict) and m.get("acronym"):
+                acr = str(m.get("acronym")).upper()
+                if acr not in active_mods:
+                    active_mods.append(acr)
         lazer_speed, lazer_label = _parse_lazer_mods(lazer_mods_array)
         _v2_lazer_rate["speed"] = lazer_speed
         _v2_lazer_rate["label"] = lazer_label
@@ -144,16 +150,27 @@ def _extract_and_emit(data, event_bus, state):
         # Use rate captured by lazer WS listener
         mod_speed = _v2_lazer_rate["speed"]
         mod_label = _v2_lazer_rate["label"]
+        if mod_label:
+            active_mods.append(mod_label)
     else:
         # Fallback a tosu v1 (gosumemory bitmask)
-        if mods_num & 512:       # Nightcore
+        if mods_num & 2: active_mods.append("EZ")
+        if mods_num & 8: active_mods.append("HD")
+        if mods_num & 16: active_mods.append("HR")
+        if mods_num & 512:
             mod_speed, mod_label = 1.5, "NC"
-        elif mods_num & 64:      # Double Time
+            active_mods.append("NC")
+        elif mods_num & 64:
             mod_speed, mod_label = 1.5, "DT"
-        elif mods_num & 256:     # Half Time
+            active_mods.append("DT")
+        elif mods_num & 256:
             mod_speed, mod_label = 0.75, "HT"
+            active_mods.append("HT")
         else:
             mod_speed, mod_label = 1.0, ""
+        if mods_num & 1024: active_mods.append("FL")
+        if mods_num & 16777216: active_mods.append("FI")
+        if mods_num & 268435456: active_mods.append("MR")
 
     # Keycount
     kc = bm.get("stats", {}).get("CS", 4)
@@ -171,10 +188,17 @@ def _extract_and_emit(data, event_bus, state):
     playing = game_state == 2
 
     # ── Detect map/mod change ───────────────────────────────────
+    # Only a real identity change forces a re-analysis.  `active_mods` used to be
+    # part of this test, but in lazer the array is read from three different
+    # contexts (menu / play / resultsScreen) and its order is not stable, so the
+    # tuple comparison fired a MAP_CHANGED on almost every poll.  Each one
+    # restarted the debounce timer and discarded the analysis already running,
+    # which left the overlay showing the previous map's numbers.
     if md5 and (
         md5 != state["last_md5"]
         or mod_speed != state["last_mod_speed"]
         or mod_label != state.get("last_mod_label", "")
+        or full_path != state.get("last_path", "")
     ):
         map_info = MapInfo(
             md5=md5,
@@ -187,6 +211,7 @@ def _extract_and_emit(data, event_bus, state):
             keycount=int(kc),
             mod_speed=mod_speed,
             mod_label=mod_label,
+            mods=active_mods,
             bg_path=bg_path,
             music_time_ms=current_ms,
             music_playing=playing,
@@ -197,6 +222,8 @@ def _extract_and_emit(data, event_bus, state):
         state["last_md5"] = md5
         state["last_mod_speed"] = mod_speed
         state["last_mod_label"] = mod_label
+        state["last_mods"] = list(active_mods)
+        state["last_path"] = full_path
 
     # ── Music time (throttled in WS mode) ───────────────────────
     # Accuracy: read from gameplay during play and from resultsScreen on state 7

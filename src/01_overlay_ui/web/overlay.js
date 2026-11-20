@@ -626,7 +626,8 @@ async function _loadSettings() {
     const saved = JSON.parse(raw);
     if (typeof saved.engine === "string" && ["isor", "legacy"].includes(saved.engine.toLowerCase())) {
       _settings.engine = saved.engine.toLowerCase();
-    if (typeof saved.displayMetric === "string" && ["msd", "qsr", "both"].includes(saved.displayMetric))
+    }
+    if (typeof saved.displayMetric === "string" && ["msd", "qsr", "both"].includes(saved.displayMetric)) {
       _settings.displayMetric = saved.displayMetric;
     }
     if (typeof saved.blur === "number") _settings.blur = saved.blur;
@@ -1431,46 +1432,139 @@ function relativeLuminance(rgb) {
 // missing or the conversion was rejected.
 function _metricDisplay(payload) {
   const mode = _settings.displayMetric || "both";
-  const dm = payload.display_msd;
-  const dq = payload.display_qsr;
-  const engineMsd = Number(payload.overall_msd || 0);
+  const dm = payload ? payload.display_msd : null;
+  const dq = payload ? payload.display_qsr : null;
+  const engineMsd = Number((payload && payload.overall_msd) || 0);
   const msd = dm && Number(dm.overall) > 0 ? Number(dm.overall) : engineMsd;
   const qsr = dq && Number(dq.qsr) > 0 ? Number(dq.qsr) : 0;
-  if (mode === "qsr" && qsr > 0) return { value: qsr, unit: "QSR", secondary: 0 };
-  if (mode === "both" && qsr > 0) return { value: msd, unit: "MSD", secondary: qsr };
-  return { value: msd, unit: "MSD", secondary: 0 };
+
+  if (mode === "qsr" && qsr > 0) return { value: qsr, unit: "QSR", secondary: 0, secondaryUnit: "" };
+  if (mode === "both" && qsr > 0) return { value: msd, unit: "MSD", secondary: qsr, secondaryUnit: "QSR" };
+  return { value: msd, unit: "MSD", secondary: 0, secondaryUnit: "" };
 }
 
-// Secondary number for the "both" mode.  Built once and positioned in the
-// corner so it does not have to be added to eleven separate skins.
-function _renderSecondaryMetric(qsr) {
-  let el = document.getElementById("danSecondaryMetric");
-  if (!(qsr > 0)) {
+function _updateMetricLabels(unit) {
+  const isQsr = (unit === "QSR");
+
+  // Skin 1: .msd-unit
+  document.querySelectorAll(".msd-unit").forEach(el => {
+    el.textContent = isQsr ? "QSR" : "MSD";
+  });
+
+  // Skin 2: .c2-msd-unit
+  document.querySelectorAll(".c2-msd-unit").forEach(el => {
+    el.textContent = isQsr ? "QSR" : "MSD";
+  });
+
+  // Skin 3: .g3-stat-badge small (normal & ghost)
+  document.querySelectorAll("#msdStatLbl, .msd-ghost-lbl, .g3-stat-badge:has(#danMetrics) small, .g3-stat-badge:has([data-mirror='danMetrics']) small").forEach(el => {
+    el.textContent = isQsr ? "QSR" : "MSD";
+  });
+
+  // Skins with full-name headers
+  document.querySelectorAll("#msdStatLbl").forEach(el => {
+    if (_CURRENT_SKIN === "4" || _CURRENT_SKIN === "5" || _CURRENT_SKIN === "6") {
+      el.textContent = isQsr ? "Quaver QSR" : "Etterna MSD";
+    } else if (_CURRENT_SKIN === "7" || _CURRENT_SKIN === "10" || _CURRENT_SKIN === "11") {
+      el.textContent = isQsr ? "QUAVER QSR" : "MINACALC MSD";
+    } else if (_CURRENT_SKIN === "12") {
+      el.textContent = isQsr ? "QUAVER_QSR" : "MINACALC_MSD";
+    }
+  });
+
+  // Query by skin-specific parent selectors as backup
+  document.querySelectorAll(".stat-box:has(#danMetrics) .stat-lbl, .p2-stat-box:has(#danMetrics) .p2-stat-lbl, .p3-stat-box:has(#danMetrics) .p3-stat-lbl").forEach(el => {
+    el.textContent = isQsr ? "Quaver QSR" : "Etterna MSD";
+  });
+  document.querySelectorAll(".foot-item:has(#danMetrics) .foot-label, .p3-bento-card:has(#danMetrics) .k, .p4-rpm-box:has(#danMetrics) .k").forEach(el => {
+    el.textContent = isQsr ? "QUAVER QSR" : "MINACALC MSD";
+  });
+  document.querySelectorAll(".p5-tcell:has(#danMetrics) .k").forEach(el => {
+    el.textContent = isQsr ? "QUAVER_QSR" : "MINACALC_MSD";
+  });
+
+  // Skin 8: .stat-pill:has(#danMetrics) .lbl
+  document.querySelectorAll(".stat-pill:has(#danMetrics) .lbl").forEach(el => {
+    el.textContent = isQsr ? "QSR" : "MSD";
+  });
+
+  // Skin 9: .msd-label
+  document.querySelectorAll(".msd-label").forEach(el => {
+    el.textContent = isQsr ? "QSR" : "MSD";
+  });
+
+  // Generic data-bind="msd-lbl"
+  document.querySelectorAll('[data-bind="msd-lbl"]').forEach(el => {
+    el.textContent = isQsr ? "QSR" : "MSD";
+  });
+}
+
+function _renderSecondaryMetric(secondary, secondaryUnit) {
+  const el = document.getElementById("danSecondaryMetric");
+  const ghostEl = document.getElementById("danSecondaryMetricGhost");
+  const dotEl = document.getElementById("danSecDot");
+  const valEl = document.getElementById("danSecondaryVal");
+  const fallback = document.getElementById("danSecondaryMetricFallback");
+
+  if (!(secondary > 0)) {
     if (el) el.style.display = "none";
+    if (ghostEl) ghostEl.style.display = "none";
+    if (dotEl) dotEl.style.display = "none";
+    if (fallback) fallback.style.display = "none";
     return;
   }
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "danSecondaryMetric";
-    el.style.cssText = [
-      "position:fixed", "right:10px", "bottom:8px", "z-index:9999",
-      "font:600 12px/1.2 system-ui,sans-serif", "letter-spacing:.06em",
-      "color:rgba(255,255,255,.82)", "background:rgba(0,0,0,.42)",
-      "padding:3px 7px", "border-radius:4px", "pointer-events:none",
-      "text-shadow:0 1px 2px rgba(0,0,0,.7)",
-    ].join(";");
-    document.body.appendChild(el);
+
+  const unit = secondaryUnit || "QSR";
+  const formattedVal = secondary.toFixed(2);
+  const textContent = `${unit} ${formattedVal}`;
+
+  if (valEl) {
+    valEl.textContent = formattedVal;
   }
-  el.textContent = "QSR " + qsr.toFixed(2);
-  el.style.display = "block";
+
+  if (el) {
+    if (!el.querySelector("#danSecondaryVal")) {
+      el.textContent = textContent;
+    }
+    el.style.display = "";
+  } else {
+    let fb = fallback;
+    if (!fb) {
+      fb = document.createElement("div");
+      fb.id = "danSecondaryMetricFallback";
+      fb.style.cssText = [
+        "position:fixed", "right:10px", "bottom:8px", "z-index:9999",
+        "font:600 12px/1.2 system-ui,sans-serif", "letter-spacing:.06em",
+        "color:rgba(255,255,255,.82)", "background:rgba(0,0,0,.42)",
+        "padding:3px 7px", "border-radius:4px", "pointer-events:none",
+        "text-shadow:0 1px 2px rgba(0,0,0,.7)",
+      ].join(";");
+      document.body.appendChild(fb);
+    }
+    fb.textContent = textContent;
+    fb.style.display = "block";
+  }
+
+  if (ghostEl) {
+    const ghostVal = ghostEl.querySelector('[data-mirror="danSecondaryVal"]');
+    if (ghostVal) ghostVal.textContent = formattedVal;
+    else if (!ghostEl.querySelector("#danSecondaryVal")) ghostEl.textContent = textContent;
+    ghostEl.style.display = "";
+  }
+
+  if (dotEl) {
+    dotEl.style.display = "";
+  }
 }
 
 let _lastPayload = null;
 
 function _renderAnalysisPayload(payload) {
   _lastPayload = payload;
+  const metricInfo = _metricDisplay(payload);
   try {
-    _renderSecondaryMetric(_metricDisplay(payload).secondary);
+    _updateMetricLabels(metricInfo.unit);
+    _renderSecondaryMetric(metricInfo.secondary, metricInfo.secondaryUnit);
   } catch (_) { }
   if (!payload) return;
 
@@ -1523,7 +1617,10 @@ function _renderAnalysisPayload(payload) {
     finishMapTransition();
     const metricsEl = document.getElementById("danMetrics");
     if (metricsEl) {
-      const msd = _metricDisplay(payload).value;
+      const metricInfo = _metricDisplay(payload);
+      _updateMetricLabels(metricInfo.unit);
+      _renderSecondaryMetric(metricInfo.secondary, metricInfo.secondaryUnit);
+      const msd = metricInfo.value;
       metricsEl.textContent = msd > 0 ? msd.toFixed(2) : "--.-";
     }
     setChartButtonReady(true);
@@ -1863,7 +1960,10 @@ function _updateSunnyRebirthSkin(payload) {
   _animateSunnyMetric("val-abar", curA, abar, 800, 1);
   _animateSunnyMetric("fill-abar", curA, abar, 800, 1, true);
 
-  const msdVal = _metricDisplay(payload).value;
+  const metricInfo = _metricDisplay(payload);
+  _updateMetricLabels(metricInfo.unit);
+  _renderSecondaryMetric(metricInfo.secondary, metricInfo.secondaryUnit);
+  const msdVal = metricInfo.value;
   const curMsd = parseFloat(document.getElementById("danMetrics")?.textContent) || 0;
   _animateSunnyMetric("danMetrics", curMsd, msdVal, 800, 1);
 
@@ -2102,7 +2202,10 @@ function _updateHeroDanLazerSkin(payload) {
     }
   }
 
-  const msdVal = _metricDisplay(payload).value;
+  const metricInfo = _metricDisplay(payload);
+  _updateMetricLabels(metricInfo.unit);
+  _renderSecondaryMetric(metricInfo.secondary, metricInfo.secondaryUnit);
+  const msdVal = metricInfo.value;
   const curMsd = parseFloat(document.getElementById("danMetrics")?.textContent) || 0;
   _animateSunnyMetric("danMetrics", curMsd, msdVal, 800, 1);
 
@@ -2409,7 +2512,10 @@ function _updateChromaStreamSkin(payload) {
 
   // Update MSD
   if (msdEl) {
-    const msd = _metricDisplay(payload).value;
+    const metricInfo = _metricDisplay(payload);
+    _updateMetricLabels(metricInfo.unit);
+    _renderSecondaryMetric(metricInfo.secondary, metricInfo.secondaryUnit);
+    const msd = metricInfo.value;
     const osuSr = Number(payload.osu_sr || payload.sr || 0);
     const displayVal = msd > 0 ? msd.toFixed(2) : (osuSr > 0 ? osuSr.toFixed(2) : "--.--");
     msdEl.textContent = displayVal;
@@ -2759,7 +2865,10 @@ function _updateProposalsSkin(payload) {
     const skillLabel = top1 ? (SKILLSET_LABELS[top1[0]] || top1[0].toUpperCase()) : "PATTERN";
     document.querySelectorAll('[data-bind="skillset"], #ui-skillset').forEach(el => el.textContent = skillLabel);
 
-    const msdVal = _metricDisplay(payload).value;
+    const metricInfo = _metricDisplay(payload);
+    _updateMetricLabels(metricInfo.unit);
+    _renderSecondaryMetric(metricInfo.secondary, metricInfo.secondaryUnit);
+    const msdVal = metricInfo.value;
     document.querySelectorAll('[data-bind="msd"], #danMetrics').forEach(el => el.textContent = msdVal > 0 ? msdVal.toFixed(2) : "--.--");
     document.querySelectorAll('[data-bind="sr"], #ui-sr, #ui-sr-stat').forEach(el => el.textContent = srVal > 0 ? `${srVal.toFixed(2)}★` : "--.-★");
 

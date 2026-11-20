@@ -234,6 +234,27 @@ main#overlay.green-screen .hud-scrim {
   transition: color 0.2s ease;
 }
 
+.msd-sec-chip {
+  margin-left: 8px;
+  font-family: var(--stream-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dan-color, #ff66aa);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  align-self: center;
+}
+
+.msd-sec-chip small {
+  font-size: 10px;
+  opacity: 0.8;
+  margin-left: 2px;
+  color: #fff;
+}
+
 /* ── FILA 3: MAPA (SUBTÍTULO CON MARQUESINA) ────────────────────────────── */
 .map-row {
   position: relative;

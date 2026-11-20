@@ -65,6 +65,9 @@ class AnalysisCoordinator:
         self._pending_map = None
         self._pending_token = ""
         self._pending_event = threading.Event()
+        # cache_key currently being computed, so duplicate notifications for the
+        # same map do not start a second pipeline run.
+        self._inflight_key = None
 
         # Single worker — no thread explosion on rapid map switches.
         self._worker = threading.Thread(target=self._worker_loop, daemon=True)
@@ -141,14 +144,35 @@ class AnalysisCoordinator:
             engine,
         )
 
+        # The token identifies the request by what it actually depends on, not by
+        # arrival order.  It used to carry a monotonically increasing sequence
+        # number, so a second MAP_CHANGED for the same map — which lazer emits
+        # whenever its mod array changes shape — invalidated the analysis already
+        # in flight.  The result was discarded silently and the overlay kept
+        # showing the previous map's numbers under the new map's title.
+        token = (
+            getattr(map_info, "md5", "") or "",
+            map_info.path,
+            diff_ver,
+            map_info.mod_label,
+            round(map_info.mod_speed, 4),
+            engine,
+        )
+
         with self._lock:
             self._seq += 1
-            token = f"{map_info.md5}|{diff_ver}|{self._seq}"
             self._current_token = token
 
         # Cache hit — return instantly without debounce.
         if not force and cache_key in self._cache:
             self._bus.emit(ANALYSIS_COMPLETE, self._cache[cache_key])
+            return
+
+        # Already being computed.  A duplicate MAP_CHANGED for the same map and
+        # mods is not a reason to run the pipeline twice: the in-flight analysis
+        # will deliver exactly this result.  Without this guard lazer's unstable
+        # mod array turned every poll into another full analysis.
+        if not force and cache_key == self._inflight_key:
             return
 
         # Validate path exists
@@ -215,6 +239,16 @@ class AnalysisCoordinator:
             # long before the first real MAP_CHANGED reaches us.
             self._warmup_done.wait(timeout=5)
 
+            # A duplicate notification may have queued another dispatch before the
+            # first run finished.  Once the result is cached there is nothing left
+            # to compute, so serve it instead of running the pipeline again.
+            with self._lock:
+                if cache_key in self._cache:
+                    self._pending_event.clear()
+                    continue
+
+            with self._lock:
+                self._inflight_key = cache_key
             try:
                 # Deferred import reduces startup overhead.
                 from pipeline import analyze_map
@@ -269,6 +303,14 @@ class AnalysisCoordinator:
                     "state": STATE_ERROR,
                     "message": f"Analysis error: {exc}",
                 })
+
+            finally:
+                # Always release the in-flight slot, including when the result was
+                # dropped as stale, or the next notification for this map would be
+                # ignored forever.
+                with self._lock:
+                    if self._inflight_key == cache_key:
+                        self._inflight_key = None
 
     def clear_cache(self):
         """Force-clear the result cache."""

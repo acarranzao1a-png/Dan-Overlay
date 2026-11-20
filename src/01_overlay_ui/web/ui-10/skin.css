@@ -313,6 +313,19 @@ body.stage-chroma .p3-island, body.chroma-mode .p3-island {
 }
 .p3-bento-card .k { font-size: 8.5px; font-weight: 800; color: rgba(255,255,255,0.45); letter-spacing: 1px; }
 .p3-bento-card .v { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: #fff; margin-top: 2px; }
+.bento-sec-row {
+  margin-top: 4px;
+  font-size: 8.5px;
+  font-family: 'JetBrains Mono', monospace;
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  padding-top: 2px;
+}
+.bento-sec-row .sec-k { opacity: 0.65; font-size: 7.5px; }
+.bento-sec-row .sec-v { font-weight: 800; color: #fff; font-size: 9.5px; }
 .p3-jpxa-mini {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; width: 100%;
   font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 800;

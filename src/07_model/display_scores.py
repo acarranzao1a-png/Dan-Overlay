@@ -133,20 +133,34 @@ def _count_hit_objects(osu_path: str) -> int:
     return total
 
 
-def qsr(osu_path: str) -> dict | None:
+def qsr(osu_path: str, cache_path: str | None = None) -> dict | None:
     """Quaver Skill Rating, or None when it cannot be trusted."""
     if not os.path.isfile(_QSR):
         return None
 
     def run():
+        proc = None
         try:
             proc = subprocess.run(
                 [_QSR, osu_path],
                 capture_output=True, text=True, timeout=_QSR_TIMEOUT, **_no_window(),
             )
         except (OSError, subprocess.TimeoutExpired):
-            return None
-        if proc.returncode != 0 or not proc.stdout.strip():
+            proc = None
+
+        # Fallback to dotnet qsr.dll if direct apphost execution fails or exits non-zero
+        if proc is None or proc.returncode != 0 or not proc.stdout.strip():
+            dll = os.path.join(_bin_dir(), "qsr", "qsr.dll")
+            if os.path.isfile(dll):
+                try:
+                    proc = subprocess.run(
+                        ["dotnet", dll, osu_path],
+                        capture_output=True, text=True, timeout=_QSR_TIMEOUT, **_no_window(),
+                    )
+                except (OSError, subprocess.TimeoutExpired):
+                    proc = None
+
+        if proc is None or proc.returncode != 0 or not proc.stdout.strip():
             return None
         try:
             data = json.loads(proc.stdout)
@@ -164,10 +178,10 @@ def qsr(osu_path: str) -> dict | None:
             return None
         return {"qsr": round(value, 2), "notes": notes}
 
-    return _cached(("qsr",) + _stat_key(osu_path, 1.0), run)
+    return _cached(("qsr",) + _stat_key(cache_path or osu_path, 1.0), run)
 
 
-def msd527(osu_path: str, rate: float = 1.0, goal: float = 0.93, mode: str = "ssr") -> dict | None:
+def msd527(osu_path: str, rate: float = 1.0, goal: float = 0.93, mode: str = "ssr", cache_path: str | None = None) -> dict | None:
     """MinaCalc v527 skillsets, or None when the binary is unavailable."""
     if not os.path.isfile(_MSD527):
         return None
@@ -200,15 +214,32 @@ def msd527(osu_path: str, rate: float = 1.0, goal: float = 0.93, mode: str = "ss
         except (ValueError, TypeError):
             return None
 
-    return _cached(("msd527", goal, mode) + _stat_key(osu_path, rate), run)
+    return _cached(("msd527", goal, mode) + _stat_key(cache_path or osu_path, rate), run)
 
 
-def collect(osu_path: str, rate: float = 1.0) -> dict:
+def collect(osu_path: str, rate: float = 1.0, cache_path: str | None = None) -> dict:
     """Everything the overlay may want to show, honouring the user's choice."""
     mode = display_mode()
     out = {"display_metric": mode, "display_msd": None, "display_qsr": None}
-    if mode in ("both", "msd"):
-        out["display_msd"] = msd527(osu_path, rate)
-    if mode in ("both", "qsr"):
-        out["display_qsr"] = qsr(osu_path)
+    if mode == "off":
+        return out
+
+    # If osu_path is a StepMania / Etterna simfile, synthesize a temp .osu
+    if osu_path and osu_path.lower().endswith((".sm", ".ssc")):
+        try:
+            from pipeline import _ensure_osu_path_for_c_engines
+            temp_path, is_temp = _ensure_osu_path_for_c_engines(osu_path)
+            try:
+                return collect(temp_path, rate, cache_path=cache_path or osu_path)
+            finally:
+                if is_temp and os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except OSError:
+                        pass
+        except Exception:
+            pass
+
+    out["display_msd"] = msd527(osu_path, rate, cache_path=cache_path)
+    out["display_qsr"] = qsr(osu_path, cache_path=cache_path)
     return out

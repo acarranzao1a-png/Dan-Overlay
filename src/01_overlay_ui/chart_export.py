@@ -257,6 +257,23 @@ def generate_chart_from_state(runtime_state, state_lock=None):
             overall_msd = float(getattr(analysis_result, "overall_msd", 0.0) or 0.0)
             skillsets = dict(getattr(analysis_result, "skillsets", {}) or {})
 
+        # Prioritize presentation MSD (MinaCalc v527) if available
+        disp_msd = getattr(analysis_result, "display_msd", None) if analysis_result is not None else None
+        if not disp_msd:
+            try:
+                import display_scores
+                disp_msd = display_scores.msd527(str(osu_path), rate=getattr(map_info, "mod_speed", 1.0) or 1.0)
+            except Exception:
+                pass
+
+        if isinstance(disp_msd, dict) and disp_msd.get("overall"):
+            overall_msd = float(disp_msd.get("overall", 0.0) or 0.0)
+            skillsets = {
+                k: float(disp_msd.get(k, 0.0) or 0.0)
+                for k in ("stream", "jumpstream", "handstream",
+                          "jackspeed", "chordjack", "technical", "stamina")
+            }
+
         # If no skillsets from analysis, try MinaCalc directly
         if not skillsets:
             try:
@@ -291,11 +308,17 @@ def generate_chart_from_state(runtime_state, state_lock=None):
         meta_creator = parsed.get("metadata", {}).get("creator", "")
         creator = meta_creator or getattr(map_info, "mapper", "") or ""
 
-        # Resolve background and banner artwork
+        is_etterna = (
+            getattr(map_info, "game", "") == "etterna"
+            or osu_path.suffix.lower() in (".sm", ".ssc")
+            or parsed.get("format") in ("sm", "ssc")
+        )
+
+        # Resolve background and banner artwork (banner only for Etterna)
         bg_resolved = _resolve_bg_path(map_info, parsed, osu_path)
         bg_data_url = _image_to_data_url(bg_resolved) if bg_resolved else ""
 
-        banner_resolved = _resolve_banner_path(map_info, parsed, osu_path)
+        banner_resolved = _resolve_banner_path(map_info, parsed, osu_path) if is_etterna else None
         banner_data_url = _image_to_data_url(banner_resolved) if banner_resolved else ""
 
         # Resolve pack name
@@ -307,15 +330,13 @@ def generate_chart_from_state(runtime_state, state_lock=None):
                 if cand_pack.lower() not in ("songs", "songs_current", "tests", "etterna maps", "test", "d:", "c:", ""):
                     pack = cand_pack
 
-        is_etterna = (
-            getattr(map_info, "game", "") == "etterna"
-            or osu_path.suffix.lower() in (".sm", ".ssc")
-            or parsed.get("format") in ("sm", "ssc")
-        )
-
         # Resolve mod speed / rate
         mod_speed = float(getattr(map_info, "mod_speed", 1.0) or 1.0)
         mod_label = getattr(map_info, "mod_label", "") or ""
+        mods_list = list(getattr(map_info, "mods", []) or [])
+        if not mods_list and mod_label and mod_label not in ("NM", "None", ""):
+            mods_list = [mod_label]
+
         rate_label = ""
         if mod_label and mod_label not in ("NM", "None", ""):
             rate_label = mod_label
@@ -342,6 +363,7 @@ def generate_chart_from_state(runtime_state, state_lock=None):
             "pack": pack,
             "mod_speed": mod_speed,
             "rate_label": rate_label,
+            "mods": mods_list,
             "is_etterna": is_etterna,
             "parsed_meta": {
                 "bpm": round(parsed.get("bpm", 0) * mod_speed) if parsed.get("bpm") else 0,
@@ -360,6 +382,7 @@ def generate_chart_from_state(runtime_state, state_lock=None):
                 "pack": pack,
                 "mod_speed": mod_speed,
                 "rate_label": rate_label,
+                "mods": mods_list,
             },
         }
 

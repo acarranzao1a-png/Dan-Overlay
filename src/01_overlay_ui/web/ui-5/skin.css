@@ -372,6 +372,20 @@ body {
   line-height: 1.1;
 }
 
+.p2-sec-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+  align-self: flex-start;
+  text-transform: uppercase;
+}
+
 .p2-stat-unit {
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.4);

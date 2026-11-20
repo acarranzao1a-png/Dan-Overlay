@@ -982,6 +982,15 @@ def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None, 
         _sr_raw = primary_core.get("primary_sr") or {}
         merged["strain_graph"] = _sr_raw.get("strain_graph")
 
+        try:
+            import display_scores as _display_scores
+            _display = _display_scores.collect(osu_path, _effective_bpm_rate)
+        except Exception:
+            _display = {"display_metric": "off", "display_msd": None, "display_qsr": None}
+        merged["display_metric"] = _display.get("display_metric")
+        merged["display_msd"] = _display.get("display_msd")
+        merged["display_qsr"] = _display.get("display_qsr")
+
         return merged
 
     # Fallback: MinaCalc estimation (subprocess to msd.exe, 100-500ms)
@@ -1006,6 +1015,14 @@ def _analyze_map_impl_inner(osu_path, mod="NM", strict_domain=False, rate=None, 
             mina["ln_course"] = _safe_ln_course(
                 mina, ln_family=_ln_family, features=features,
             )
+        try:
+            import display_scores as _display_scores
+            _display = _display_scores.collect(osu_path, _effective_bpm_rate)
+        except Exception:
+            _display = {"display_metric": "off", "display_msd": None, "display_qsr": None}
+        mina["display_metric"] = _display.get("display_metric")
+        mina["display_msd"] = _display.get("display_msd")
+        mina["display_qsr"] = _display.get("display_qsr")
         return mina
 
     return _error_payload(

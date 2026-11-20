@@ -11,24 +11,160 @@ function renderExportChart(payload) {
       try {
         ctx.clearRect(0, 0, W, H);
 
-        // ── Logical Helpers ──────────────────────────────────────────────────
-        function pRgb(s) { const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/); return m ? [+m[1], +m[2], +m[3]] : [120, 160, 255] }
-        function fmtT(s) { return `${Math.floor(s / 60).toString().padStart(2, "0")}:${Math.floor(s % 60).toString().padStart(2, "0")}` }
-        function rRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r); c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h); c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r); c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath() }
+        // ── Visual & Logical Helpers ─────────────────────────────────────────
+        function pRgb(s) {
+          const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
+          return m ? [+m[1], +m[2], +m[3]] : [120, 160, 255];
+        }
 
-        function truncateText(ctx, text, maxWidth) {
-          if (ctx.measureText(text).width <= maxWidth) return text;
-          let str = text;
-          while (str.length > 0 && ctx.measureText(str + "...").width > maxWidth) {
+        function fmtT(s) {
+          const sec = Math.max(0, Math.floor(s || 0));
+          return `${Math.floor(sec / 60).toString().padStart(2, "0")}:${(sec % 60).toString().padStart(2, "0")}`;
+        }
+
+        function fmtInt(n) {
+          return Math.round(n || 0).toLocaleString("en-US");
+        }
+
+        function chamferRect(c, x, y, w, h, cut) {
+          const rad = Math.min(cut, w / 2, h / 2);
+          c.beginPath();
+          c.moveTo(x + rad, y);
+          c.lineTo(x + w - rad, y);
+          c.lineTo(x + w, y + rad);
+          c.lineTo(x + w, y + h - rad);
+          c.lineTo(x + w - rad, y + h);
+          c.lineTo(x + rad, y + h);
+          c.lineTo(x, y + h - rad);
+          c.lineTo(x, y + rad);
+          c.closePath();
+        }
+
+        function drawCornerTicks(c, x, y, w, h, len, color, lineW = 1.5) {
+          c.save();
+          c.strokeStyle = color;
+          c.lineWidth = lineW;
+          c.beginPath();
+          c.moveTo(x, y + len); c.lineTo(x, y); c.lineTo(x + len, y);
+          c.moveTo(x + w - len, y); c.lineTo(x + w, y); c.lineTo(x + w, y + len);
+          c.moveTo(x + w, y + h - len); c.lineTo(x + w, y + h); c.lineTo(x + w - len, y + h);
+          c.moveTo(x + len, y + h); c.lineTo(x, y + h); c.lineTo(x, y + h - len);
+          c.stroke();
+          c.restore();
+        }
+
+        function truncateText(c, text, maxWidth) {
+          const strIn = String(text || "");
+          if (maxWidth <= 0) return "";
+          if (c.measureText(strIn).width <= maxWidth) return strIn;
+          let str = strIn;
+          while (str.length > 0 && c.measureText(str + "...").width > maxWidth) {
             str = str.slice(0, -1);
           }
           return str + "...";
         }
 
+        const FONT_DISPLAY = "'Bahnschrift', 'DIN Alternate', 'Franklin Gothic Medium', 'Arial Narrow', sans-serif";
+        const FONT_MONO = "'JetBrains Mono', 'Consolas', 'Lucida Console', monospace";
+        const FONT_UI = "'Segoe UI', 'Helvetica Neue', sans-serif";
+
+        const COL_BG = "#080A0E";
+        const COL_BORDER = "rgba(255, 255, 255, 0.16)";
+        const COL_HAIRLINE = "rgba(255, 255, 255, 0.08)";
+        const COL_INK = "#F4F6F8";
+        const COL_MUTED = "#94A3B8";
+        const COL_DIM = "#5A6578";
+        const COL_AMBER = "#F5A623";
+        const COL_CYAN = "#00E5CC";
+        const COL_CRIMSON = "#FF334B";
+
+        const DAN_PALETTES = {
+          "1st Dan": ["rgb(118,199,255)", "rgb(231,244,255)"],
+          "2nd Dan": ["rgb(113,180,255)", "rgb(196,236,255)"],
+          "3rd Dan": ["rgb(115,166,255)", "rgb(180,224,255)"],
+          "4th Dan": ["rgb(120,155,255)", "rgb(168,205,255)"],
+          "5th Dan": ["rgb(139,152,255)", "rgb(211,224,255)"],
+          "6th Dan": ["rgb(166,146,255)", "rgb(238,221,255)"],
+          "7th Dan": ["rgb(196,143,255)", "rgb(255,226,239)"],
+          "8th Dan": ["rgb(235,160,114)", "rgb(255,224,163)"],
+          "9th Dan": ["rgb(255,175,99)", "rgb(255,235,170)"],
+          "10th Dan": ["rgb(255,199,108)", "rgb(255,248,200)"],
+          "Alpha": ["rgb(70,60,180)", "rgb(220,65,80)", "rgb(245,225,45)"],
+          "Beta": ["rgb(255,245,180)", "rgb(255,165,0)"],
+          "Gamma": ["rgb(255,0,0)", "rgb(0,60,255)", "rgb(0,255,90)"],
+          "Delta": ["rgb(95,60,125)", "rgb(215,130,50)"],
+          "Epsilon": ["rgb(215,45,95)", "rgb(30,80,150)", "rgb(245,240,215)"],
+          "Zeta": ["rgb(240,130,105)", "rgb(130,190,225)"],
+          "Eta": ["rgb(145,0,0)", "rgb(200,80,70)"],
+          "Theta": ["rgb(105,5,5)", "rgb(170,65,55)"],
+          "Iota": ["rgb(75,10,10)", "rgb(145,50,50)"],
+          "Kappa": ["rgb(125,125,125)", "rgb(190,190,200)"]
+        };
+
+        const GREEK_SYMBOLS = {
+          "Alpha": "α", "Beta": "β", "Gamma": "γ", "Delta": "δ",
+          "Epsilon": "ε", "Zeta": "ζ", "Eta": "η", "Theta": "θ",
+          "Iota": "ι", "Kappa": "κ",
+          "1st": "1", "2nd": "2", "3rd": "3", "4th": "4", "5th": "5",
+          "6th": "6", "7th": "7", "8th": "8", "9th": "9", "10th": "10"
+        };
+
+        function getDanPalette(danShort) {
+          if (!danShort) return ["rgb(245,166,35)", "rgb(245,196,28)"];
+          const clean = danShort.trim();
+          for (const [k, pal] of Object.entries(DAN_PALETTES)) {
+            if (clean.toLowerCase() === k.toLowerCase() || clean.toLowerCase().startsWith(k.toLowerCase())) {
+              return pal;
+            }
+          }
+          return ["rgb(245,166,35)", "rgb(245,196,28)"];
+        }
+
+        function getDanSymbol(danShort) {
+          if (!danShort) return "";
+          const clean = danShort.trim();
+          for (const [k, sym] of Object.entries(GREEK_SYMBOLS)) {
+            if (clean.toLowerCase() === k.toLowerCase() || clean.toLowerCase().startsWith(k.toLowerCase())) {
+              return sym;
+            }
+          }
+          const matchNum = clean.match(/^(\d+)/);
+          if (matchNum) return matchNum[1];
+          return clean.slice(0, 2).toUpperCase();
+        }
+
+        function drawCard(x, y, w, h, cornerTickCol = null) {
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.40)";
+          ctx.shadowBlur = 18;
+          ctx.shadowOffsetY = 4;
+          chamferRect(ctx, x, y, w, h, 6);
+          ctx.fillStyle = "rgba(10, 13, 19, 0.82)";
+          ctx.fill();
+          ctx.restore();
+
+          chamferRect(ctx, x, y, w, h, 6);
+          ctx.strokeStyle = COL_BORDER;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          if (cornerTickCol) {
+            drawCornerTicks(ctx, x, y, w, h, 8, cornerTickCol, 1.2);
+          }
+        }
+
         const CS = [
-          [0, [18, 76, 196]], [4, [26, 150, 224]], [8, [31, 214, 209]], [12, [79, 223, 110]],
-          [16, [185, 224, 76]], [20, [246, 191, 44]], [24, [255, 136, 52]], [30, [248, 72, 56]],
-          [38, [210, 56, 129]], [48, [156, 84, 236]], [60, [214, 168, 255]]
+          [0, [24, 92, 122]],
+          [4, [16, 152, 173]],
+          [8, [0, 210, 190]],
+          [12, [64, 212, 110]],
+          [16, [168, 224, 48]],
+          [20, [245, 196, 28]],
+          [24, [250, 140, 22]],
+          [30, [245, 78, 32]],
+          [38, [235, 28, 62]],
+          [48, [255, 85, 115]],
+          [60, [255, 230, 215]]
         ];
 
         function mapColor(v, a) {
@@ -53,17 +189,19 @@ function renderExportChart(payload) {
           for (const [t, nps] of npsData) {
             let x = Math.round(((t - tS) / span) * (width - 1));
             x = Math.max(0, Math.min(width - 1, x));
-            if (!seen[x] || nps > prof[x]) { prof[x] = nps; seen[x] = 1 }
+            if (!seen[x] || nps > prof[x]) { prof[x] = nps; seen[x] = 1; }
           }
-          let last = 0; for (let i = 0; i < width; i++) { if (seen[i]) last = prof[i]; else prof[i] = last }
-          let nxt = 0; for (let i = width - 1; i >= 0; i--) { if (seen[i]) nxt = prof[i]; else if (prof[i] <= 0) prof[i] = nxt }
+          let last = 0; for (let i = 0; i < width; i++) { if (seen[i]) last = prof[i]; else prof[i] = last; }
+          let nxt = 0; for (let i = width - 1; i >= 0; i--) { if (seen[i]) nxt = prof[i]; else if (prof[i] <= 0) prof[i] = nxt; }
           return prof;
         }
 
         function smoothProfile(vals, radius) {
           if (!vals.length) return [];
-          radius = Math.max(1, radius); const n = vals.length, out = new Float64Array(n);
-          const pfx = new Float64Array(n + 1); for (let i = 0; i < n; i++) pfx[i + 1] = pfx[i] + vals[i];
+          radius = Math.max(1, radius);
+          const n = vals.length, out = new Float64Array(n);
+          const pfx = new Float64Array(n + 1);
+          for (let i = 0; i < n; i++) pfx[i + 1] = pfx[i] + vals[i];
           for (let i = 0; i < n; i++) {
             const lo = Math.max(0, i - radius), hi = Math.min(n, i + radius + 1);
             out[i] = (pfx[hi] - pfx[lo]) / (hi - lo);
@@ -71,48 +209,70 @@ function renderExportChart(payload) {
           return out;
         }
 
-        // ── Glass Panels ─────────────────────────────────────────────────────
-        function drawGlassPanel(x, y, w, h) {
-          ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
-          ctx.shadowBlur = 40;
-          ctx.shadowOffsetY = 20;
+        function resolveModifiers(payload, meta, isEtterna) {
+          const rawRate = String(payload.rate_label || meta.rate_label || "").trim();
+          const rawMods = payload.mods || meta.mods || [];
+          const modArray = Array.isArray(rawMods)
+            ? rawMods.map(m => String(m).toUpperCase())
+            : String(rawMods).split(/[,+\s]+/).filter(Boolean).map(m => m.toUpperCase());
 
-          const grad = ctx.createLinearGradient(x, y, x, y + h);
-          grad.addColorStop(0, "rgba(22, 27, 39, 0.88)");
-          grad.addColorStop(1, "rgba(13, 16, 23, 0.96)");
-          ctx.fillStyle = grad;
+          const rateMatch = rawRate.match(/(\d+(?:\.\d+)?)/);
+          const rateNum = rateMatch ? parseFloat(rateMatch[1]) : 1.0;
+          const chips = [];
 
-          rRect(ctx, x, y, w, h, 24);
-          ctx.fill();
-          ctx.restore();
+          if (isEtterna) {
+            if (Math.abs(rateNum - 1.0) > 0.005 || (rawRate && !rawRate.includes("1.00"))) {
+              const lbl = rawRate ? rawRate.toUpperCase() : `${rateNum.toFixed(2)}X`;
+              chips.push({
+                code: lbl.includes("RATE") ? lbl : `${lbl} RATE`,
+                bg: "#F5A623", fg: "#080A0D", border: "#F5A623", bold: true
+              });
+            }
+          } else {
+            const hasNC = modArray.includes("NC") || rawRate.toUpperCase().includes("NC");
+            const hasExplicitModPrefix = /^(DT|NC|HT)\b/i.test(rawRate);
 
-          ctx.save();
-          ctx.beginPath();
-          rRect(ctx, x, y, w, h, 24);
-          ctx.clip();
+            if (hasExplicitModPrefix) {
+              const isHT = /^HT/i.test(rawRate);
+              chips.push({
+                code: rawRate.toUpperCase(),
+                bg: isHT ? "#00E5CC" : "#F5A623",
+                fg: "#080A0D",
+                border: isHT ? "#00E5CC" : "#F5A623",
+                bold: true
+              });
+            } else if (rateNum > 1.005) {
+              const prefix = hasNC ? "NC" : "DT";
+              chips.push({
+                code: `${prefix} ${rateNum.toFixed(2)}X`,
+                bg: "#F5A623", fg: "#080A0D", border: "#F5A623", bold: true
+              });
+            } else if (rateNum < 0.995) {
+              chips.push({
+                code: `HT ${rateNum.toFixed(2)}X`,
+                bg: "#00E5CC", fg: "#080A0D", border: "#00E5CC", bold: true
+              });
+            }
 
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(x, y + 24);
-          ctx.quadraticCurveTo(x, y, x + 24, y);
-          ctx.lineTo(x + w - 24, y);
-          ctx.quadraticCurveTo(x + w, y, x + w, y + 24);
-          ctx.stroke();
-
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
-          ctx.lineWidth = 1;
-          rRect(ctx, x, y, w, h, 24);
-          ctx.stroke();
-          ctx.restore();
+            modArray.forEach(m => {
+              if (m === "NC" || m === "DT" || m === "HT" || m === "NM") return;
+              if (m === "EZ") chips.push({ code: "EZ", bg: "rgba(64, 212, 110, 0.20)", fg: "#40D46E", border: "#40D46E", bold: true });
+              else if (m === "HD") chips.push({ code: "HD", bg: "rgba(245, 196, 28, 0.20)", fg: "#F5C41C", border: "#F5C41C", bold: true });
+              else if (m === "HR") chips.push({ code: "HR", bg: "rgba(255, 51, 75, 0.20)", fg: "#FF334B", border: "#FF334B", bold: true });
+              else chips.push({ code: m, bg: "rgba(255, 255, 255, 0.10)", fg: "#FFFFFF", border: "rgba(255, 255, 255, 0.28)" });
+            });
+          }
+          return { chips, rateNum };
         }
 
-        const FONT_FAM = "'Inter', 'Segoe UI', 'Bahnschrift', sans-serif";
+        // ── 1. Fondo Atmosférico de Alto Contraste + Micro-Rejilla 30px ─────
+        ctx.fillStyle = COL_BG;
+        ctx.fillRect(0, 0, W, H);
 
-        // ── 1. Background (Crisp Artwork with Dark Overlay & Vignette) ────────
-        if (bgImg && bgImg.naturalWidth > 0) {
-          const imgW = bgImg.naturalWidth, imgH = bgImg.naturalHeight;
+        const hasBg = !!(bgImg && (bgImg.naturalWidth > 0 || bgImg.width > 0));
+        if (hasBg) {
+          const imgW = bgImg.naturalWidth || bgImg.width;
+          const imgH = bgImg.naturalHeight || bgImg.height;
           const scale = Math.max(W / imgW, H / imgH);
           const sw = W / scale, sh = H / scale;
           const sx = (imgW - sw) / 2, sy = (imgH - sh) / 2;
@@ -120,44 +280,35 @@ function renderExportChart(payload) {
           ctx.drawImage(bgImg, sx, sy, sw, sh, 0, 0, W, H);
 
           const darkOverlay = ctx.createLinearGradient(0, 0, 0, H);
-          darkOverlay.addColorStop(0, "rgba(9, 11, 18, 0.76)");
-          darkOverlay.addColorStop(0.5, "rgba(10, 13, 20, 0.84)");
-          darkOverlay.addColorStop(1, "rgba(6, 8, 13, 0.92)");
+          darkOverlay.addColorStop(0, "rgba(7, 9, 14, 0.58)");
+          darkOverlay.addColorStop(0.45, "rgba(8, 11, 16, 0.66)");
+          darkOverlay.addColorStop(1, "rgba(6, 8, 12, 0.80)");
           ctx.fillStyle = darkOverlay;
           ctx.fillRect(0, 0, W, H);
 
-          const vig = ctx.createRadialGradient(W / 2, H / 2, W * 0.25, W / 2, H / 2, W * 0.75);
+          const vig = ctx.createRadialGradient(W / 2, H * 0.4, W * 0.2, W / 2, H * 0.5, W * 0.75);
           vig.addColorStop(0, "rgba(0, 0, 0, 0)");
-          vig.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+          vig.addColorStop(1, "rgba(0, 0, 0, 0.48)");
           ctx.fillStyle = vig;
           ctx.fillRect(0, 0, W, H);
-        } else {
-          const bg = ctx.createLinearGradient(0, 0, W, H);
-          bg.addColorStop(0, "#090a10");
-          bg.addColorStop(0.5, "#0d0f17");
-          bg.addColorStop(1, "#050608");
-          ctx.fillStyle = bg;
-          ctx.fillRect(0, 0, W, H);
-
-          ctx.save();
-          ctx.globalCompositeOperation = "screen";
-          const g1 = ctx.createRadialGradient(W * 0.2, H * 0.2, 0, W * 0.2, H * 0.2, 900);
-          g1.addColorStop(0, "rgba(114, 46, 209, 0.15)");
-          g1.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = g1;
-          ctx.fillRect(0, 0, W, H);
-
-          const g2 = ctx.createRadialGradient(W * 0.8, H * 0.9, 0, W * 0.8, H * 0.9, 800);
-          g2.addColorStop(0, "rgba(255, 42, 109, 0.12)");
-          g2.addColorStop(1, "rgba(0,0,0,0)");
-          ctx.fillStyle = g2;
-          ctx.fillRect(0, 0, W, H);
-          ctx.restore();
         }
 
-        // ── 2. Initial Data ──────────────────────────────────────────────────
+        // Micro-rejilla arquitectónica de 30px
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.025)";
+        ctx.lineWidth = 1;
+        for (let gx = 24; gx < W; gx += 30) {
+          ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+        }
+        for (let gy = 24; gy < H; gy += 30) {
+          ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+        }
+        ctx.restore();
+
+        // ── 2. Recepción de Datos ────────────────────────────────────────────
         const meta = payload.parsed_meta || {};
-        const bpm = Math.round(meta.bpm || 0), od = meta.od ? meta.od.toFixed(1) : "0.0";
+        const bpm = Math.round(meta.bpm || 0);
+        const od = meta.od ? meta.od.toFixed(1) : "0.0";
         const kc = 4;
         const { nps_data, density_meta = {} } = payload;
         if (!nps_data || !nps_data.length) return;
@@ -177,22 +328,49 @@ function renderExportChart(payload) {
         if (!dominantNps || dominantNps <= 0) {
           dominantNps = sumY > 0 ? (sumY2 / sumY) : 0;
         }
-        maxY = Math.ceil(maxY / 5) * 5;
+        const avgNps = nps_data.length > 0 ? (sumY / nps_data.length) : 0;
 
-        // ── 3. Layout Geometry ───────────────────────────────────────────────
-        const panX1 = 40, panY1 = 110, panW1 = 1220, panH1 = 620;
-        const panX2 = 40, panY2 = 760, panW2 = 1220, panH2 = 180;
-        const panX3 = 1290, panY3 = 110, panW3 = 470, panH3 = 620;
-        const panX4 = 1290, panY4 = 760, panW4 = 470, panH4 = 180;
+        const rawMaxY = Math.max(10, pkY * 1.10);
+        const yStep = rawMaxY > 30 ? 10 : 5;
+        maxY = Math.ceil(rawMaxY / yStep) * yStep;
 
-        const cX = panX1 + 70;
-        const cW = panW1 - 100;
-        const cY = panY1 + 40;
-        const cH = panH1 - 90;
-        const bot = cY + cH;
+        const { artist = "", title = "", version = "", creator = "", format = "" } = meta;
+        const pack = (payload.pack || meta.pack || "").trim();
+        const notes = meta.note_count || 0, lns = meta.ln_count || 0, drT = meta.drain_time_s || 0;
+        const durSec = meta.total_time_ms ? Math.round(meta.total_time_ms / 1000) : drT;
+        const isEtterna = !!(payload.is_etterna || format === "sm" || format === "ssc");
+
+        const danShort = payload.dan_short || "";
+        const danSub = payload.dan_sublevel || "";
+        const fam = payload.family || "";
+        const overall_msd = payload.overall_msd || 0.0;
+
+        const { chips: modChips } = resolveModifiers(payload, meta, isEtterna);
+
+        // ── 3. Geometría Simétrica Limpia (1800 x 980) ───────────────────────
+        const MX = 36, MY = 32, GAP = 20;
+        const TOP_Y = MY;                      // 32
+        const TOP_H = 336;
+
+        const LEFT_X = MX;                     // 36
+        const LEFT_W = 1120;
+        const RIGHT_X = LEFT_X + LEFT_W + GAP; // 1176
+        const RIGHT_W = W - MX - RIGHT_X;      // 588
+
+        const GRAPH_X = MX;                    // 36
+        const GRAPH_Y = TOP_Y + TOP_H + GAP;   // 388
+        const GRAPH_W = W - MX * 2;            // 1728
+        const GRAPH_H = 546;                   // bottom: 934
+
+        // Sismógrafo centrado con amplia altura vertical simétrica
+        const cX = GRAPH_X + 64;               // 100
+        const cW = GRAPH_W - 148;              // 1580
+        const cY = GRAPH_Y + 70;               // 458
+        const cH = 416;                        // Altura generosa sin recortar
+        const bot = cY + cH;                   // 874
 
         const prof = buildPixelProfile(nps_data, cW);
-        const sProfRaw = smoothProfile(prof, Math.max(3, Math.floor(cW / 220)));
+        const sProfRaw = smoothProfile(prof, Math.max(3, Math.floor(cW / 260)));
 
         let maxS = 0, maxSIdx = 0;
         for (let i = 0; i < cW; i++) {
@@ -203,102 +381,624 @@ function renderExportChart(payload) {
         const scaleS = (pkY > 0 && maxS > 0) ? (pkY / maxS) : 1.0;
         for (let i = 0; i < cW; i++) { sProf[i] = sProfRaw[i] * scaleS; }
 
-        // ── 4. HEADER ────────────────────────────────────────────────────────
-        ctx.textAlign = "left";
-        ctx.font = `900 36px ${FONT_FAM}`;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText("DanOverlay", 45, 65);
-
-        ctx.fillStyle = "#ff2a6d";
-        ctx.beginPath(); ctx.arc(260, 53, 4, 0, Math.PI * 2); ctx.fill();
-
-        ctx.font = `700 13px ${FONT_FAM}`;
-        ctx.fillStyle = "#64748b";
-        ctx.letterSpacing = "2px";
-        ctx.fillText("NOTE DENSITY CHART", 275, 57);
-        ctx.letterSpacing = "0px";
-
-        // Badges on top right
-        const danShort = payload.dan_short || "";
-        const danSub = payload.dan_sublevel || "";
-        const fam = payload.family || "";
-        const overall_msd = payload.overall_msd || 0.0;
-        const rateLabel = payload.rate_label || meta.rate_label || "";
-
-        let curX = W - 40;
-        function drawBadge(txt, bgCol, textCol, strokeCol) {
-          ctx.font = `bold 14px ${FONT_FAM}`;
-          const tw = ctx.measureText(txt).width;
-          const bw = tw + 28, bh = 34;
-          curX -= bw;
-          ctx.fillStyle = bgCol;
-          rRect(ctx, curX, 35, bw, bh, 8);
-          ctx.fill();
-          if (strokeCol) {
-            ctx.strokeStyle = strokeCol;
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-          ctx.fillStyle = textCol;
-          ctx.fillText(txt, curX + 14, 57);
-          curX -= 12;
-        }
-
-        if (overall_msd > 0) drawBadge(`${overall_msd.toFixed(2)} MSD`, "rgba(157, 78, 221, 0.25)", "#d8a4ff", "rgba(157, 78, 221, 0.4)");
-        if (fam) drawBadge(fam.toUpperCase(), "rgba(255, 255, 255, 0.08)", "#cbd5e1");
-        if (danShort) drawBadge(danShort + (danSub ? ` ${danSub}` : ""), "rgba(255, 255, 255, 0.08)", "#ffffff");
-        if (rateLabel) drawBadge(rateLabel, "rgba(245, 158, 11, 0.22)", "#fbbf24", "rgba(245, 158, 11, 0.5)");
-
-        // ── 5. DRAW PANELS ───────────────────────────────────────────────────
-        drawGlassPanel(panX1, panY1, panW1, panH1);
-        drawGlassPanel(panX2, panY2, panW2, panH2);
-        drawGlassPanel(panX3, panY3, panW3, panH3);
-
-        // ── 6. NPS GRAPH AREA ────────────────────────────────────────────────
-        const yStep = 9;
-        ctx.lineWidth = 1;
-        ctx.textAlign = "right";
-
-        for (let v = 0; v <= maxY; v += yStep) {
-          const y = bot - (v / maxY) * cH;
-          ctx.strokeStyle = v === 0 ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.03)";
-          ctx.beginPath(); ctx.moveTo(cX, y); ctx.lineTo(cX + cW, y); ctx.stroke();
-
-          ctx.fillStyle = "#475569";
-          ctx.font = `600 12px ${FONT_FAM}`;
-          ctx.fillText(v.toString(), cX - 15, y + 4);
-        }
-
-        // Vertical Time grid
         const tStart = nps_data[0][0], tEnd = nps_data[nps_data.length - 1][0];
         const spanS = Math.max(1, (tEnd - tStart) / 1000);
-        const tStepS = spanS > 240 ? 60 : (spanS > 120 ? 30 : 15);
 
-        ctx.font = `600 12px ${FONT_FAM}`;
-        ctx.fillStyle = "#475569";
+        let hardSecs = 0;
+        for (let i = 0; i < cW; i++) {
+          if (sProf[i] >= dominantNps && sProf[i] >= 5.0) {
+            hardSecs += (spanS / cW);
+          }
+        }
+        const hardPct = Math.round((hardSecs / Math.max(1, spanS)) * 100);
+        const hardTimeStr = fmtT(Math.round(hardSecs));
+        const peakTimeSec = Math.max(0, (pkTime - nps_data[0][0]) / 1000);
 
-        for (let s = 0; s <= spanS; s += tStepS) {
-          if (spanS - s < tStepS * 0.4 && s !== 0) continue;
+        // Paleta y Símbolo del Dan
+        const danPal = getDanPalette(danShort);
+        const danSym = getDanSymbol(danShort);
 
-          const x = cX + (s / spanS) * cW;
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
-          ctx.beginPath(); ctx.moveTo(x, cY); ctx.lineTo(x, bot); ctx.stroke();
+        // ── 4. TARJETA A (Izquierda): Identidad del Mapa + Stats Grandes ──────
+        drawCard(LEFT_X, TOP_Y, LEFT_W, TOP_H, COL_AMBER);
 
-          ctx.textAlign = s === 0 ? "left" : "center";
-          ctx.fillText(fmtT(s), x, bot + 25);
+        const PAD = 24;
+        const MEDIA_X = LEFT_X + PAD;          // 60
+        const MEDIA_Y = TOP_Y + PAD;          // 56
+        const MEDIA_H = 150;
+        const hasBanner = !!(bannerImg && (bannerImg.naturalWidth > 0 || bannerImg.width > 0));
+        let mediaBoxW = 0;
+
+        if (hasBanner) {
+          // Etterna banner con proporción real
+          const bImgW = bannerImg.naturalWidth || bannerImg.width;
+          const bImgH = bannerImg.naturalHeight || bannerImg.height;
+          const ratio = bImgW / Math.max(1, bImgH);
+          const maxBW = 280, maxBH = MEDIA_H;
+
+          let bW = maxBW, bH = Math.round(maxBW / ratio);
+          if (bH > maxBH) {
+            bH = maxBH;
+            bW = Math.round(maxBH * ratio);
+          }
+          bW = Math.max(96, Math.min(maxBW, bW));
+          bH = Math.max(60, Math.min(maxBH, bH));
+          const bY = MEDIA_Y + Math.round((MEDIA_H - bH) / 2);
+
+          ctx.fillStyle = "#05070A";
+          ctx.fillRect(MEDIA_X, bY, bW, bH);
+          ctx.drawImage(bannerImg, 0, 0, bImgW, bImgH, MEDIA_X, bY, bW, bH);
+
+          // Marca de agua sutil en la esquina del banner si hay Dan
+          if (danSym) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(MEDIA_X, bY, bW, bH);
+            ctx.clip();
+            ctx.font = `900 68px ${FONT_DISPLAY}`;
+            ctx.textAlign = "right";
+            ctx.fillStyle = danPal[0].replace("rgb", "rgba").replace(")", ", 0.22)");
+            ctx.fillText(danSym, MEDIA_X + bW - 6, bY + bH - 4);
+            ctx.restore();
+          }
+
+          ctx.strokeStyle = COL_BORDER;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(MEDIA_X, bY, bW, bH);
+          drawCornerTicks(ctx, MEDIA_X, bY, bW, bH, 7, COL_AMBER, 1.5);
+
+          mediaBoxW = bW;
+        } else if (hasBg) {
+          // osu!mania portada nítida con marca de agua parcial de Dan en la esquina
+          const vW = 246, vH = MEDIA_H;
+          const iW = bgImg.naturalWidth || bgImg.width;
+          const iH = bgImg.naturalHeight || bgImg.height;
+          const sc = Math.max(vW / iW, vH / iH);
+          const sw = vW / sc, sh = vH / sc;
+
+          ctx.save();
+          chamferRect(ctx, MEDIA_X, MEDIA_Y, vW, vH, 4);
+          ctx.clip();
+          ctx.drawImage(bgImg, (iW - sw) / 2, (iH - sh) / 2, sw, sh, MEDIA_X, MEDIA_Y, vW, vH);
+
+          // Ícono/símbolo del Dan parcial en la esquina (estilo skin modern)
+          if (danSym) {
+            ctx.font = `900 76px ${FONT_DISPLAY}`;
+            ctx.textAlign = "right";
+            const wmGrad = ctx.createLinearGradient(MEDIA_X + vW - 70, MEDIA_Y + vH - 70, MEDIA_X + vW, MEDIA_Y + vH);
+            wmGrad.addColorStop(0, danPal[0].replace("rgb", "rgba").replace(")", ", 0.32)"));
+            wmGrad.addColorStop(1, danPal[danPal.length - 1].replace("rgb", "rgba").replace(")", ", 0.18)"));
+            ctx.fillStyle = wmGrad;
+            ctx.fillText(danSym, MEDIA_X + vW - 4, MEDIA_Y + vH - 4);
+          }
+          ctx.restore();
+
+          chamferRect(ctx, MEDIA_X, MEDIA_Y, vW, vH, 4);
+          ctx.strokeStyle = COL_BORDER;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          drawCornerTicks(ctx, MEDIA_X, MEDIA_Y, vW, vH, 7, COL_CYAN, 1.5);
+
+          mediaBoxW = vW;
         }
 
-        // Always draw explicit end time marker at the right boundary
-        const endX = cX + cW;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
-        ctx.beginPath(); ctx.moveTo(endX, cY); ctx.lineTo(endX, bot); ctx.stroke();
-        ctx.textAlign = "right";
-        ctx.fillStyle = "#64748b";
-        ctx.fillText(fmtT(spanS), endX, bot + 25);
+        const hasDan = !!(danShort && danShort.trim());
+        const danFullText = `${(danShort || "").toUpperCase()}${danSub ? " " + danSub.toUpperCase() : ""}`;
 
-        // Density Path
+        // Marca de Agua Monumental (Ambient Backdrop en Card A sin marcos ni cajas)
+        if (hasDan) {
+          ctx.save();
+          const cx = LEFT_X + LEFT_W - PAD - 105;
+          const cy = MEDIA_Y + 72;
+
+          // Resplandor radial de fondo
+          const bgGlow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 140);
+          bgGlow.addColorStop(0, danPal[0].replace("rgb", "rgba").replace(")", ", 0.18)"));
+          bgGlow.addColorStop(1, "rgba(8, 11, 16, 0)");
+          ctx.fillStyle = bgGlow;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 140, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Glifo monumental transparente
+          if (danSym) {
+            const wmGrad = ctx.createLinearGradient(0, cy - 70, 0, cy + 90);
+            wmGrad.addColorStop(0, danPal[0].replace("rgb", "rgba").replace(")", ", 0.22)"));
+            wmGrad.addColorStop(1, danPal[danPal.length - 1].replace("rgb", "rgba").replace(")", ", 0.05)"));
+            ctx.font = `900 170px ${FONT_DISPLAY}`;
+            ctx.textAlign = "center";
+            ctx.fillStyle = wmGrad;
+            ctx.fillText(danSym, cx, cy + 58);
+          }
+
+          // Tipografía en primer plano (limpia, flotante, sin cajas)
+          ctx.textAlign = "center";
+          ctx.font = `700 10px ${FONT_MONO}`;
+          ctx.fillStyle = "#94A3B8";
+          ctx.fillText("ESTIMATED TIER", cx, cy - 14);
+
+          const textGrad = ctx.createLinearGradient(cx - 70, 0, cx + 70, 0);
+          textGrad.addColorStop(0, danPal[0]);
+          textGrad.addColorStop(1, danPal[danPal.length - 1]);
+          ctx.font = `900 24px ${FONT_DISPLAY}`;
+          ctx.fillStyle = textGrad;
+          ctx.shadowColor = danPal[0];
+          ctx.shadowBlur = 12;
+          ctx.fillText(danFullText, cx, cy + 18);
+          ctx.shadowBlur = 0;
+
+          // Acento en la base
+          ctx.fillStyle = textGrad;
+          ctx.fillRect(cx - 24, cy + 28, 48, 2);
+
+          ctx.restore();
+        }
+
+        const infoX = mediaBoxW > 0 ? (MEDIA_X + mediaBoxW + 24) : MEDIA_X;
+        const maxInfoX = hasDan ? (LEFT_X + LEFT_W - PAD - 225) : (LEFT_X + LEFT_W - PAD);
+        const infoW = maxInfoX - infoX;
+
+        // Fila 1: Badges limpios (sin "1.00X NM" y sin "CLASS //", solo el tipo de mapa)
+        const badges = [
+          {
+            code: isEtterna ? `ETTERNA ${kc}K` : `OSU!MANIA ${kc}K`,
+            bg: "rgba(255, 255, 255, 0.06)", fg: "#CBD5E1", border: "rgba(255, 255, 255, 0.16)"
+          },
+          ...modChips
+        ];
+
+        if (fam && fam.trim()) {
+          badges.push({
+            code: fam.toUpperCase(),
+            bg: "rgba(0, 229, 204, 0.16)", fg: COL_CYAN, border: "rgba(0, 229, 204, 0.50)", bold: true
+          });
+        }
+
+        let bx = infoX;
+        const by = MEDIA_Y;
+        const bh = 24;
+        badges.forEach(b => {
+          ctx.font = `700 11px ${FONT_MONO}`;
+          const bw = Math.ceil(ctx.measureText(b.code).width + 16);
+          if (bx + bw <= infoX + infoW) {
+            chamferRect(ctx, bx, by, bw, bh, 4);
+            ctx.fillStyle = b.bg;
+            ctx.fill();
+            ctx.strokeStyle = b.border;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.textAlign = "center";
+            ctx.fillStyle = b.fg;
+            ctx.fillText(b.code, bx + bw / 2, by + 16);
+            bx += bw + 8;
+          }
+        });
+
+        // Fila 2: Título Protagonista
+        const titleStr = (title && title.trim()) ? title.trim() : "Untitled Track";
+        let titleSize = 36;
+        ctx.font = `900 ${titleSize}px ${FONT_DISPLAY}`;
+        while (titleSize > 24 && ctx.measureText(titleStr).width > infoW) {
+          titleSize -= 2;
+          ctx.font = `900 ${titleSize}px ${FONT_DISPLAY}`;
+        }
+
         ctx.save();
-        ctx.beginPath(); ctx.rect(cX, cY - 10, cW, cH + 10); ctx.clip();
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 2;
+        ctx.fillText(truncateText(ctx, titleStr, infoW), infoX, MEDIA_Y + 68);
+        ctx.restore();
+
+        // Fila 3: Artista
+        ctx.textAlign = "left";
+        ctx.font = `600 17px ${FONT_UI}`;
+        ctx.fillStyle = "#CBD5E1";
+        ctx.fillText(truncateText(ctx, artist || "Unknown Artist", infoW), infoX, MEDIA_Y + 98);
+
+        // Fila 4: Dificultad + Mapper + Pack
+        const metaRowY = MEDIA_Y + 122;
+        const diffPillH = 24;
+        const diffStr = (version && version.trim()) ? version.trim() : "Challenge";
+        ctx.font = `700 12px ${FONT_MONO}`;
+        const maxDiffW = Math.min(280, infoW * 0.46);
+        const safeDiff = truncateText(ctx, diffStr, maxDiffW - 16);
+        const diffW = Math.ceil(ctx.measureText(safeDiff).width + 18);
+
+        chamferRect(ctx, infoX, metaRowY, diffW, diffPillH, 4);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.10)";
+        ctx.fill();
+        ctx.strokeStyle = COL_INK;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.textAlign = "left";
+        ctx.fillStyle = COL_INK;
+        ctx.fillText(safeDiff, infoX + 9, metaRowY + 16);
+
+        let mx = infoX + diffW + 14;
+        const maxMetaX = infoX + infoW;
+        const creatorLabel = isEtterna ? "Charted by " : "Mapped by ";
+        const creatorName = (creator && creator.trim()) ? creator.trim() : "Unknown";
+
+        if (mx < maxMetaX - 40) {
+          ctx.font = `500 13px ${FONT_UI}`;
+          ctx.fillStyle = COL_MUTED;
+          ctx.fillText(creatorLabel, mx, metaRowY + 16.5);
+          mx += ctx.measureText(creatorLabel).width;
+
+          ctx.font = `700 13px ${FONT_UI}`;
+          const availForCreatorAndPack = maxMetaX - mx;
+          const packReserve = pack ? Math.min(180, availForCreatorAndPack * 0.45) : 0;
+          const creatorSafe = truncateText(ctx, creatorName, Math.max(40, availForCreatorAndPack - packReserve));
+          ctx.fillStyle = COL_INK;
+          ctx.fillText(creatorSafe, mx, metaRowY + 16.5);
+          mx += ctx.measureText(creatorSafe).width;
+
+          const isRealPack = pack && !pack.toLowerCase().includes("test") && !pack.startsWith(".") && pack.toLowerCase() !== "unknown";
+          if (isRealPack && mx < maxMetaX - 36) {
+            ctx.font = `500 13px ${FONT_UI}`;
+            ctx.fillStyle = COL_DIM;
+            const sep = "  ·  ";
+            ctx.fillText(sep, mx, metaRowY + 16.5);
+            mx += ctx.measureText(sep).width;
+
+            ctx.font = `600 13px ${FONT_UI}`;
+            ctx.fillStyle = "#7DD3FC";
+            ctx.fillText(truncateText(ctx, pack, maxMetaX - mx), mx, metaRowY + 16.5);
+          }
+        }
+
+        // Separador horizontal técnico con pip ámbar
+        const DIV_Y = TOP_Y + 214;             // 246
+        ctx.strokeStyle = COL_HAIRLINE;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(LEFT_X + PAD, DIV_Y);
+        ctx.lineTo(LEFT_X + LEFT_W - PAD, DIV_Y);
+        ctx.stroke();
+
+        ctx.fillStyle = COL_AMBER;
+        ctx.fillRect(LEFT_X + PAD, DIV_Y - 1, 28, 2);
+
+        // Matriz de Parámetros Grandes (sin enumeración ni //)
+        const lnRatioPct = notes > 0 ? ((lns / notes) * 100) : 0;
+        const showDrainSub = drT > 0 && Math.abs(durSec - drT) >= 3;
+        const lnSub = lns > 0 ? `${lnRatioPct.toFixed(1)}% LN` : "No LNs";
+
+        let stats = [];
+        if (isEtterna) {
+          stats = [
+            { l: "BPM", v: bpm > 0 ? bpm.toString() : "--", sub: "", col: COL_INK },
+            { l: "KEYMODE", v: `${kc}K`, sub: "", col: COL_INK },
+            { l: "DURATION", v: fmtT(durSec), sub: showDrainSub ? `Drain ${fmtT(drT)}` : "", col: COL_INK },
+            { l: "TOTAL NOTES", v: fmtInt(notes), sub: "", col: COL_INK },
+            { l: "LONG NOTES", v: fmtInt(lns), sub: lnSub, col: lns > 0 ? COL_CYAN : COL_MUTED }
+          ];
+        } else {
+          stats = [
+            { l: "STAR RATING", v: `${(meta.sr_official || 0.0).toFixed(2)}★`, sub: "", col: COL_AMBER },
+            { l: "ACCURACY", v: `OD ${od}`, sub: "", col: COL_INK },
+            { l: "BPM", v: bpm > 0 ? bpm.toString() : "--", sub: "", col: COL_INK },
+            { l: "DURATION", v: fmtT(durSec), sub: showDrainSub ? `Drain ${fmtT(drT)}` : "", col: COL_INK },
+            { l: "NOTES", v: fmtInt(notes), sub: "", col: COL_INK },
+            { l: "LONG NOTES", v: fmtInt(lns), sub: lnSub, col: lns > 0 ? COL_CYAN : COL_MUTED }
+          ];
+        }
+
+        const STAT_X = LEFT_X + PAD;
+        const STAT_W = LEFT_W - PAD * 2;
+        const STAT_TOP = DIV_Y + 14;
+        const cellW = STAT_W / stats.length;
+
+        stats.forEach((st, i) => {
+          const sx = STAT_X + i * cellW;
+          if (i > 0) {
+            ctx.strokeStyle = COL_HAIRLINE;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(sx, STAT_TOP + 4);
+            ctx.lineTo(sx, TOP_Y + TOP_H - 18);
+            ctx.stroke();
+          }
+
+          const innerX = sx + (i === 0 ? 0 : 18);
+          ctx.textAlign = "left";
+
+          ctx.fillStyle = st.col === COL_INK ? "rgba(255, 255, 255, 0.20)" : st.col;
+          ctx.fillRect(innerX, STAT_TOP, 22, 2);
+
+          ctx.font = `700 10px ${FONT_MONO}`;
+          ctx.fillStyle = COL_DIM;
+          ctx.fillText(st.l, innerX, STAT_TOP + 18);
+
+          ctx.font = `900 31px ${FONT_DISPLAY}`;
+          ctx.fillStyle = st.col;
+          ctx.fillText(st.v, innerX, STAT_TOP + 58);
+
+          if (st.sub) {
+            ctx.font = `600 11px ${FONT_MONO}`;
+            ctx.fillStyle = COL_MUTED;
+            ctx.fillText(st.sub, innerX, STAT_TOP + 78);
+          }
+        });
+
+        // ── 5. TARJETA B (Derecha): Overall Rating + 7 Skillsets ─────────────
+        drawCard(RIGHT_X, TOP_Y, RIGHT_W, TOP_H, COL_AMBER);
+
+        const ss = payload.skillsets || {};
+        const skList = [
+          { k: "stream", l: "Stream", v: ss.stream || 0 },
+          { k: "jumpstream", l: "Jumpstream", v: ss.jumpstream || 0 },
+          { k: "handstream", l: "Handstream", v: ss.handstream || 0 },
+          { k: "stamina", l: "Stamina", v: ss.stamina || 0 },
+          { k: "jackspeed", l: "Jackspeed", v: ss.jackspeed || 0 },
+          { k: "chordjack", l: "Chordjack", v: ss.chordjack || 0 },
+          { k: "technical", l: "Technical", v: ss.technical || 0 }
+        ];
+
+        let maxM = overall_msd > 0 ? overall_msd : 10.0;
+        let topSkillVal = 0;
+        let topSkillName = "";
+        skList.forEach(s => {
+          if (s.v > maxM) maxM = s.v;
+          if (s.v > topSkillVal) { topSkillVal = s.v; topSkillName = s.l; }
+        });
+        const scaleMax = Math.max(10, Math.ceil(maxM / 5) * 5);
+
+        // Cabecera Overall Rating
+        const OV_H = 76;
+        ctx.save();
+        const ovWash = ctx.createLinearGradient(RIGHT_X, TOP_Y, RIGHT_X + RIGHT_W, TOP_Y + OV_H);
+        ovWash.addColorStop(0, "rgba(245, 166, 35, 0.04)");
+        ovWash.addColorStop(1, "rgba(245, 166, 35, 0.12)");
+        ctx.fillStyle = ovWash;
+        ctx.fillRect(RIGHT_X + 1, TOP_Y + 1, RIGHT_W - 2, OV_H);
+        ctx.restore();
+
+        ctx.textAlign = "left";
+        ctx.font = `800 16px ${FONT_DISPLAY}`;
+        ctx.fillStyle = COL_INK;
+        ctx.fillText(isEtterna ? "OVERALL MSD" : "OVERALL RATING", RIGHT_X + PAD, TOP_Y + 36);
+
+        ctx.font = `600 12px ${FONT_UI}`;
+        ctx.fillStyle = COL_MUTED;
+        if (topSkillName) {
+          const prefix = "Top Skillset: ";
+          ctx.fillText(prefix, RIGHT_X + PAD, TOP_Y + 57);
+          const pw = ctx.measureText(prefix).width;
+          ctx.font = `700 12px ${FONT_UI}`;
+          ctx.fillStyle = COL_AMBER;
+          ctx.fillText(topSkillName, RIGHT_X + PAD + pw, TOP_Y + 57);
+        } else {
+          ctx.fillText(isEtterna ? "MinaCalc MSD" : "Estimated Rating", RIGHT_X + PAD, TOP_Y + 57);
+        }
+
+        ctx.save();
+        ctx.textAlign = "right";
+        ctx.font = `900 46px ${FONT_DISPLAY}`;
+        ctx.fillStyle = COL_AMBER;
+        ctx.shadowColor = "rgba(245, 166, 35, 0.35)";
+        ctx.shadowBlur = 14;
+        ctx.fillText(overall_msd > 0 ? overall_msd.toFixed(2) : "--", RIGHT_X + RIGHT_W - PAD, TOP_Y + 55);
+        ctx.restore();
+
+        ctx.strokeStyle = COL_HAIRLINE;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(RIGHT_X + PAD, TOP_Y + OV_H);
+        ctx.lineTo(RIGHT_X + RIGHT_W - PAD, TOP_Y + OV_H);
+        ctx.stroke();
+
+        // 7 Filas de Skillsets con Barras de Ecualizador Tácticas
+        const SK_START_Y = TOP_Y + OV_H + 8;
+        const SK_ROW_H = 32;
+        const barX = RIGHT_X + 136;
+        const barW = 348;
+        const barH = 10;
+
+        for (let i = 0; i < skList.length; i++) {
+          const r = skList[i];
+          const ry = SK_START_Y + i * SK_ROW_H;
+          const midY = ry + SK_ROW_H / 2;
+          const isApex = topSkillVal > 0 && r.v >= topSkillVal - 0.05;
+          const isStrong = overall_msd > 0 ? (r.v >= overall_msd * 0.85) : (r.v > 0);
+          const valCol = mapColor(r.v);
+
+          if (isApex) {
+            chamferRect(ctx, RIGHT_X + 10, ry + 2, RIGHT_W - 20, SK_ROW_H - 4, 4);
+            ctx.fillStyle = "rgba(245, 166, 35, 0.09)";
+            ctx.fill();
+
+            ctx.fillStyle = COL_AMBER;
+            ctx.fillRect(RIGHT_X + 12, midY - 9, 3, 18);
+          }
+
+          // Nombre del skillset (sin enumeraciones ni //)
+          ctx.textAlign = "left";
+          ctx.font = `${isApex ? "700" : "600"} 13px ${FONT_UI}`;
+          ctx.fillStyle = isApex ? COL_AMBER : (isStrong ? "#E2E8F0" : "#8B98AD");
+          ctx.fillText(r.l, RIGHT_X + PAD, midY + 4.5);
+
+          // Pista del ecualizador
+          const barY = midY - barH / 2;
+          ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
+          ctx.fillRect(barX, barY, barW, barH);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+          ctx.strokeRect(barX, barY, barW, barH);
+
+          const fillW = Math.round(Math.max(0, Math.min(1, r.v / scaleMax)) * barW);
+          if (fillW > 0) {
+            const barGrad = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
+            barGrad.addColorStop(0, mapColor(r.v * 0.5, 0.85));
+            barGrad.addColorStop(1, valCol);
+            ctx.fillStyle = barGrad;
+            ctx.fillRect(barX, barY, fillW, barH);
+
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(barX + Math.max(0, fillW - 2), barY, 2, barH);
+          }
+
+          // 20 ticks segmentados grabados
+          ctx.strokeStyle = "rgba(10, 13, 19, 0.75)";
+          for (let s = 1; s < 20; s++) {
+            const sx = barX + Math.round((s / 20) * barW);
+            ctx.beginPath(); ctx.moveTo(sx, barY); ctx.lineTo(sx, barY + barH); ctx.stroke();
+          }
+
+          // Aguja de referencia Overall MSD
+          if (overall_msd > 0) {
+            const ovX = barX + Math.round(Math.min(1, overall_msd / scaleMax) * barW);
+            ctx.strokeStyle = COL_AMBER;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(ovX, barY - 2.5);
+            ctx.lineTo(ovX, barY + barH + 2.5);
+            ctx.stroke();
+          }
+
+          // Valor numérico
+          ctx.textAlign = "right";
+          ctx.font = `700 15px ${FONT_MONO}`;
+          ctx.fillStyle = r.v > 0 ? (isApex ? COL_AMBER : (isStrong ? COL_INK : "#94A3B8")) : COL_DIM;
+          ctx.fillText(r.v > 0 ? r.v.toFixed(2) : "--", RIGHT_X + RIGHT_W - PAD, midY + 5);
+        }
+
+        // ── 6. TARJETA C (Inferior): Sismógrafo Temporal de Densidad NPS ──────
+        drawCard(GRAPH_X, GRAPH_Y, GRAPH_W, GRAPH_H, COL_CYAN);
+
+        // Cabecera limpia
+        ctx.textAlign = "left";
+        ctx.font = `800 17px ${FONT_DISPLAY}`;
+        ctx.fillStyle = COL_INK;
+        ctx.fillText("NOTE DENSITY", GRAPH_X + PAD, GRAPH_Y + 42);
+        const ndW = ctx.measureText("NOTE DENSITY").width;
+
+        ctx.font = `500 13px ${FONT_UI}`;
+        ctx.fillStyle = COL_DIM;
+        ctx.fillText("Notes Per Second", GRAPH_X + PAD + ndW + 14, GRAPH_Y + 41.5);
+
+        // 3 Chips KPI
+        function drawKpiPill(rightEdgeX, centerY, dotCol, dotShape, label, valueStr, extraStr = "") {
+          const padX = 14;
+          const pillH = 32;
+          const py = centerY - pillH / 2;
+
+          ctx.font = `700 10px ${FONT_MONO}`;
+          const lblW = ctx.measureText(label).width;
+          ctx.font = `700 14px ${FONT_MONO}`;
+          const valW = ctx.measureText(valueStr).width;
+          ctx.font = `600 11px ${FONT_MONO}`;
+          const extW = extraStr ? ctx.measureText(extraStr).width + 8 : 0;
+
+          const totalW = padX + 14 + lblW + 8 + valW + extW + padX;
+          const px = rightEdgeX - totalW;
+
+          chamferRect(ctx, px, py, totalW, pillH, 6);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.09)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          const dx = px + padX + 4;
+          const dy = centerY;
+          ctx.fillStyle = dotCol;
+          if (dotShape === "diamond") {
+            ctx.save();
+            ctx.translate(dx, dy);
+            ctx.rotate(Math.PI / 4);
+            ctx.fillRect(-3.5, -3.5, 7, 7);
+            ctx.restore();
+          } else {
+            ctx.beginPath();
+            ctx.arc(dx, dy, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          let tx = px + padX + 14;
+          ctx.textAlign = "left";
+          ctx.font = `700 10px ${FONT_MONO}`;
+          ctx.fillStyle = COL_MUTED;
+          ctx.fillText(label, tx, centerY + 3.5);
+          tx += lblW + 8;
+
+          ctx.font = `700 14px ${FONT_MONO}`;
+          ctx.fillStyle = dotShape === "neutral" ? COL_INK : dotCol;
+          ctx.fillText(valueStr, tx, centerY + 4.5);
+          tx += valW + 8;
+
+          if (extraStr) {
+            ctx.font = `600 11px ${FONT_MONO}`;
+            ctx.fillStyle = COL_MUTED;
+            ctx.fillText(extraStr, tx, centerY + 4);
+          }
+          return px;
+        }
+
+        let kpiRight = GRAPH_X + GRAPH_W - PAD;
+        const kpiY = GRAPH_Y + 36;
+        kpiRight = drawKpiPill(kpiRight, kpiY, COL_MUTED, "neutral", "AVG", `${avgNps.toFixed(1)} NPS`) - 12;
+        kpiRight = drawKpiPill(kpiRight, kpiY, COL_CRIMSON, "diamond", "PEAK", `${pkY.toFixed(1)} NPS`, `@ ${fmtT(peakTimeSec)}`) - 12;
+        drawKpiPill(
+          kpiRight, kpiY, COL_CYAN, "dot", "SUSTAINED",
+          `${dominantNps.toFixed(1)} NPS`,
+          hardSecs > 0 ? `· ${hardTimeStr} (${hardPct}%)` : ""
+        );
+
+        // Fondo del área del gráfico
+        ctx.fillStyle = "rgba(7, 9, 14, 0.54)";
+        ctx.fillRect(cX, cY, cW, cH);
+
+        // Rejilla horizontal + Eje Y limpio
+        ctx.lineWidth = 1;
+        for (let v = 0; v <= maxY; v += yStep) {
+          const y = bot - (v / maxY) * cH;
+          ctx.strokeStyle = v === 0 ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.05)";
+          ctx.beginPath();
+          ctx.moveTo(cX, y);
+          ctx.lineTo(cX + cW, y);
+          ctx.stroke();
+
+          ctx.font = `600 12px ${FONT_MONO}`;
+          ctx.fillStyle = "#7D8DA3";
+          ctx.textAlign = "right";
+          ctx.fillText(v.toString(), cX - 14, y + 4);
+        }
+
+        // Rejilla vertical + Eje X de tiempos
+        const tStepS = spanS > 600 ? 120 : (spanS > 300 ? 60 : (spanS > 120 ? 30 : (spanS > 60 ? 15 : 10)));
+        const endX = cX + cW;
+
+        ctx.font = `600 12px ${FONT_MONO}`;
+        for (let s = 0; s <= spanS; s += tStepS) {
+          const x = cX + (s / spanS) * cW;
+          if (s !== 0 && (endX - x) < 64) continue;
+
+          if (s > 0) {
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.04)";
+            ctx.beginPath();
+            ctx.moveTo(x, cY);
+            ctx.lineTo(x, bot);
+            ctx.stroke();
+          }
+
+          ctx.fillStyle = "#8B98AD";
+          ctx.textAlign = s === 0 ? "left" : "center";
+          ctx.fillText(fmtT(s), x, bot + 26);
+        }
+
+        ctx.textAlign = "right";
+        ctx.fillStyle = COL_INK;
+        ctx.fillText(fmtT(spanS), endX, bot + 26);
+
+        // Curva y Relleno de Densidad
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(cX, cY, cW, cH);
+        ctx.clip();
 
         const pathPoints = [];
         for (let i = 0; i < cW; i++) {
@@ -307,35 +1007,83 @@ function renderExportChart(payload) {
           pathPoints.push([x, y, sProf[i]]);
         }
 
-        for (let i = 0; i < pathPoints.length - 1; i++) {
-          const [x1, y1, v1] = pathPoints[i];
-          const [x2, y2, v2] = pathPoints[i + 1];
-
-          ctx.fillStyle = mapColor((v1 + v2) / 2, 0.15);
+        if (pathPoints.length > 1) {
+          ctx.save();
           ctx.beginPath();
-          ctx.moveTo(x1, bot);
-          ctx.lineTo(x1, y1);
-          ctx.lineTo(x2, y2);
-          ctx.lineTo(x2, bot);
-          ctx.fill();
+          ctx.moveTo(pathPoints[0][0], bot + 2);
+          for (let i = 0; i < pathPoints.length; i++) {
+            ctx.lineTo(pathPoints[i][0], pathPoints[i][1]);
+          }
+          ctx.lineTo(pathPoints[pathPoints.length - 1][0], bot + 2);
+          ctx.closePath();
+          ctx.clip();
+
+          // Relleno vertical continuo (Espec. Imagen 3)
+          for (let i = 0; i < cW; i++) {
+            const v = sProf[i];
+            if (v <= 0.02) continue;
+            const x = cX + i;
+            const y = bot - (v / maxY) * cH;
+            const h = bot - y;
+            if (h <= 0) continue;
+
+            const [r, g, b] = pRgb(mapColor(v));
+            const vGrad = ctx.createLinearGradient(0, y, 0, bot);
+            vGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.54)`);
+            vGrad.addColorStop(0.38, `rgba(${r}, ${g}, ${b}, 0.25)`);
+            vGrad.addColorStop(0.78, `rgba(${r}, ${g}, ${b}, 0.08)`);
+            vGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.01)`);
+
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(x - 0.2, y - 2, 1.4, h + 4);
+          }
+
+          // Iluminación superior en tramos difíciles
+          if (dominantNps > 0.1 && dominantNps < pkY) {
+            const domPx = Math.max(cY, Math.min(bot, bot - (dominantNps / maxY) * cH));
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(cX, cY, cW, domPx - cY);
+            ctx.clip();
+
+            for (let i = 0; i < cW; i++) {
+              const v = sProf[i];
+              if (v < dominantNps) continue;
+              const x = cX + i;
+              const y = bot - (v / maxY) * cH;
+              const [r, g, b] = pRgb(mapColor(v));
+              const topGrad = ctx.createLinearGradient(0, y, 0, domPx);
+              topGrad.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.22)`);
+              topGrad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.02)`);
+              ctx.fillStyle = topGrad;
+              ctx.fillRect(x - 0.2, y - 2, 1.4, (domPx - y) + 4);
+            }
+            ctx.restore();
+          }
+
+          ctx.restore();
         }
 
+        // Contorno continuo superior
         ctx.save();
-        ctx.shadowColor = "rgba(255, 42, 109, 0.4)";
-        ctx.shadowBlur = 12;
-        ctx.lineWidth = 3.5;
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
-
         for (let i = 0; i < pathPoints.length - 1; i++) {
           const [x1, y1, v1] = pathPoints[i];
           const [x2, y2, v2] = pathPoints[i + 1];
+          const meanV = (v1 + v2) / 2;
+          const isHard = meanV >= dominantNps;
+          const strokeCol = mapColor(meanV);
 
-          const lineGrad = ctx.createLinearGradient(x1, 0, x2, 0);
-          lineGrad.addColorStop(0, mapColor(v1));
-          lineGrad.addColorStop(1, mapColor(v2));
+          ctx.strokeStyle = strokeCol;
+          ctx.lineWidth = isHard ? 3.4 : 2.2;
+          if (isHard) {
+            ctx.shadowColor = strokeCol;
+            ctx.shadowBlur = 8;
+          } else {
+            ctx.shadowBlur = 0;
+          }
 
-          ctx.strokeStyle = lineGrad;
           ctx.beginPath();
           ctx.moveTo(x1, y1);
           ctx.lineTo(x2, y2);
@@ -343,397 +1091,115 @@ function renderExportChart(payload) {
         }
         ctx.restore();
 
-        // Peak point
-        if (maxSIdx >= 0 && maxSIdx < cW) {
+        // Línea horizontal de umbral sostenido
+        const dominantNps_px = Math.max(cY, Math.min(bot, bot - (dominantNps / maxY) * cH));
+        if (dominantNps > 0.1) {
+          ctx.save();
+          ctx.strokeStyle = "rgba(0, 229, 204, 0.72)";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 5]);
+          ctx.beginPath();
+          ctx.moveTo(cX, dominantNps_px);
+          ctx.lineTo(cX + cW, dominantNps_px);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Marcador del Pico
+        if (pkY > 0 && maxSIdx >= 0 && maxSIdx < cW) {
           const pkX_px = cX + maxSIdx;
           const pkY_px = bot - (sProf[maxSIdx] / maxY) * cH;
 
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+          ctx.save();
+          ctx.strokeStyle = "rgba(255, 69, 96, 0.40)";
           ctx.lineWidth = 1;
           ctx.setLineDash([4, 4]);
-          ctx.beginPath(); ctx.moveTo(pkX_px, pkY_px); ctx.lineTo(pkX_px, bot); ctx.stroke();
-          ctx.setLineDash([]);
-
-          ctx.save();
-          ctx.shadowColor = "#ffffff";
-          ctx.shadowBlur = 15;
-          ctx.fillStyle = "#ffffff";
-          ctx.beginPath(); ctx.arc(pkX_px, pkY_px, 6, 0, Math.PI * 2); ctx.fill();
-
-          ctx.fillStyle = mapColor(pkY);
-          ctx.beginPath(); ctx.arc(pkX_px, pkY_px, 3, 0, Math.PI * 2); ctx.fill();
-          ctx.restore();
-        }
-        ctx.restore();
-
-        // Dominant NPS reference line
-        ctx.save();
-        const dominantNps_px = bot - (dominantNps / maxY) * cH;
-
-        ctx.strokeStyle = "rgba(0, 240, 255, 0.4)";
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 4]);
-        ctx.beginPath();
-        ctx.moveTo(cX, dominantNps_px);
-        ctx.lineTo(cX + cW, dominantNps_px);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.fillStyle = "#00f0ff";
-        ctx.beginPath();
-        ctx.arc(cX, dominantNps_px, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.font = "bold 16px 'Bahnschrift',sans-serif";
-        ctx.fillStyle = "rgba(0, 240, 255, 0.8)";
-        ctx.textAlign = "right";
-        ctx.fillText(dominantNps.toFixed(1), cX - 10, dominantNps_px + 4);
-        ctx.textAlign = "left";
-        ctx.restore();
-
-        // ── 7. METADATA PANEL (Banner + Pack + Info + Stats) ─────────────────
-        const { artist = "", title = "", version = "", creator = "", format = "" } = meta;
-        const pack = (payload.pack || meta.pack || "").trim();
-        const notes = meta.note_count || 0, lns = meta.ln_count || 0, drT = meta.drain_time_s || 0;
-        const durSec = meta.total_time_ms ? Math.round(meta.total_time_ms / 1000) : drT;
-
-        const isEtterna = !!(payload.is_etterna || format === "sm" || format === "ssc");
-
-        // Option B: Omit STARS and OD for Etterna
-        let statBlocks = [];
-        if (isEtterna) {
-          statBlocks = [
-            { l: "BPM", v: bpm.toString() },
-            { l: "KEYS", v: `${kc}K` },
-            { l: "DUR", v: fmtT(durSec) },
-            { l: "LN", v: lns.toString() },
-            { l: "NOTES", v: notes.toString() }
-          ];
-        } else {
-          statBlocks = [
-            { l: "STARS", v: (meta.sr_official || 0.0).toFixed(2) },
-            { l: "OD", v: od },
-            { l: "BPM", v: bpm.toString() },
-            { l: "KEYS", v: `${kc}K` },
-            { l: "DUR", v: fmtT(durSec) },
-            { l: "LN", v: lns.toString() },
-            { l: "NOTES", v: notes.toString() }
-          ];
-        }
-
-        // Banner card geometry (proportional fit to show full banner without cropping)
-        const hasBanner = !!(bannerImg && bannerImg.naturalWidth > 0);
-        let bannerW = 0, bannerH = 0, bannerX = panX2 + 25, bannerY = panY2 + 25;
-
-        if (hasBanner) {
-          const bImgW = bannerImg.naturalWidth;
-          const bImgH = bannerImg.naturalHeight;
-          const imgRatio = bImgW / Math.max(1, bImgH);
-
-          // Standard StepMania banner is 256x80 or 512x160 (ratio 3.2:1) or 418x164 (ratio 2.55:1)
-          // Target box bounds: max width 350px, max height 130px
-          const maxBW = 350, maxBH = 130;
-          if (imgRatio >= maxBW / maxBH) {
-            bannerW = maxBW;
-            bannerH = Math.round(maxBW / imgRatio);
-          } else {
-            bannerH = maxBH;
-            bannerW = Math.round(maxBH * imgRatio);
-          }
-
-          // Vertically center banner inside panel 2
-          bannerY = panY2 + Math.round((panH2 - bannerH) / 2);
-
-          ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
-          ctx.shadowBlur = 24;
-          ctx.shadowOffsetY = 8;
-
-          rRect(ctx, bannerX, bannerY, bannerW, bannerH, 12);
-          ctx.fillStyle = "#0c1017";
-          ctx.fill();
-          ctx.restore();
-
-          ctx.save();
           ctx.beginPath();
-          rRect(ctx, bannerX, bannerY, bannerW, bannerH, 12);
-          ctx.clip();
-
-          // Draw full banner completely without cropping
-          ctx.drawImage(bannerImg, 0, 0, bImgW, bImgH, bannerX, bannerY, bannerW, bannerH);
-
-          // Glass overlay on banner
-          const bGrad = ctx.createLinearGradient(bannerX, bannerY, bannerX, bannerY + bannerH);
-          bGrad.addColorStop(0, "rgba(255, 255, 255, 0.10)");
-          bGrad.addColorStop(1, "rgba(0, 0, 0, 0.30)");
-          ctx.fillStyle = bGrad;
-          ctx.fillRect(bannerX, bannerY, bannerW, bannerH);
-
-          // Glass border
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
-          ctx.lineWidth = 1.5;
-          rRect(ctx, bannerX, bannerY, bannerW, bannerH, 12);
+          ctx.moveTo(pkX_px, pkY_px + 6);
+          ctx.lineTo(pkX_px, bot);
           ctx.stroke();
           ctx.restore();
-        }
 
-        // Dynamic card widths and start position
-        const statCardWidth = hasBanner ? 90 : (isEtterna ? 115 : 85);
-        const totalStatsWidth = statBlocks.length * statCardWidth;
-        const statsStartX = panX2 + panW2 - totalStatsWidth - 20;
+          ctx.save();
+          ctx.translate(pkX_px, pkY_px);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillStyle = COL_CRIMSON;
+          ctx.fillRect(-4.5, -4.5, 9, 9);
+          ctx.strokeStyle = "#FFFFFF";
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(-4.5, -4.5, 9, 9);
+          ctx.restore();
 
-        const mX = hasBanner ? (bannerX + bannerW + 25) : (panX2 + 40);
-        const maxTextWidth = Math.max(160, statsStartX - mX - 25);
-        let mY = panY2 + (pack ? 46 : 55);
+          const pkAtSec = Math.round((maxSIdx / Math.max(1, cW - 1)) * spanS);
+          const pkTagText = `PEAK ${pkY.toFixed(1)} @ ${fmtT(pkAtSec)}`;
+          ctx.font = `700 11px ${FONT_MONO}`;
+          const tagW = Math.ceil(ctx.measureText(pkTagText).width + 20);
+          const tagH = 24;
+          const flipLeft = (pkX_px + 14 + tagW > cX + cW - 8);
+          const tagX = flipLeft ? (pkX_px - 14 - tagW) : (pkX_px + 14);
+          const tagY = Math.max(cY + 8, Math.min(bot - tagH - 8, pkY_px - tagH / 2));
 
-        // Pack Header (clean without redundant "PACK" word)
-        if (pack) {
+          chamferRect(ctx, tagX, tagY, tagW, tagH, 4);
+          ctx.fillStyle = "rgba(11, 14, 20, 0.92)";
+          ctx.fill();
+          ctx.strokeStyle = COL_CRIMSON;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
           ctx.textAlign = "left";
-          ctx.font = `800 12px ${FONT_FAM}`;
-          ctx.letterSpacing = "1.2px";
-          ctx.fillStyle = "#38bdf8";
-          const safePack = truncateText(ctx, pack.toUpperCase(), maxTextWidth);
-          ctx.fillText(safePack, mX, mY);
-          ctx.letterSpacing = "0px";
-          mY += (hasBanner ? 26 : 28);
+          ctx.fillStyle = COL_INK;
+          ctx.fillText(pkTagText, tagX + 10, tagY + 16);
         }
 
-        // Title
-        ctx.textAlign = "left";
-        ctx.font = hasBanner ? `900 32px ${FONT_FAM}` : `900 38px ${FONT_FAM}`;
-        ctx.fillStyle = "#ffffff";
-        ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 8; ctx.shadowOffsetY = 4;
-        const safeTitle = truncateText(ctx, title, maxTextWidth);
-        ctx.fillText(safeTitle, mX, mY);
-        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        ctx.restore(); // Fin clip
 
-        // Artist
-        mY += (hasBanner ? 25 : 30);
-        ctx.font = `600 ${hasBanner ? 17 : 20}px ${FONT_FAM}`;
-        ctx.fillStyle = "#94a3b8";
-        const safeArtist = truncateText(ctx, artist, maxTextWidth);
-        ctx.fillText(safeArtist, mX, mY);
-
-        // Difficulty pill & Rate badge & Charter
-        mY += (hasBanner ? 29 : 34);
-        const diffText = version;
-        ctx.font = `bold 14px ${FONT_FAM}`;
-        const diffW = ctx.measureText(diffText).width + 22;
-
-        const pGrad = ctx.createLinearGradient(mX, 0, mX + diffW, 0);
-        pGrad.addColorStop(0, "#9d4edd"); pGrad.addColorStop(1, "#c77dff");
-        ctx.fillStyle = pGrad;
-        rRect(ctx, mX, mY - 17, diffW, 24, 12);
-        ctx.fill();
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(diffText, mX + 11, mY);
-
-        let nextBadgeX = mX + diffW + 10;
-
-        // Active rate pill next to difficulty (if active)
-        if (rateLabel) {
-          ctx.font = `bold 13px ${FONT_FAM}`;
-          const rateW = ctx.measureText(rateLabel).width + 18;
-          const rGrad = ctx.createLinearGradient(nextBadgeX, 0, nextBadgeX + rateW, 0);
-          rGrad.addColorStop(0, "#d97706"); rGrad.addColorStop(1, "#f59e0b");
-          ctx.fillStyle = rGrad;
-          rRect(ctx, nextBadgeX, mY - 17, rateW, 24, 12);
-          ctx.fill();
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText(rateLabel, nextBadgeX + 9, mY);
-          nextBadgeX += rateW + 14;
-        } else {
-          nextBadgeX += 4;
-        }
-
-        if (creator && creator.trim()) {
-          const labelText = isEtterna ? "Charter" : "Mapped by";
-          ctx.font = `16px ${FONT_FAM}`;
-          ctx.fillStyle = "#6e7681";
-          ctx.fillText(labelText, nextBadgeX, mY);
-          nextBadgeX += ctx.measureText(labelText + " ").width;
-
-          ctx.fillStyle = "#e2e8f0";
-          ctx.font = `bold 16px ${FONT_FAM}`;
-          const safeCreator = truncateText(ctx, creator.trim(), maxTextWidth - nextBadgeX + mX);
-          ctx.fillText(safeCreator, nextBadgeX, mY);
-        }
-
-        // Technical info
-        mY += (hasBanner ? 25 : 30);
-        const tech = `SAMPLES: ${nps_data.length}  •  HOP: ${density_meta.hop_ms || 0}MS  •  WINDOW: ${density_meta.segment_ms || 0}MS`;
-        ctx.font = `600 11px ${FONT_FAM}`;
-        ctx.fillStyle = "#475569";
-        ctx.letterSpacing = "1px";
-        ctx.fillText(tech, mX, mY);
-        ctx.letterSpacing = "0px";
-
-        // Render Stat Cards
-        let sx = statsStartX;
-        const sy = panY2 + 45;
-
-        statBlocks.forEach((sb, idx) => {
-          ctx.fillStyle = "rgba(255, 255, 255, 0.02)";
-          rRect(ctx, sx, sy, statCardWidth - 10, 90, 12);
-          ctx.fill();
-
-          ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-          ctx.beginPath();
-          ctx.roundRect(sx, sy, 3, 90, [12, 0, 0, 12]);
-          ctx.fill();
-
-          ctx.textAlign = "center";
-
-          ctx.font = `900 ${hasBanner && statCardWidth < 105 ? 20 : 24}px ${FONT_FAM}`;
-          ctx.fillStyle = "#ffffff";
-          ctx.fillText(sb.v, sx + (statCardWidth - 10) / 2, sy + 45);
-
-          ctx.font = `700 12px ${FONT_FAM}`;
-          ctx.fillStyle = "#64748b";
-          ctx.fillText(sb.l, sx + (statCardWidth - 10) / 2, sy + 70);
-
-          sx += statCardWidth;
-        });
-
-        // ── 8. SKILLSETS PANEL ───────────────────────────────────────────────
-        const ss = payload.skillsets || {};
-        let maxM = overall_msd > 0 ? overall_msd : 10.0;
-        Object.values(ss).forEach(v => maxM = Math.max(maxM, v));
-        const skRows = [
-          { l: "Overall", v: overall_msd, top: true },
-          { l: "Stream", v: ss.stream || 0 },
-          { l: "Jumpstream", v: ss.jumpstream || 0 },
-          { l: "Handstream", v: ss.handstream || 0 },
-          { l: "Stamina", v: ss.stamina || 0 },
-          { l: "Jackspeed", v: ss.jackspeed || 0 },
-          { l: "Chordjack", v: ss.chordjack || 0 },
-          { l: "Technical", v: ss.technical || 0 }
-        ];
-
-        const skX = panX3 + 40;
-        const skW = panW3 - 80;
-        const rowH = (panH3 - 100) / skRows.length;
-        let rY = panY3 + 40;
-
-        ctx.textAlign = "left";
-        ctx.font = `900 28px ${FONT_FAM}`;
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText("OVERALL", skX, rY + 30);
-
-        ctx.textAlign = "right";
-        ctx.font = `900 42px ${FONT_FAM}`;
-        ctx.fillStyle = "#d8a4ff";
-        ctx.shadowColor = "rgba(157, 78, 221, 0.6)";
-        ctx.shadowBlur = 20;
-        ctx.fillText(overall_msd > 0 ? overall_msd.toFixed(2) : "--.-", skX + skW, rY + 35);
-        ctx.shadowBlur = 0;
-
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.09)";
         ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(skX, rY + 60); ctx.lineTo(skX + skW, rY + 60); ctx.stroke();
+        ctx.strokeRect(cX, cY, cW, cH);
+        drawCornerTicks(ctx, cX, cY, cW, cH, 8, COL_MUTED, 1.2);
 
-        rY += 85;
-
-        for (let i = 1; i < skRows.length; i++) {
-          const r = skRows[i];
-          const valCol = mapColor(r.v);
-
-          ctx.textAlign = "left";
-          ctx.font = `600 14px ${FONT_FAM}`;
-          ctx.fillStyle = "#94a3b8";
-          ctx.fillText(r.l.toUpperCase(), skX, rY + 12);
-
-          ctx.textAlign = "right";
-          ctx.font = `bold 16px monospace`;
-          ctx.fillStyle = "#f8fafc";
-          ctx.fillText(r.v > 0 ? r.v.toFixed(2) : "--", skX + skW, rY + 12);
-
-          const barY = rY + 25;
-          const fillW = Math.round(Math.min(1, r.v / maxM) * skW);
-
-          ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
-          rRect(ctx, skX, barY, skW, 10, 5);
-          ctx.fill();
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-          ctx.stroke();
-
-          if (fillW > 0) {
-            ctx.save();
-            const barG = ctx.createLinearGradient(skX, 0, skX + fillW, 0);
-            barG.addColorStop(0, "rgba(255, 255, 255, 0.2)");
-            barG.addColorStop(1, valCol);
-
-            ctx.fillStyle = barG;
-            rRect(ctx, skX, barY, fillW, 10, 5);
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(skX + fillW - 5, barY + 5, 4, 0, Math.PI * 2);
-            ctx.fillStyle = "#ffffff";
-            ctx.shadowColor = valCol;
-            ctx.shadowBlur = 12;
-            ctx.fill();
-
-            ctx.restore();
-          }
-          rY += rowH;
-        }
-
-        // ── 9. NPS PANEL ─────────────────────────────────────────────────────
-        const boxW = (panW4 - 30) / 2;
-
-        function drawNpsWidget(x, y, label, val, colorHex, shadowRgba) {
-          ctx.save();
-
-          const grad = ctx.createLinearGradient(x, y, x, y + panH4);
-          grad.addColorStop(0, "rgba(20, 25, 35, 0.9)");
-          grad.addColorStop(1, "rgba(10, 13, 18, 0.9)");
-          ctx.fillStyle = grad;
-          rRect(ctx, x, y, boxW, panH4, 16);
-          ctx.fill();
-
-          ctx.beginPath(); rRect(ctx, x, y, boxW, panH4, 16); ctx.clip();
-          const radGlow = ctx.createRadialGradient(x + boxW / 2, y, 0, x + boxW / 2, y, 100);
-          radGlow.addColorStop(0, shadowRgba);
-          radGlow.addColorStop(1, "transparent");
-          ctx.fillStyle = radGlow;
-          ctx.fillRect(x, y, boxW, panH4);
-
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
-          ctx.lineWidth = 1.5;
-          rRect(ctx, x, y, boxW, panH4, 16);
-          ctx.stroke();
-          ctx.restore();
+        // Badge sostenido anclado a la derecha
+        if (dominantNps > 0.1) {
+          const pillW = 60;
+          const pillH = 24;
+          const pillX = cX + cW + 12;
+          const pillY = Math.max(cY, Math.min(bot - pillH, dominantNps_px - pillH / 2));
+          const arrowY = Math.max(pillY + 6, Math.min(pillY + pillH - 6, dominantNps_px));
 
           ctx.beginPath();
-          ctx.arc(x + boxW / 2 - ctx.measureText(label).width / 2 - 25, y + 46, 4, 0, Math.PI * 2);
-          ctx.fillStyle = colorHex;
-          ctx.shadowColor = colorHex; ctx.shadowBlur = 8;
-          ctx.fill(); ctx.shadowBlur = 0;
+          ctx.moveTo(pillX - 6, arrowY);
+          ctx.lineTo(pillX + 1, arrowY - 5);
+          ctx.lineTo(pillX + 1, arrowY + 5);
+          ctx.closePath();
+          ctx.fillStyle = COL_CYAN;
+          ctx.fill();
 
+          chamferRect(ctx, pillX, pillY, pillW, pillH, 4);
+          ctx.fillStyle = COL_CYAN;
+          ctx.fill();
+
+          ctx.font = `800 12px ${FONT_MONO}`;
+          ctx.fillStyle = "#07090D";
           ctx.textAlign = "center";
-          ctx.font = `700 14px ${FONT_FAM}`;
-          ctx.fillStyle = "#94a3b8";
-          ctx.letterSpacing = "1.5px";
-          ctx.fillText(label, x + boxW / 2 + 10, y + 50);
-          ctx.letterSpacing = "0px";
-
-          ctx.font = `900 58px ${FONT_FAM}`;
-          ctx.fillStyle = colorHex;
-          ctx.shadowColor = shadowRgba;
-          ctx.shadowBlur = 25;
-          ctx.fillText(val.toFixed(1), x + boxW / 2, y + 125);
-          ctx.shadowBlur = 0;
-
-          ctx.font = `600 12px ${FONT_FAM}`;
-          ctx.fillStyle = "rgba(255,255,255,0.2)";
-          ctx.fillText("NOTES / SEC", x + boxW / 2, y + 150);
+          ctx.fillText(dominantNps.toFixed(1), pillX + pillW / 2, pillY + 16.5);
         }
 
-        drawNpsWidget(panX4, panY4, "DOM NPS", dominantNps, "#00f0ff", "rgba(0, 240, 255, 0.3)");
-        drawNpsWidget(panX4 + boxW + 30, panY4, "PEAK NPS", pkY, "#ff2a6d", "rgba(255, 42, 109, 0.3)");
+        // ── 7. Firma Discreta Inferior ───────────────────────────────────────
+        const FOOT_Y = 960;
+        ctx.fillStyle = COL_AMBER;
+        ctx.fillRect(MX + 2, FOOT_Y - 9, 3, 11);
 
-        // ── 10. CAPTURE ──────────────────────────────────────────────────────
+        ctx.textAlign = "left";
+        ctx.font = `700 11px ${FONT_MONO}`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.40)";
+        ctx.fillText("DANOVERLAY", MX + 14, FOOT_Y);
+
+        ctx.textAlign = "right";
+        ctx.font = `600 11px ${FONT_MONO}`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+        ctx.fillText(isEtterna ? "Etterna · MinaCalc MSD" : "osu!mania 4K · Density Profile", W - MX, FOOT_Y);
+
+        // ── 8. CAPTURA (Intacto) ─────────────────────────────────────────────
         let captured = false;
         _doCapture();
 
@@ -746,9 +1212,7 @@ function renderExportChart(payload) {
 
             const b64 = canvas.toDataURL("image/png");
 
-            // Release the drawing surface immediately. An 1800x980 canvas holds
-            // roughly 7 MB of backing store, and without this each generated
-            // chart leaves another one waiting for the garbage collector.
+            // Liberar memoria inmediatamente
             canvas.width = 0;
             canvas.height = 0;
 
